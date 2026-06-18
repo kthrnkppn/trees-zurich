@@ -6,6 +6,30 @@ const layerId = 'tree-points-layer';
 const sourceLayer = 'tree_points_layer';
 let SelectedBaumGattungId = 0;
 
+// Single source of truth for genus colouring: drives BOTH the map paint
+// expression and the legend, so they can never drift apart. We highlight the
+// most common / iconic Zurich genera; everything else falls back to "Andere".
+// `id` is the baumgattung_lat_id from BaumgattungIds.js.
+const GENUS_COLORS = [
+  { id: 17, name: 'Acer (Ahorn)', color: '#e6194B' },
+  { id: 14, name: 'Tilia (Linde)', color: '#3cb44b' },
+  { id: 5, name: 'Quercus (Eiche)', color: '#4363d8' },
+  { id: 6, name: 'Fraxinus (Esche)', color: '#f58231' },
+  { id: 31, name: 'Platanus (Platane)', color: '#911eb4' },
+  { id: 4, name: 'Prunus (Kirsche)', color: '#f032e6' },
+  { id: 9, name: 'Carpinus (Hainbuche)', color: '#469990' },
+  { id: 23, name: 'Aesculus (Rosskastanie)', color: '#9A6324' },
+  { id: 21, name: 'Fagus (Buche)', color: '#808000' },
+  { id: 10, name: 'Betula (Birke)', color: '#42d4f4' },
+];
+const OTHER_COLOR = '#9e9e9e';
+
+// Build a Mapbox "match" expression: baumgattung_lat_id -> colour, default grey.
+function buildGenusColorExpression() {
+  const matchPairs = GENUS_COLORS.flatMap(({ id, color }) => [id, color]);
+  return ['match', ['get', 'baumgattung_lat_id'], ...matchPairs, OTHER_COLOR];
+}
+
 function fillBaumArtLatNames(baumgattung_id) {
   const baumartSelectElem = document.querySelector('#baumart_lat_id');
   baumartSelectElem.innerHTML = '<option value="0">Baumart</option>';
@@ -153,6 +177,41 @@ class TreeTypeSelectControl {
   }
 }
 
+class LegendControl {
+  onAdd() {
+    this._container = document.createElement('div');
+    this._container.className = 'mapboxgl-ctrl legend';
+
+    const title = document.createElement('div');
+    title.className = 'legend-title';
+    title.textContent = 'Baumgattung';
+    this._container.appendChild(title);
+
+    for (const { name, color } of [
+      ...GENUS_COLORS,
+      { name: 'Andere', color: OTHER_COLOR },
+    ]) {
+      const row = document.createElement('div');
+      row.className = 'legend-row';
+
+      const swatch = document.createElement('span');
+      swatch.className = 'legend-swatch';
+      swatch.style.background = color;
+
+      const label = document.createElement('span');
+      label.textContent = name;
+
+      row.append(swatch, label);
+      this._container.appendChild(row);
+    }
+    return this._container;
+  }
+
+  onRemove() {
+    this._container.parentNode.removeChild(this._container);
+  }
+}
+
 mapboxgl.accessToken =
   'pk.eyJ1IjoibnVycCIsImEiOiJjajVkaWF0NnUwYTdsMnduejdpZjIydjd1In0.BTjYUbXCFa5UUhqdbficyg';
 
@@ -200,6 +259,7 @@ const map = new mapboxgl.Map({
   )
   .addControl(new YearRangeControl(), 'top-left')
   .addControl(new TreeTypeSelectControl(), 'top-left')
+  .addControl(new LegendControl(), 'top-right')
   .on('mouseenter', layerId, function () {
     map.getCanvas().style.cursor = 'pointer';
   })
@@ -229,3 +289,22 @@ function updateTreeCount() {
 
 // Recount whenever the map settles after panning, zooming or filtering.
 map.on('idle', updateTreeCount);
+
+// Colour the tree points by genus once the style has loaded. The layer lives in
+// the Mapbox Studio style; if it isn't a circle layer we skip colouring rather
+// than throw, so the map keeps working regardless.
+map.on('load', () => {
+  const layer = map.getLayer(layerId);
+  if (!layer) {
+    console.warn(`Layer "${layerId}" not found — skipping genus colouring.`);
+    return;
+  }
+  if (layer.type !== 'circle') {
+    console.warn(
+      `Layer "${layerId}" is type "${layer.type}", not "circle" — genus ` +
+        'colouring needs a circle layer. Adjust the layer type in Mapbox Studio.'
+    );
+    return;
+  }
+  map.setPaintProperty(layerId, 'circle-color', buildGenusColorExpression());
+});
