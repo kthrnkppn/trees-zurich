@@ -11,12 +11,19 @@ function createGoogleSearchQuery(query) {
 export const getPopupContent = (markerProperties) => {
   const { pflanzjahr, baumname_lat, baumname_deu } = markerProperties;
 
-  const googleSearchLinkDeuName = createGoogleSearchQuery(baumname_deu);
-  const googleSearchLinkLatName = createGoogleSearchQuery(baumname_lat);
+  // German name first (bold), Latin name in parentheses (italic), then the
+  // planting year. Both names link to a Google search. Falls back gracefully if
+  // one of the names is missing.
+  const deu = baumname_deu
+    ? `<a href='${createGoogleSearchQuery(baumname_deu)}' target='_blank' rel='noopener'>${baumname_deu}</a>`
+    : '';
+  const lat = baumname_lat
+    ? `<a href='${createGoogleSearchQuery(baumname_lat)}' target='_blank' rel='noopener'><em>${baumname_lat}</em></a>`
+    : '';
+  const year = pflanzjahr ? `gepflanzt ${pflanzjahr}` : '';
 
-  return `<a href='${googleSearchLinkLatName}' target='_blank'>${baumname_lat}</a><br>
-  (<a href='${googleSearchLinkDeuName}' target='_blank'>${baumname_deu}</a> ${
-    pflanzjahr ? ', ' + pflanzjahr : ''
-  })`;
-  //   return `${baumname_lat} (${baumname_deu} ${pflanzjahr ? ', ' + pflanzjahr : ''})`;
+  const heading = deu || lat || 'Unbekannter Baum';
+  const detail = [deu ? lat : '', year].filter(Boolean).join(', ');
+
+  return `<strong>${heading}</strong>${detail ? `<br>${detail}` : ''}`;
 };

@@ -1,5 +1,6 @@
 import { BaumgattungIds } from './BaumgattungIds.js';
 import { BaumArtLatIds } from './BaumArtLatIds.js';
+import { GenusDeNames } from './GenusDeNames.js';
 import { getPopupContent } from './helpers.js';
 
 const layerId = 'tree-points-layer';
@@ -7,18 +8,19 @@ const layerId = 'tree-points-layer';
 // Single source of truth for genus colouring: drives BOTH the map paint
 // expression and the legend, so they can never drift apart. We highlight the
 // most common / iconic Zurich genera; everything else falls back to "Andere".
-// `id` is the baumgattung_lat_id from BaumgattungIds.js.
+// `id` is the baumgattung_lat_id from BaumgattungIds.js. Labels read German
+// (Latin), matching the rest of the UI.
 const GENUS_COLORS = [
-  { id: 17, name: 'Acer (Ahorn)', color: '#e6194B' },
-  { id: 14, name: 'Tilia (Linde)', color: '#f58231' },
-  { id: 5, name: 'Quercus (Eiche)', color: '#4363d8' },
-  { id: 6, name: 'Fraxinus (Esche)', color: '#911eb4' },
-  { id: 31, name: 'Platanus (Platane)', color: '#f032e6' },
-  { id: 4, name: 'Prunus (Kirsche)', color: '#ff8fb3' },
-  { id: 9, name: 'Carpinus (Hainbuche)', color: '#00a3a3' },
-  { id: 23, name: 'Aesculus (Rosskastanie)', color: '#9A6324' },
-  { id: 21, name: 'Fagus (Buche)', color: '#ffcc00' },
-  { id: 10, name: 'Betula (Birke)', color: '#00bcd4' },
+  { id: 17, name: 'Ahorn (Acer)', color: '#e6194B' },
+  { id: 14, name: 'Linde (Tilia)', color: '#f58231' },
+  { id: 5, name: 'Eiche (Quercus)', color: '#4363d8' },
+  { id: 6, name: 'Esche (Fraxinus)', color: '#911eb4' },
+  { id: 31, name: 'Platane (Platanus)', color: '#f032e6' },
+  { id: 4, name: 'Kirsche (Prunus)', color: '#ff8fb3' },
+  { id: 9, name: 'Hainbuche (Carpinus)', color: '#00a3a3' },
+  { id: 23, name: 'Rosskastanie (Aesculus)', color: '#9A6324' },
+  { id: 21, name: 'Buche (Fagus)', color: '#ffcc00' },
+  { id: 10, name: 'Birke (Betula)', color: '#00bcd4' },
 ];
 // Everything not highlighted above keeps a natural leaf green (not grey — grey
 // points read like dead/burnt trees). Moss Green from the site palette.
@@ -30,14 +32,27 @@ function buildGenusColorExpression() {
   return ['match', ['get', 'baumgattung_lat_id'], ...matchPairs, OTHER_COLOR];
 }
 
+// Source strings look like "domestica (Apfel-Obstgehölz 'Spartan')", i.e.
+// "<latin epithet> (<German name>)". Reformat to German first, with the full
+// Latin binomial (genus + epithet) in parentheses: "Apfel… (Malus domestica)".
+function formatArtLabel(raw, genusLat) {
+  const m = raw.match(/^(.+?)\s*\((.+)\)\s*$/);
+  if (!m) return raw;
+  const latinEpithet = m[1].trim();
+  const german = m[2].trim();
+  const latinFull = genusLat ? `${genusLat} ${latinEpithet}` : latinEpithet;
+  return `${german} (${latinFull})`;
+}
+
 function fillBaumArtLatNames(baumgattung_id) {
   const baumartSelectElem = document.querySelector('#baumart_lat_id');
   baumartSelectElem.innerHTML = '<option value="0">Alle Arten</option>';
+  const genusLat = BaumgattungIds[baumgattung_id];
   const selected_baumartids = BaumArtLatIds[baumgattung_id];
   for (const key in selected_baumartids) {
     var option = document.createElement('option');
     option.value = key;
-    option.text = selected_baumartids[key];
+    option.text = formatArtLabel(selected_baumartids[key], genusLat);
     baumartSelectElem.add(option);
   }
 }
@@ -74,7 +89,10 @@ const nav = new mapboxgl.NavigationControl({
 const map = new mapboxgl.Map({
   container: 'map', // container ID
   center: [8.5035171, 47.3579481], // starting position [lng, lat]
-  style: 'mapbox://styles/nurp/clqzlon69018u01qwbfvv7wmp', //'mapbox://styles/nurp/clqxnrutg005s01pddzsbchyz', //'mapbox://styles/nurp/clqxnrutg005s01pddzsbchyz',
+  // Street map (outlines/roads, Google-Maps-like). The trees are no longer part
+  // of the base style — we re-add them as their own source/layer on style.load.
+  // Swap to 'mapbox://styles/mapbox/light-v11' for a more muted base.
+  style: 'mapbox://styles/mapbox/streets-v12',
   zoom: 12, // starting zoom
   attributionControl: false,
 })
@@ -139,23 +157,35 @@ function updateTreeCount() {
 // Recount whenever the map settles after panning, zooming or filtering.
 map.on('idle', updateTreeCount);
 
-// Colour the tree points by genus once the style has loaded. The layer lives in
-// the Mapbox Studio style; if it isn't a circle layer we skip colouring rather
-// than throw, so the map keeps working regardless.
-map.on('load', () => {
-  const layer = map.getLayer(layerId);
-  if (!layer) {
-    console.warn(`Layer "${layerId}" not found — skipping genus colouring.`);
-    return;
+// The tree tileset (published on the nurp Mapbox account) used to be welded
+// into the satellite style. We now add it on top of whatever base style is
+// active, so the base can be a plain street map. Runs on every style.load so it
+// survives base-style swaps.
+map.on('style.load', () => {
+  if (!map.getSource('zurich-trees')) {
+    map.addSource('zurich-trees', {
+      type: 'vector',
+      url: 'mapbox://nurp.zurich-trees',
+    });
   }
-  if (layer.type !== 'circle') {
-    console.warn(
-      `Layer "${layerId}" is type "${layer.type}", not "circle" — genus ` +
-        'colouring needs a circle layer. Adjust the layer type in Mapbox Studio.'
-    );
-    return;
+  if (!map.getLayer(layerId)) {
+    map.addLayer({
+      id: layerId,
+      type: 'circle',
+      source: 'zurich-trees',
+      'source-layer': 'tree_points_layer',
+      paint: {
+        'circle-color': buildGenusColorExpression(),
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 0, 1, 22, 8],
+        // White halo so the coloured dots stay legible on the light street map.
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': ['step', ['zoom'], 0, 13, 1, 22, 1.5],
+        'circle-stroke-opacity': 0.85,
+      },
+    });
   }
-  map.setPaintProperty(layerId, 'circle-color', buildGenusColorExpression());
+  // Re-apply any active filters (also covers the initial load).
+  UpdateFilters();
 });
 
 /* ------------------------------------------------------------------ *
@@ -167,11 +197,20 @@ const artSelect = document.querySelector('#baumart_lat_id');
 const yearMinInput = document.querySelector('#year_min');
 const yearMaxInput = document.querySelector('#year_max');
 
-// Populate the genus dropdown from the data.
-for (const id in BaumgattungIds) {
+// Populate the genus dropdown: German name with Latin in parentheses where a
+// German name is known, otherwise the Latin name alone. Sorted alphabetically
+// by the visible label so users can scan it.
+const genusOptions = Object.entries(BaumgattungIds)
+  .map(([id, lat]) => {
+    const de = GenusDeNames[lat];
+    return { id, label: de ? `${de} (${lat})` : lat };
+  })
+  .sort((a, b) => a.label.localeCompare(b.label, 'de'));
+
+for (const { id, label } of genusOptions) {
   const option = document.createElement('option');
   option.value = id;
-  option.textContent = BaumgattungIds[id];
+  option.textContent = label;
   genusSelect.appendChild(option);
 }
 
