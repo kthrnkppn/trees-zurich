@@ -225,6 +225,19 @@ const artSelect = document.querySelector('#baumart_lat_id');
 const yearMinInput = document.querySelector('#year_min');
 const yearMaxInput = document.querySelector('#year_max');
 
+// Earliest planting year in the data; the upper bound follows the calendar so
+// the filter never artificially caps at a hard-coded year (it used to stop at
+// 2023). When fresher tree data is loaded, newer plantings are included
+// automatically.
+const MIN_YEAR = 1665;
+const MAX_YEAR = new Date().getFullYear();
+for (const input of [yearMinInput, yearMaxInput]) {
+  input.min = MIN_YEAR;
+  input.max = MAX_YEAR;
+}
+yearMinInput.value = MIN_YEAR;
+yearMaxInput.value = MAX_YEAR;
+
 // Populate the genus dropdown: German name with Latin in parentheses where a
 // German name is known, otherwise the Latin name alone. Sorted alphabetically
 // by the visible label so users can scan it.
@@ -264,8 +277,8 @@ artSelect.addEventListener('change', (e) => {
 });
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
-  const min = Number(yearMinInput.value) || 1665;
-  const max = Number(yearMaxInput.value) || 2023;
+  const min = Number(yearMinInput.value) || MIN_YEAR;
+  const max = Number(yearMaxInput.value) || MAX_YEAR;
   mapFilters.PflanzJahr = [
     'all',
     ['>=', ['get', 'pflanzjahr'], min],
@@ -277,8 +290,8 @@ document.querySelector('#apply_filters').addEventListener('click', () => {
 document.querySelector('#reset_filters').addEventListener('click', () => {
   genusSelect.value = '0';
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
-  yearMinInput.value = 1665;
-  yearMaxInput.value = 2023;
+  yearMinInput.value = MIN_YEAR;
+  yearMaxInput.value = MAX_YEAR;
   mapFilters.BaumgattungIds = [];
   mapFilters.BaumArtLatIds = [];
   mapFilters.PflanzJahr = [];
