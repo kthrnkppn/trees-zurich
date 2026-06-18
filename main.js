@@ -10,21 +10,26 @@ const layerId = 'tree-points-layer';
 // most common / iconic Zurich genera; everything else falls back to "Andere".
 // `id` is the baumgattung_lat_id from BaumgattungIds.js. Labels read German
 // (Latin), matching the rest of the UI.
+// Colours are tuned for contrast on the LIGHT street base map: saturated,
+// medium-dark tones only. Deliberately no pale tints (washed out), no yellow
+// (clashes with roads), no brown (blends with land), no light cyan (blends with
+// water). Every dot also gets a white halo (see the layer paint below).
 const GENUS_COLORS = [
-  { id: 17, name: 'Ahorn (Acer)', color: '#e6194B' },
-  { id: 14, name: 'Linde (Tilia)', color: '#f58231' },
-  { id: 5, name: 'Eiche (Quercus)', color: '#4363d8' },
-  { id: 6, name: 'Esche (Fraxinus)', color: '#911eb4' },
-  { id: 31, name: 'Platane (Platanus)', color: '#f032e6' },
-  { id: 4, name: 'Kirsche (Prunus)', color: '#ff8fb3' },
-  { id: 9, name: 'Hainbuche (Carpinus)', color: '#00a3a3' },
-  { id: 23, name: 'Rosskastanie (Aesculus)', color: '#9A6324' },
-  { id: 21, name: 'Buche (Fagus)', color: '#ffcc00' },
-  { id: 10, name: 'Birke (Betula)', color: '#00bcd4' },
+  { id: 17, name: 'Ahorn (Acer)', color: '#e11900' }, // red
+  { id: 14, name: 'Linde (Tilia)', color: '#ef6c00' }, // orange
+  { id: 9, name: 'Hainbuche (Carpinus)', color: '#00897b' }, // teal
+  { id: 10, name: 'Birke (Betula)', color: '#3949ab' }, // indigo
+  { id: 5, name: 'Eiche (Quercus)', color: '#1e88e5' }, // blue
+  { id: 6, name: 'Esche (Fraxinus)', color: '#6a3d9a' }, // violet
+  { id: 31, name: 'Platane (Platanus)', color: '#9c27b0' }, // purple
+  { id: 4, name: 'Kirsche (Prunus)', color: '#c2185b' }, // rose
+  { id: 23, name: 'Rosskastanie (Aesculus)', color: '#607d8b' }, // blue-grey
+  { id: 21, name: 'Buche (Fagus)', color: '#212121' }, // near-black
 ];
-// Everything not highlighted above keeps a natural leaf green (not grey — grey
-// points read like dead/burnt trees). Moss Green from the site palette.
-const OTHER_COLOR = '#6eb257';
+// Everything not highlighted keeps a green (not grey — grey reads like dead/
+// burnt trees), but a deeper forest green so it stays visible on light land and
+// park greens rather than the lighter moss tone.
+const OTHER_COLOR = '#2e7d32';
 
 // Build a Mapbox "match" expression: baumgattung_lat_id -> colour, default grey.
 function buildGenusColorExpression() {
@@ -176,11 +181,19 @@ map.on('style.load', () => {
       'source-layer': 'tree_points_layer',
       paint: {
         'circle-color': buildGenusColorExpression(),
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 0, 1, 22, 8],
-        // White halo so the coloured dots stay legible on the light street map.
+        // Slightly larger dots at city/neighbourhood zoom so colours read.
+        'circle-radius': [
+          'interpolate', ['linear'], ['zoom'],
+          10, 2, 13, 3.5, 16, 5, 22, 9,
+        ],
+        // Opaque white halo around every dot — guarantees separation from the
+        // map regardless of what the dot sits on (road, water, park, label).
         'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': ['step', ['zoom'], 0, 13, 1, 22, 1.5],
-        'circle-stroke-opacity': 0.85,
+        'circle-stroke-width': [
+          'interpolate', ['linear'], ['zoom'],
+          10, 0.5, 13, 1, 16, 1.5, 22, 2,
+        ],
+        'circle-stroke-opacity': 1,
       },
     });
   }
