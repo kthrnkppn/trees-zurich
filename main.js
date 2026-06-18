@@ -21,8 +21,8 @@ const GENUS_COLORS = [
   { id: 10, name: 'Betula (Birke)', color: '#00bcd4' },
 ];
 // Everything not highlighted above keeps a natural leaf green (not grey — grey
-// points read like dead/burnt trees).
-const OTHER_COLOR = '#4e9d63';
+// points read like dead/burnt trees). Moss Green from the site palette.
+const OTHER_COLOR = '#6eb257';
 
 // Build a Mapbox "match" expression: baumgattung_lat_id -> colour, default grey.
 function buildGenusColorExpression() {

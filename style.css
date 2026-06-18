@@ -1,7 +1,9 @@
 :root {
-  --green: #1d6f42;
-  --green-dark: #155032;
-  --ink: #1d3b27;
+  /* Green palette: Deep Teal / Sea Green / Medium Jungle / Moss / Lemon Lime */
+  --green: #4aad52; /* Medium Jungle — primary buttons */
+  --green-dark: #507255; /* Deep Teal — headings, hover, strong text */
+  --accent: #c5e063; /* Lemon Lime — focus rings / highlights */
+  --ink: #28392f;
   --muted: #5b6b60;
   --line: #e2e7e3;
   --sidebar-width: 340px;
@@ -111,7 +113,7 @@ body {
 .field select:focus,
 .field input:focus,
 .btn:focus-visible {
-  outline: 2px solid var(--green);
+  outline: 3px solid var(--accent);
   outline-offset: 1px;
 }
 
