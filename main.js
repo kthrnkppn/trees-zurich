@@ -147,15 +147,30 @@ const map = new mapboxgl.Map({
       .addTo(map);
   });
 
-// Show how many trees are currently rendered in the viewport. This reflects
-// the active filters and the current map extent, and is announced via the
-// aria-live region in index.html.
+// Show how many distinct trees are currently visible. This reflects the active
+// filters and the current map extent, and is announced via the aria-live region
+// in index.html.
 const treeCountElem = document.querySelector('#tree-count');
 const numberFormat = new Intl.NumberFormat('de-CH');
 
+// Count distinct trees, not raw rendered features. queryRenderedFeatures
+// returns a feature once *per vector tile*, so a tree on a tile boundary is
+// counted multiple times — which made the total balloon past the real number
+// as tiles streamed in. Dedupe by feature id, falling back to exact
+// coordinates (boundary duplicates share the same coordinates).
+function countDistinctTrees(features) {
+  const seen = new Set();
+  for (const f of features) {
+    const key = f.id != null ? f.id : f.geometry?.coordinates?.join(',');
+    if (key != null) seen.add(key);
+  }
+  return seen.size;
+}
+
 function updateTreeCount() {
-  if (!treeCountElem) return;
-  const count = map.queryRenderedFeatures(null, { layers: [layerId] }).length;
+  if (!treeCountElem || !map.getLayer(layerId)) return;
+  const features = map.queryRenderedFeatures(null, { layers: [layerId] });
+  const count = countDistinctTrees(features);
   treeCountElem.textContent = `${numberFormat.format(count)} Bäume im Ausschnitt`;
 }
 
