@@ -3,8 +3,6 @@ import { BaumArtLatIds } from './BaumArtLatIds.js';
 import { getPopupContent } from './helpers.js';
 
 const layerId = 'tree-points-layer';
-const sourceLayer = 'tree_points_layer';
-let SelectedBaumGattungId = 0;
 
 // Single source of truth for genus colouring: drives BOTH the map paint
 // expression and the legend, so they can never drift apart. We highlight the
@@ -12,17 +10,19 @@ let SelectedBaumGattungId = 0;
 // `id` is the baumgattung_lat_id from BaumgattungIds.js.
 const GENUS_COLORS = [
   { id: 17, name: 'Acer (Ahorn)', color: '#e6194B' },
-  { id: 14, name: 'Tilia (Linde)', color: '#3cb44b' },
+  { id: 14, name: 'Tilia (Linde)', color: '#f58231' },
   { id: 5, name: 'Quercus (Eiche)', color: '#4363d8' },
-  { id: 6, name: 'Fraxinus (Esche)', color: '#f58231' },
-  { id: 31, name: 'Platanus (Platane)', color: '#911eb4' },
-  { id: 4, name: 'Prunus (Kirsche)', color: '#f032e6' },
-  { id: 9, name: 'Carpinus (Hainbuche)', color: '#469990' },
+  { id: 6, name: 'Fraxinus (Esche)', color: '#911eb4' },
+  { id: 31, name: 'Platanus (Platane)', color: '#f032e6' },
+  { id: 4, name: 'Prunus (Kirsche)', color: '#ff8fb3' },
+  { id: 9, name: 'Carpinus (Hainbuche)', color: '#00a3a3' },
   { id: 23, name: 'Aesculus (Rosskastanie)', color: '#9A6324' },
-  { id: 21, name: 'Fagus (Buche)', color: '#808000' },
-  { id: 10, name: 'Betula (Birke)', color: '#42d4f4' },
+  { id: 21, name: 'Fagus (Buche)', color: '#ffcc00' },
+  { id: 10, name: 'Betula (Birke)', color: '#00bcd4' },
 ];
-const OTHER_COLOR = '#9e9e9e';
+// Everything not highlighted above keeps a natural leaf green (not grey — grey
+// points read like dead/burnt trees).
+const OTHER_COLOR = '#4e9d63';
 
 // Build a Mapbox "match" expression: baumgattung_lat_id -> colour, default grey.
 function buildGenusColorExpression() {
@@ -32,7 +32,7 @@ function buildGenusColorExpression() {
 
 function fillBaumArtLatNames(baumgattung_id) {
   const baumartSelectElem = document.querySelector('#baumart_lat_id');
-  baumartSelectElem.innerHTML = '<option value="0">Baumart</option>';
+  baumartSelectElem.innerHTML = '<option value="0">Alle Arten</option>';
   const selected_baumartids = BaumArtLatIds[baumgattung_id];
   for (const key in selected_baumartids) {
     var option = document.createElement('option');
@@ -63,154 +63,6 @@ const UpdateFilters = () => {
   map.setFilter(layerId, filters);
   updateTreeCount();
 };
-
-class YearRangeControl {
-  onAdd(map) {
-    this._map = map;
-
-    this.inputMin = document.createElement('input');
-    this.inputMax = document.createElement('input');
-    this.setButton = document.createElement('button');
-
-    for (const input of [this.inputMin, this.inputMax]) {
-      input.type = 'number';
-      input.min = 1665;
-      input.max = 2023;
-    }
-    this.inputMin.value = 1665;
-    this.inputMax.value = 2023;
-    this.inputMin.setAttribute('aria-label', 'Pflanzjahr von');
-    this.inputMax.setAttribute('aria-label', 'Pflanzjahr bis');
-
-    this.setButton.textContent = 'Filtern';
-    this.setButton.setAttribute('aria-label', 'Nach Pflanzjahr filtern');
-    this.setButton.onclick = () => {
-      let min = this.inputMin.value || 1665;
-      let max = this.inputMax.value || 2023;
-
-      mapFilters['PflanzJahr'] = [
-        'all',
-        ['>=', ['get', 'pflanzjahr'], Number(min)],
-        ['<=', ['get', 'pflanzjahr'], Number(max)],
-      ];
-
-      UpdateFilters();
-    };
-
-    this._container = document.createElement('div');
-    this._container.className = 'custom-control';
-    this._container.appendChild(this.inputMin);
-    this._container.appendChild(this.inputMax);
-    this._container.appendChild(this.setButton);
-    return this._container;
-  }
-
-  onRemove() {
-    this._container.parentNode.removeChild(this._container);
-    this._map = undefined;
-  }
-}
-
-class TreeTypeSelectControl {
-  onAdd(map) {
-    this._map = map;
-
-    /** Set up Baum Gattung select box */
-    this.selectBaumGattung = document.createElement('select');
-    this.selectBaumGattung.setAttribute('aria-label', 'Baumgattung');
-    this.selectBaumGattung.innerHTML = '<option value=0>Baumgattung</option>';
-
-    for (let key in BaumgattungIds) {
-      var option = document.createElement('option');
-      option.value = key;
-      option.text = BaumgattungIds[key];
-      this.selectBaumGattung.add(option);
-    }
-
-    this.selectBaumGattung.addEventListener('change', function (e) {
-      mapFilters['BaumArtLatIds'] = []; // reset Baum Art so it doesn't try to filter for Baum Art for a different Baum Gattung
-      SelectedBaumGattungId = e.target.value;
-      if (SelectedBaumGattungId === '0') {
-        // map.setFilter(layerId, null);
-        mapFilters['BaumgattungIds'] = [];
-      } else {
-        mapFilters['BaumgattungIds'] = [
-          '==',
-          ['get', 'baumgattung_lat_id'],
-          Number(SelectedBaumGattungId),
-        ];
-        fillBaumArtLatNames(SelectedBaumGattungId);
-      }
-      UpdateFilters();
-    });
-
-    /** Set up Baum Art select box */
-    this.selectBaumArt = document.createElement('select');
-    this.selectBaumArt.setAttribute('aria-label', 'Baumart');
-    this.selectBaumArt.innerHTML = '<option value=0>Baumart</option>';
-    this.selectBaumArt.id = 'baumart_lat_id';
-    this.selectBaumArt.addEventListener('change', function (e) {
-      const selectedBaumArtId = e.target.value;
-      if (selectedBaumArtId === '0') {
-        mapFilters['BaumArtLatIds'] = [];
-      } else {
-        mapFilters['BaumArtLatIds'] = [
-          '==',
-          ['get', 'baumart_lat_id'],
-          Number(selectedBaumArtId),
-        ];
-      }
-      UpdateFilters();
-    });
-
-    /** Add controls to container */
-    this._container = document.createElement('div');
-    this._container.className = 'custom-control baumselect';
-    this._container.appendChild(this.selectBaumGattung);
-    this._container.appendChild(this.selectBaumArt);
-    return this._container;
-  }
-
-  onRemove() {
-    this._container.parentNode.removeChild(this._container);
-    this._map = undefined;
-  }
-}
-
-class LegendControl {
-  onAdd() {
-    this._container = document.createElement('div');
-    this._container.className = 'mapboxgl-ctrl legend';
-
-    const title = document.createElement('div');
-    title.className = 'legend-title';
-    title.textContent = 'Baumgattung';
-    this._container.appendChild(title);
-
-    for (const { name, color } of [
-      ...GENUS_COLORS,
-      { name: 'Andere', color: OTHER_COLOR },
-    ]) {
-      const row = document.createElement('div');
-      row.className = 'legend-row';
-
-      const swatch = document.createElement('span');
-      swatch.className = 'legend-swatch';
-      swatch.style.background = color;
-
-      const label = document.createElement('span');
-      label.textContent = name;
-
-      row.append(swatch, label);
-      this._container.appendChild(row);
-    }
-    return this._container;
-  }
-
-  onRemove() {
-    this._container.parentNode.removeChild(this._container);
-  }
-}
 
 mapboxgl.accessToken =
   'pk.eyJ1IjoibnVycCIsImEiOiJjajVkaWF0NnUwYTdsMnduejdpZjIydjd1In0.BTjYUbXCFa5UUhqdbficyg';
@@ -257,9 +109,6 @@ const map = new mapboxgl.Map({
     }),
     'top-left'
   )
-  .addControl(new YearRangeControl(), 'top-left')
-  .addControl(new TreeTypeSelectControl(), 'top-left')
-  .addControl(new LegendControl(), 'top-right')
   .on('mouseenter', layerId, function () {
     map.getCanvas().style.cursor = 'pointer';
   })
@@ -307,4 +156,94 @@ map.on('load', () => {
     return;
   }
   map.setPaintProperty(layerId, 'circle-color', buildGenusColorExpression());
+});
+
+/* ------------------------------------------------------------------ *
+ * Sidebar wiring
+ * ------------------------------------------------------------------ */
+
+const genusSelect = document.querySelector('#baumgattung_id');
+const artSelect = document.querySelector('#baumart_lat_id');
+const yearMinInput = document.querySelector('#year_min');
+const yearMaxInput = document.querySelector('#year_max');
+
+// Populate the genus dropdown from the data.
+for (const id in BaumgattungIds) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = BaumgattungIds[id];
+  genusSelect.appendChild(option);
+}
+
+genusSelect.addEventListener('change', (e) => {
+  const id = e.target.value;
+  // Reset species filter — species ids are scoped to a genus.
+  mapFilters.BaumArtLatIds = [];
+  if (id === '0') {
+    mapFilters.BaumgattungIds = [];
+    artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  } else {
+    mapFilters.BaumgattungIds = ['==', ['get', 'baumgattung_lat_id'], Number(id)];
+    fillBaumArtLatNames(id);
+  }
+  UpdateFilters();
+});
+
+artSelect.addEventListener('change', (e) => {
+  const id = e.target.value;
+  mapFilters.BaumArtLatIds =
+    id === '0' ? [] : ['==', ['get', 'baumart_lat_id'], Number(id)];
+  UpdateFilters();
+});
+
+document.querySelector('#apply_filters').addEventListener('click', () => {
+  const min = Number(yearMinInput.value) || 1665;
+  const max = Number(yearMaxInput.value) || 2023;
+  mapFilters.PflanzJahr = [
+    'all',
+    ['>=', ['get', 'pflanzjahr'], min],
+    ['<=', ['get', 'pflanzjahr'], max],
+  ];
+  UpdateFilters();
+});
+
+document.querySelector('#reset_filters').addEventListener('click', () => {
+  genusSelect.value = '0';
+  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  yearMinInput.value = 1665;
+  yearMaxInput.value = 2023;
+  mapFilters.BaumgattungIds = [];
+  mapFilters.BaumArtLatIds = [];
+  mapFilters.PflanzJahr = [];
+  UpdateFilters();
+});
+
+// Render the legend from the same GENUS_COLORS source as the map.
+const legendEl = document.querySelector('#legend');
+for (const { name, color } of [
+  ...GENUS_COLORS,
+  { name: 'Andere', color: OTHER_COLOR },
+]) {
+  const row = document.createElement('div');
+  row.className = 'legend-row';
+
+  const swatch = document.createElement('span');
+  swatch.className = 'legend-swatch';
+  swatch.style.background = color;
+
+  const label = document.createElement('span');
+  label.textContent = name;
+
+  row.append(swatch, label);
+  legendEl.appendChild(row);
+}
+
+// Mobile: toggle the sidebar and let the map reclaim the space.
+const sidebar = document.querySelector('#sidebar');
+const sidebarToggle = document.querySelector('#sidebar-toggle');
+sidebarToggle.addEventListener('click', () => {
+  const willHide = !sidebar.hasAttribute('hidden');
+  sidebar.toggleAttribute('hidden', willHide);
+  sidebarToggle.setAttribute('aria-expanded', String(!willHide));
+  map.resize();
 });

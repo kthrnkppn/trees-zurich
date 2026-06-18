@@ -59,36 +59,88 @@
     ></script>
   </head>
   <body>
-    <!-- Crawlable, screen-reader-friendly description. Hidden visually so the
-         map stays full-bleed, but present in the DOM for SEO + accessibility. -->
-    <header class="sr-only">
-      <h1>Zürcher Baumkarte</h1>
-      <p>
-        Eine interaktive Karte aller von der Stadt Zürich erfassten Bäume. Du
-        kannst nach Baumgattung, Baumart und Pflanzjahr filtern und einzelne
-        Bäume anklicken, um Art und Pflanzjahr zu sehen. Datenquelle: Stadt
-        Zürich (Baumkataster).
-      </p>
-    </header>
+    <div class="app">
+      <!-- Mobile toggle for the sidebar -->
+      <button
+        id="sidebar-toggle"
+        class="sidebar-toggle"
+        aria-controls="sidebar"
+        aria-expanded="true"
+      >
+        ☰ Filter
+      </button>
 
-    <noscript>
-      <p style="padding: 1rem; font-family: sans-serif">
-        Diese Karte benötigt JavaScript. Die zugrunde liegenden Daten stammen
-        aus dem
-        <a href="https://www.stadt-zuerich.ch/geodaten/" rel="noopener"
-          >offenen Baumkataster der Stadt Zürich</a
-        >.
-      </p>
-    </noscript>
+      <aside id="sidebar" class="sidebar">
+        <header class="sidebar-header">
+          <h1>Zürcher Baumkarte</h1>
+          <p class="subtitle">
+            Alle von der Stadt Zürich erfassten Bäume – filterbar nach Gattung,
+            Art und Pflanzjahr.
+          </p>
+        </header>
 
-    <div
-      id="map"
-      role="application"
-      aria-label="Interaktive Karte der Bäume in Zürich"
-    ></div>
+        <noscript>
+          <p>
+            Diese Karte benötigt JavaScript. Die Daten stammen aus dem
+            <a href="https://www.stadt-zuerich.ch/geodaten/" rel="noopener"
+              >offenen Baumkataster der Stadt Zürich</a
+            >.
+          </p>
+        </noscript>
 
-    <!-- Live count of currently visible trees, updated from main.js -->
-    <output id="tree-count" class="tree-count" aria-live="polite"></output>
+        <section class="panel" aria-labelledby="filter-heading">
+          <h2 id="filter-heading">Filter</h2>
+
+          <label class="field">
+            <span class="field-label">Baumgattung</span>
+            <select id="baumgattung_id">
+              <option value="0">Alle Gattungen</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Baumart</span>
+            <select id="baumart_lat_id">
+              <option value="0">Alle Arten</option>
+            </select>
+          </label>
+
+          <fieldset class="field year-field">
+            <legend class="field-label">Pflanzjahr</legend>
+            <div class="year-inputs">
+              <input id="year_min" type="number" min="1665" max="2023"
+                value="1665" aria-label="Pflanzjahr von" />
+              <span aria-hidden="true">–</span>
+              <input id="year_max" type="number" min="1665" max="2023"
+                value="2023" aria-label="Pflanzjahr bis" />
+            </div>
+          </fieldset>
+
+          <div class="actions">
+            <button id="apply_filters" class="btn btn-primary">Filtern</button>
+            <button id="reset_filters" class="btn btn-secondary">
+              Zurücksetzen
+            </button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="legend-heading">
+          <h2 id="legend-heading">Legende · Baumgattung</h2>
+          <div id="legend" class="legend"></div>
+        </section>
+
+        <footer class="sidebar-footer">
+          <output id="tree-count" class="tree-count" aria-live="polite"></output>
+          <p class="source">Datenquelle: Stadt Zürich (Baumkataster)</p>
+        </footer>
+      </aside>
+
+      <div
+        id="map"
+        role="application"
+        aria-label="Interaktive Karte der Bäume in Zürich"
+      ></div>
+    </div>
 
     <script type="module" src="./main.js"></script>
   </body>
