@@ -1,0 +1,49 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+.mapboxgl-ctrl-top-left .mapboxgl-ctrl {
+  float: none !important;
+}
+
+.mapboxgl-ctrl-geocoder--icon-search {
+  position: absolute;
+  top: 4px !important;
+  left: 2px !important;
+}
+
+.mapboxgl-ctrl-geocoder input {
+  height: 24px;
+  font-size: 12px;
+  padding-left: 26px;
+  backgroundcolor: 'rgb(255, 255, 255, 0.85)';
+}
+
+.custom-control {
+  pointer-events: auto;
+  display: flex;
+  margin: 10px 0 0 10px;
+}
+
+.custom-control input {
+  width: 70px;
+}
+.custom-control.baumselect {
+  flex-direction: column;
+}
+
+.custom-control select {
+  width: min-content;
+}
+
+.hide {
+  display: none;
+}
