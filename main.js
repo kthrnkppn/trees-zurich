@@ -8,8 +8,7 @@ let SelectedBaumGattungId = 0;
 
 function fillBaumArtLatNames(baumgattung_id) {
   const baumartSelectElem = document.querySelector('#baumart_lat_id');
-  // if (!hold)
-  baumartSelectElem.innerHTML = '<option value="0">baum art</option>';
+  baumartSelectElem.innerHTML = '<option value="0">Baumart</option>';
   const selected_baumartids = BaumArtLatIds[baumgattung_id];
   for (const key in selected_baumartids) {
     var option = document.createElement('option');
@@ -38,22 +37,29 @@ const UpdateFilters = () => {
   }
 
   map.setFilter(layerId, filters);
-  printCount();
+  updateTreeCount();
 };
 
 class YearRangeControl {
   onAdd(map) {
     this._map = map;
-    let _this = this;
 
     this.inputMin = document.createElement('input');
     this.inputMax = document.createElement('input');
     this.setButton = document.createElement('button');
 
+    for (const input of [this.inputMin, this.inputMax]) {
+      input.type = 'number';
+      input.min = 1665;
+      input.max = 2023;
+    }
     this.inputMin.value = 1665;
     this.inputMax.value = 2023;
+    this.inputMin.setAttribute('aria-label', 'Pflanzjahr von');
+    this.inputMax.setAttribute('aria-label', 'Pflanzjahr bis');
 
-    this.setButton.innerHTML = 'set';
+    this.setButton.textContent = 'Filtern';
+    this.setButton.setAttribute('aria-label', 'Nach Pflanzjahr filtern');
     this.setButton.onclick = () => {
       let min = this.inputMin.value || 1665;
       let max = this.inputMax.value || 2023;
@@ -84,11 +90,11 @@ class YearRangeControl {
 class TreeTypeSelectControl {
   onAdd(map) {
     this._map = map;
-    let _this = this;
 
     /** Set up Baum Gattung select box */
     this.selectBaumGattung = document.createElement('select');
-    this.selectBaumGattung.innerHTML = '<option value=0>Baum Gattung</option>';
+    this.selectBaumGattung.setAttribute('aria-label', 'Baumgattung');
+    this.selectBaumGattung.innerHTML = '<option value=0>Baumgattung</option>';
 
     for (let key in BaumgattungIds) {
       var option = document.createElement('option');
@@ -116,7 +122,8 @@ class TreeTypeSelectControl {
 
     /** Set up Baum Art select box */
     this.selectBaumArt = document.createElement('select');
-    this.selectBaumArt.innerHTML = '<option value=0>Baum Art</option>';
+    this.selectBaumArt.setAttribute('aria-label', 'Baumart');
+    this.selectBaumArt.innerHTML = '<option value=0>Baumart</option>';
     this.selectBaumArt.id = 'baumart_lat_id';
     this.selectBaumArt.addEventListener('change', function (e) {
       const selectedBaumArtId = e.target.value;
@@ -130,7 +137,6 @@ class TreeTypeSelectControl {
         ];
       }
       UpdateFilters();
-      // printCount()
     });
 
     /** Add controls to container */
@@ -187,7 +193,8 @@ const map = new mapboxgl.Map({
       accessToken: mapboxgl.accessToken,
       mapboxgl: mapboxgl,
       proximity: 'ip',
-      placeholder: 'Search location',
+      language: 'de',
+      placeholder: 'Ort suchen',
     }),
     'top-left'
   )
@@ -206,43 +213,19 @@ const map = new mapboxgl.Map({
       .setLngLat(e.lngLat)
       .setHTML(getPopupContent(markerProperties))
       .addTo(map);
-  })
-  .on('sourcedata', function (e) {
-    // let layers = map.queryRenderedFeatures({ layers: ['point-circle'] });
-    // console.log(layers.length);
   });
 
-function printCount() {
-  console.log(map.queryRenderedFeatures(null, { layers: [layerId] }).length);
+// Show how many trees are currently rendered in the viewport. This reflects
+// the active filters and the current map extent, and is announced via the
+// aria-live region in index.html.
+const treeCountElem = document.querySelector('#tree-count');
+const numberFormat = new Intl.NumberFormat('de-CH');
+
+function updateTreeCount() {
+  if (!treeCountElem) return;
+  const count = map.queryRenderedFeatures(null, { layers: [layerId] }).length;
+  treeCountElem.textContent = `${numberFormat.format(count)} Bäume im Ausschnitt`;
 }
 
-const sourceId = 'composite';
-const limit = 2000;
-let offset = 0;
-let allFeatures = [];
-
-function queryFeatures2() {
-  const sourceData = map.querySourceFeatures('composite', {
-    sourceLayer,
-  });
-  const _data = sourceData._data;
-  const numFeatures = sourceData.features.length;
-  console.log(`Number of features: ${numFeatures}`);
-}
-
-function queryFeatures() {
-  const features = map.querySourceFeatures(sourceId, {
-    sourceLayer,
-    limit,
-    offset,
-  });
-  allFeatures = allFeatures.concat(features);
-
-  if (features.length === limit) {
-    offset += limit;
-    // Query next batch of features
-    queryFeatures();
-  } else {
-    console.log(`Number of features: ${allFeatures.length}`);
-  }
-}
+// Recount whenever the map settles after panning, zooming or filtering.
+map.on('idle', updateTreeCount);

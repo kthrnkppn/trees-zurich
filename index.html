@@ -1,28 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zurich Trees 240124</title>
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+
+    <!-- Primary SEO -->
+    <title>Zürcher Baumkarte – alle Stadtbäume interaktiv erkunden</title>
+    <meta
+      name="description"
+      content="Interaktive Karte aller von der Stadt Zürich erfassten Bäume. Filtere nach Baumgattung, Baumart und Pflanzjahr und entdecke, welche Bäume in deinem Quartier wachsen. Quelle: Stadt Zürich."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#1d6f42" />
+    <link rel="canonical" href="https://nurpinar.com/trees-zurich/" />
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Zürcher Baumkarte – alle Stadtbäume interaktiv erkunden" />
+    <meta
+      property="og:description"
+      content="Interaktive Karte aller von der Stadt Zürich erfassten Bäume. Filtere nach Gattung, Art und Pflanzjahr. Quelle: Stadt Zürich."
+    />
+    <meta property="og:url" content="https://nurpinar.com/trees-zurich/" />
+    <meta property="og:locale" content="de_CH" />
+    <!-- TODO: add a 1200×630 screenshot of the map saved as og-image.png in this folder -->
+    <meta property="og:image" content="https://nurpinar.com/trees-zurich/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Zürcher Baumkarte" />
+    <meta
+      name="twitter:description"
+      content="Interaktive Karte aller Stadtbäume Zürichs – filterbar nach Gattung, Art und Pflanzjahr."
+    />
+    <meta name="twitter:image" content="https://nurpinar.com/trees-zurich/og-image.png" />
+
+    <!-- Speed up first contact with the map provider -->
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
+    <link rel="preconnect" href="https://events.mapbox.com" crossorigin />
+
     <link href="./style.css" rel="stylesheet" />
     <link
       href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css"
       rel="stylesheet"
     />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
-  </head>
-  <body>
-    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.min.js"></script>
     <link
       rel="stylesheet"
       href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.css"
       type="text/css"
     />
+    <!-- defer so these libraries no longer block the initial render. Deferred
+         scripts run in document order, so mapboxgl is ready before main.js. -->
+    <script defer src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
+    <script
+      defer
+      src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.min.js"
+    ></script>
+  </head>
+  <body>
+    <!-- Crawlable, screen-reader-friendly description. Hidden visually so the
+         map stays full-bleed, but present in the DOM for SEO + accessibility. -->
+    <header class="sr-only">
+      <h1>Zürcher Baumkarte</h1>
+      <p>
+        Eine interaktive Karte aller von der Stadt Zürich erfassten Bäume. Du
+        kannst nach Baumgattung, Baumart und Pflanzjahr filtern und einzelne
+        Bäume anklicken, um Art und Pflanzjahr zu sehen. Datenquelle: Stadt
+        Zürich (Baumkataster).
+      </p>
+    </header>
 
-    <!-- <button id="test" class="hide">test</button> -->
-    <!-- <label>hold</label><input id="hold_values" type="checkbox" /> -->
-    <div id="map"></div>
+    <noscript>
+      <p style="padding: 1rem; font-family: sans-serif">
+        Diese Karte benötigt JavaScript. Die zugrunde liegenden Daten stammen
+        aus dem
+        <a href="https://www.stadt-zuerich.ch/geodaten/" rel="noopener"
+          >offenen Baumkataster der Stadt Zürich</a
+        >.
+      </p>
+    </noscript>
+
+    <div
+      id="map"
+      role="application"
+      aria-label="Interaktive Karte der Bäume in Zürich"
+    ></div>
+
+    <!-- Live count of currently visible trees, updated from main.js -->
+    <output id="tree-count" class="tree-count" aria-live="polite"></output>
+
     <script type="module" src="./main.js"></script>
   </body>
 </html>

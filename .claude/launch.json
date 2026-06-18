@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "trees-static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/katharina/Desktop/trees-zurich/server.mjs"],
+      "port": 4178
+    }
+  ]
+}
