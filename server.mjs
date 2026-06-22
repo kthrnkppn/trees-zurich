@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 import { extname, normalize, join } from 'path';
 
 const ROOT = '/Users/katharina/Desktop/trees-zurich';
-const TYPES = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css', '.svg':'image/svg+xml', '.png':'image/png', '.json':'application/json' };
+const TYPES = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css', '.svg':'image/svg+xml', '.png':'image/png', '.json':'application/json', '.geojson':'application/geo+json' };
 
 createServer(async (req, res) => {
   try {

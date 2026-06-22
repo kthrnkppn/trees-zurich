@@ -36,26 +36,28 @@
     />
     <meta name="twitter:image" content="https://nurpinar.com/trees-zurich/og-image.png" />
 
-    <!-- Speed up first contact with the map provider -->
-    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
-    <link rel="preconnect" href="https://events.mapbox.com" crossorigin />
+    <!-- Speed up first contact with the (keyless, account-free) map provider -->
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
+    <link rel="preconnect" href="https://nominatim.openstreetmap.org" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
 
     <link href="./style.css" rel="stylesheet" />
+    <!-- MapLibre GL JS (open-source, no Mapbox account / token needed) -->
     <link
-      href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css"
+      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
       rel="stylesheet"
     />
     <link
       rel="stylesheet"
-      href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.css"
+      href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.5.0/dist/maplibre-gl-geocoder.css"
       type="text/css"
     />
     <!-- defer so these libraries no longer block the initial render. Deferred
-         scripts run in document order, so mapboxgl is ready before main.js. -->
-    <script defer src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
+         scripts run in document order, so maplibregl is ready before main.js. -->
+    <script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <script
       defer
-      src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.min.js"
+      src="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.5.0/dist/maplibre-gl-geocoder.min.js"
     ></script>
   </head>
   <body>

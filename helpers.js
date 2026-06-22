@@ -9,7 +9,11 @@ function createGoogleSearchQuery(query) {
 }
 
 export const getPopupContent = (markerProperties) => {
-  const { pflanzjahr, baumname_lat, baumname_deu } = markerProperties;
+  const {
+    pflanzjahr,
+    baumnamelat: baumname_lat,
+    baumnamedeu: baumname_deu,
+  } = markerProperties;
 
   // German name first (bold), Latin name in parentheses (italic), then the
   // planting year. Both names link to a Google search. Falls back gracefully if
