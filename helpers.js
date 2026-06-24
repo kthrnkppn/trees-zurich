@@ -1,33 +1,43 @@
-function createGoogleSearchQuery(query) {
-  // Replace spaces with '+' and encode the query
-  const encodedQuery = encodeURIComponent(query.replace(/ /g, '+'));
+import { genusInfo } from './genusInfo.js';
 
-  // Construct the Google search URL
-  const googleSearchUrl = `https://www.google.com/search?q=${encodedQuery}`;
+const CURRENT_YEAR = new Date().getFullYear();
 
-  return googleSearchUrl;
+function googleSearchUrl(query) {
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }
 
-export const getPopupContent = (markerProperties) => {
-  const {
-    pflanzjahr,
-    baumnamelat: baumname_lat,
-    baumnamedeu: baumname_deu,
-  } = markerProperties;
+const esc = (s) =>
+  String(s).replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+  );
 
-  // German name first (bold), Latin name in parentheses (italic), then the
-  // planting year. Both names link to a Google search. Falls back gracefully if
-  // one of the names is missing.
-  const deu = baumname_deu
-    ? `<a href='${createGoogleSearchQuery(baumname_deu)}' target='_blank' rel='noopener'>${baumname_deu}</a>`
-    : '';
-  const lat = baumname_lat
-    ? `<a href='${createGoogleSearchQuery(baumname_lat)}' target='_blank' rel='noopener'><em>${baumname_lat}</em></a>`
-    : '';
-  const year = pflanzjahr ? `gepflanzt ${pflanzjahr}` : '';
+export const getPopupContent = (p) => {
+  const { pflanzjahr, baumnamelat, baumnamedeu, baumgattunglat } = p;
+  const info = genusInfo[baumgattunglat];
 
-  const heading = deu || lat || 'Unbekannter Baum';
-  const detail = [deu ? lat : '', year].filter(Boolean).join(', ');
+  const title = baumnamedeu || baumnamelat || 'Unbekannter Baum';
+  const titleLink = baumnamedeu || baumnamelat;
 
-  return `<strong>${heading}</strong>${detail ? `<br>${detail}` : ''}`;
+  // Planting year and a friendly computed age.
+  const metaParts = [];
+  if (pflanzjahr) {
+    metaParts.push(`Gepflanzt ${pflanzjahr}`);
+    const age = CURRENT_YEAR - pflanzjahr;
+    if (age >= 0 && age < 1000) metaParts.push(`ca. ${age} Jahre alt`);
+  } else {
+    metaParts.push('Pflanzjahr unbekannt');
+  }
+
+  const tags = (info?.tags || [])
+    .map((t) => `<span class="tp-tag">${esc(t)}</span>`)
+    .join('');
+
+  return `<div class="tree-popup">
+    <a class="tp-title" href="${googleSearchUrl(titleLink || title)}" target="_blank" rel="noopener">${esc(title)}</a>
+    ${baumnamelat ? `<div class="tp-lat"><em>${esc(baumnamelat)}</em></div>` : ''}
+    <div class="tp-meta">${metaParts.join(' · ')}</div>
+    ${info?.desc ? `<p class="tp-desc">${esc(info.desc)}</p>` : ''}
+    ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
+  </div>`;
 };
