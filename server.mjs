@@ -5,7 +5,7 @@ import { extname, normalize, join } from 'path';
 const ROOT = '/Users/katharina/Desktop/trees-zurich';
 const TYPES = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css', '.svg':'image/svg+xml', '.png':'image/png', '.json':'application/json', '.geojson':'application/geo+json' };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   try {
     let p = decodeURIComponent(req.url.split('?')[0]);
     if (p === '/' || p.endsWith('/')) p += 'index.html';
@@ -17,4 +17,6 @@ createServer(async (req, res) => {
   } catch (e) {
     res.writeHead(404); res.end('not found');
   }
-}).listen(4178, () => console.log('serving trees-zurich on http://localhost:4178'));
+});
+const PORT = process.env.PORT || 4178;
+server.listen(PORT, () => console.log(`serving trees-zurich on http://localhost:${PORT}`));

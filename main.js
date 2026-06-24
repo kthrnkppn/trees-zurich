@@ -32,17 +32,64 @@ function buildGenusColorExpression() {
   return ['match', ['get', GENUS_FIELD], ...pairs, OTHER_COLOR];
 }
 
-// Active filter expressions (null = inactive).
-const mapFilters = { genus: null, species: null, year: null };
+// All tree features, kept in memory so we can count and zoom to matches across
+// the whole city — not just what's currently on screen.
+let allFeatures = [];
 
-function updateFilters() {
-  if (!map.getLayer(layerId)) return;
-  const filters = ['all'];
-  if (mapFilters.genus) filters.push(mapFilters.genus);
-  if (mapFilters.species) filters.push(mapFilters.species);
-  if (mapFilters.year) filters.push(mapFilters.year);
-  map.setFilter(layerId, filters);
-  updateTreeCount();
+// Active filter values (null = inactive).
+const filterState = { genus: null, species: null, yearMin: null, yearMax: null };
+
+function hasActiveFilter() {
+  return !!(
+    filterState.genus ||
+    filterState.species ||
+    filterState.yearMin != null ||
+    filterState.yearMax != null
+  );
+}
+
+function matchesFilter(f) {
+  const p = f.properties;
+  if (filterState.genus && p[GENUS_FIELD] !== filterState.genus) return false;
+  if (filterState.species && p[SPECIES_FIELD] !== filterState.species) return false;
+  if (filterState.yearMin != null && !(p[YEAR_FIELD] >= filterState.yearMin)) return false;
+  if (filterState.yearMax != null && !(p[YEAR_FIELD] <= filterState.yearMax)) return false;
+  return true;
+}
+
+function buildMapFilter() {
+  const e = ['all'];
+  if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
+  if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
+  if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
+  if (filterState.yearMax != null) e.push(['<=', ['get', YEAR_FIELD], filterState.yearMax]);
+  return e;
+}
+
+// Frame the matching trees. maxZoom caps how far it zooms in, so a single match
+// doesn't slam to street level; a city-wide match set just frames the whole
+// city (exactly as you'd expect — many spread-out results = zoomed out).
+function fitToMatches(matches) {
+  if (!matches.length) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const f of matches) {
+    const [x, y] = f.geometry.coordinates;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+  }
+  map.fitBounds(
+    [[minX, minY], [maxX, maxY]],
+    { padding: 60, maxZoom: 16, duration: 800 }
+  );
+}
+
+function applyFilters({ fit = false } = {}) {
+  if (map.getLayer(layerId)) map.setFilter(layerId, buildMapFilter());
+  const matches = hasActiveFilter() ? allFeatures.filter(matchesFilter) : allFeatures;
+  updateTreeCount(matches.length);
+  if (fit && hasActiveFilter()) fitToMatches(matches);
 }
 
 // Free, keyless geocoding via OpenStreetMap Nominatim, biased to Zurich. Note
@@ -120,12 +167,17 @@ const map = new maplibregl.Map({
     'top-left'
   );
 
-map.on('load', () => {
-  map.addSource(sourceId, {
-    type: 'geojson',
-    data: './trees.geojson',
-    generateId: true, // stable ids for deduped counting
-  });
+map.on('load', async () => {
+  let treesData;
+  try {
+    treesData = await fetch('./trees.geojson').then((r) => r.json());
+  } catch (e) {
+    console.error('Could not load tree data:', e);
+    return;
+  }
+  allFeatures = treesData.features;
+
+  map.addSource(sourceId, { type: 'geojson', data: treesData });
 
   map.addLayer({
     id: layerId,
@@ -154,7 +206,7 @@ map.on('load', () => {
       .addTo(map);
   });
 
-  updateFilters();
+  applyFilters(); // initial count (whole city, no zoom)
 });
 
 /* ------------------------------------------------------------------ *
@@ -163,25 +215,15 @@ map.on('load', () => {
 const treeCountElem = document.querySelector('#tree-count');
 const numberFormat = new Intl.NumberFormat('de-CH');
 
-// queryRenderedFeatures returns a feature once per (internal) tile, so trees on
-// tile boundaries appear multiple times. Dedupe by feature id, falling back to
-// exact coordinates (boundary duplicates share coordinates).
-function countDistinctTrees(features) {
-  const seen = new Set();
-  for (const f of features) {
-    const key = f.id != null ? f.id : f.geometry?.coordinates?.join(',');
-    if (key != null) seen.add(key);
-  }
-  return seen.size;
+// Stable total across all of Zurich (not just the viewport): how many trees
+// match the active filter. With no filter it's simply the grand total.
+function updateTreeCount(matchCount) {
+  if (!treeCountElem) return;
+  const total = allFeatures.length;
+  treeCountElem.textContent = hasActiveFilter()
+    ? `${numberFormat.format(matchCount)} von ${numberFormat.format(total)} Bäumen`
+    : `${numberFormat.format(total)} Bäume`;
 }
-
-function updateTreeCount() {
-  if (!treeCountElem || !map.getLayer(layerId)) return;
-  const features = map.queryRenderedFeatures({ layers: [layerId] });
-  treeCountElem.textContent = `${numberFormat.format(countDistinctTrees(features))} Bäume im Ausschnitt`;
-}
-
-map.on('idle', updateTreeCount);
 
 /* ------------------------------------------------------------------ *
  * Sidebar wiring
@@ -221,32 +263,27 @@ function fillSpecies(genus) {
 
 genusSelect.addEventListener('change', (e) => {
   const genus = e.target.value;
-  mapFilters.species = null; // species are scoped to a genus
+  filterState.species = null; // species are scoped to a genus
   if (genus === '0') {
-    mapFilters.genus = null;
+    filterState.genus = null;
     artSelect.innerHTML = '<option value="0">Alle Arten</option>';
   } else {
-    mapFilters.genus = ['==', ['get', GENUS_FIELD], genus];
+    filterState.genus = genus;
     fillSpecies(genus);
   }
-  updateFilters();
+  applyFilters({ fit: true });
 });
 
 artSelect.addEventListener('change', (e) => {
   const name = e.target.value;
-  mapFilters.species = name === '0' ? null : ['==', ['get', SPECIES_FIELD], name];
-  updateFilters();
+  filterState.species = name === '0' ? null : name;
+  applyFilters({ fit: true });
 });
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
-  const min = Number(yearMinInput.value) || MIN_YEAR;
-  const max = Number(yearMaxInput.value) || MAX_YEAR;
-  mapFilters.year = [
-    'all',
-    ['>=', ['get', YEAR_FIELD], min],
-    ['<=', ['get', YEAR_FIELD], max],
-  ];
-  updateFilters();
+  filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
+  filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
+  applyFilters({ fit: true });
 });
 
 document.querySelector('#reset_filters').addEventListener('click', () => {
@@ -254,10 +291,11 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
   yearMinInput.value = MIN_YEAR;
   yearMaxInput.value = MAX_YEAR;
-  mapFilters.genus = null;
-  mapFilters.species = null;
-  mapFilters.year = null;
-  updateFilters();
+  filterState.genus = null;
+  filterState.species = null;
+  filterState.yearMin = null;
+  filterState.yearMax = null;
+  applyFilters(); // no auto-zoom on reset
 });
 
 // Legend from the same GENUS_COLORS source as the map.
