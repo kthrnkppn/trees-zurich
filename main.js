@@ -7,7 +7,7 @@ const sourceId = 'zurich-trees';
 
 // Field names from the official Stadt Zürich Baumkataster GeoJSON.
 const GENUS_FIELD = 'baumgattunglat'; // latin genus, e.g. "Acer"
-const SPECIES_FIELD = 'baumnamedeu'; // German (cultivar-level) name
+const SPECIES_FIELD = 'baumartlat'; // latin species epithet — groups all cultivars
 const YEAR_FIELD = 'pflanzjahr';
 
 // Single source of truth for genus colouring — drives both the map paint
@@ -253,10 +253,10 @@ for (const genus of treeMeta.genera) {
 
 function fillSpecies(genus) {
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
-  for (const name of treeMeta.speciesByGenus[genus] || []) {
+  for (const { art, label } of treeMeta.speciesByGenus[genus] || []) {
     const option = document.createElement('option');
-    option.value = name;
-    option.textContent = name;
+    option.value = art; // baumartlat — selecting it shows all cultivars
+    option.textContent = label;
     artSelect.appendChild(option);
   }
 }
