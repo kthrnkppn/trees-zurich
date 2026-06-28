@@ -51,15 +51,9 @@ Dann im Browser öffnen: [http://localhost:4178](http://localhost:4178)
 
 Die Daten kommen direkt vom WFS-Endpunkt der Stadt Zürich und werden wöchentlich aktualisiert.
 
-```bash
-# Aktuelle Daten herunterladen (dauert je nach Verbindung 1–2 Minuten)
-curl "https://www.ogd.stadt-zuerich.ch/wfs/geoportal/Baumkataster?service=WFS&version=1.1.0&request=GetFeature&typename=baumkataster_baumstandorte&outputFormat=geojson" \
-  -o trees_raw.geojson
+Für automatische Updates gibt es ein Python-Script für den Raspberry Pi (oder einen anderen Server) — es lädt neue Daten, vergleicht per Hash und pusht Änderungen selbstständig auf GitHub.
 
-# Danach: trees_raw.geojson auf die 5 benötigten Felder kürzen und
-# Koordinaten auf 5 Dezimalstellen runden → trees.geojson ersetzen.
-# treeMeta.js muss neu generiert werden, falls neue Gattungen/Arten dazukamen.
-```
+→ **[scripts/README.md](scripts/README.md)**
 
 ## Lizenzen
 
