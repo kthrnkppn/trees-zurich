@@ -135,6 +135,9 @@
         </section>
 
         <footer class="sidebar-footer">
+          <button id="open-stats" class="btn btn-secondary stats-open-btn">
+            📊 Zahlen &amp; Trends
+          </button>
           <output id="tree-count" class="tree-count" aria-live="polite"></output>
           <p class="source">Datenquelle: Stadt Zürich (Baumkataster)</p>
         </footer>
@@ -145,6 +148,22 @@
         role="application"
         aria-label="Interaktive Karte der Bäume in Zürich"
       ></div>
+    </div>
+
+    <!-- Zahlen & Trends -->
+    <div
+      id="stats-modal"
+      class="stats-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stats-title"
+    >
+      <div class="stats-backdrop" data-close></div>
+      <div class="stats-dialog">
+        <button class="stats-close" data-close aria-label="Schliessen">×</button>
+        <div id="stats-body"></div>
+      </div>
     </div>
 
     <script type="module" src="./main.js"></script>

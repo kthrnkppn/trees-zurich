@@ -2,6 +2,7 @@ import { GenusDeNames } from './GenusDeNames.js';
 import { treeMeta } from './treeMeta.js';
 import { getPopupContent } from './helpers.js';
 import { collections, RARITY_MAX_COUNT } from './collections.js';
+import { computeStats, renderStatsHTML } from './stats.js';
 
 const layerId = 'tree-points-layer';
 const sourceId = 'zurich-trees';
@@ -399,6 +400,33 @@ for (const { name, color } of [...GENUS_COLORS, { name: 'Andere', color: OTHER_C
   row.append(swatch, label);
   legendEl.appendChild(row);
 }
+
+/* ------------------------------------------------------------------ *
+ * Zahlen & Trends modal
+ * ------------------------------------------------------------------ */
+const statsModal = document.querySelector('#stats-modal');
+const statsBody = document.querySelector('#stats-body');
+
+function openStats() {
+  if (!allFeatures.length) {
+    statsBody.innerHTML = '<p class="stats-lead">Daten werden noch geladen …</p>';
+  } else {
+    statsBody.innerHTML = renderStatsHTML(computeStats(allFeatures));
+  }
+  statsModal.hidden = false;
+}
+
+function closeStats() {
+  statsModal.hidden = true;
+}
+
+document.querySelector('#open-stats').addEventListener('click', openStats);
+statsModal.addEventListener('click', (e) => {
+  if (e.target.hasAttribute('data-close')) closeStats();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !statsModal.hidden) closeStats();
+});
 
 // Mobile: toggle the sidebar and let the map reclaim the space.
 const sidebar = document.querySelector('#sidebar');
