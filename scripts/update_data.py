@@ -282,7 +282,15 @@ def git(*args):
     return result.stdout.strip()
 
 
+def pull():
+    """Pull latest changes before pushing to avoid conflicts."""
+    log.info("Pulling latest changes from origin/main …")
+    git("pull", "--ff-only", "origin", "main")
+
+
 def commit_and_push(feature_count):
+    pull()
+
     # Format number Swiss-style with apostrophe thousands separator
     count_str = f"{feature_count:,}".replace(",", "'")
     date_str = datetime.now().strftime("%Y-%m-%d")
