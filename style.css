@@ -160,6 +160,36 @@ body {
   background: #f4f6f4;
 }
 
+/* ---- Collections (theme chips) ---- */
+.collections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.collection-chip {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-dark);
+  background: #f1f6ee;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.collection-chip:hover {
+  background: #e8f1e6;
+}
+.collection-chip.is-active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.collection-chip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* ---- Legend ---- */
 .legend {
   font-size: 13px;

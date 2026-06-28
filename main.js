@@ -1,6 +1,7 @@
 import { GenusDeNames } from './GenusDeNames.js';
 import { treeMeta } from './treeMeta.js';
 import { getPopupContent } from './helpers.js';
+import { collections, RARITY_MAX_COUNT } from './collections.js';
 
 const layerId = 'tree-points-layer';
 const sourceId = 'zurich-trees';
@@ -36,11 +37,40 @@ function buildGenusColorExpression() {
 // the whole city — not just what's currently on screen.
 let allFeatures = [];
 
-// Active filter values (null = inactive).
-const filterState = { genus: null, species: null, yearMin: null, yearMax: null };
+// Full latin species name (baumnamelat → baumnamelat) field, used for rarity.
+const LATIN_NAME_FIELD = 'baumnamelat';
+
+// Active filter values (null = inactive). `collection` holds the active
+// collection object (or null); it's mutually exclusive with genus/species.
+const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null };
+
+// Latin names (baumnamelat) that occur only rarely across the whole city.
+// Filled once the data is loaded; drives the "Seltene Raritäten" collection.
+let rareSpeciesNames = new Set();
+
+function computeRareSpecies() {
+  const counts = new Map();
+  for (const f of allFeatures) {
+    const n = f.properties[LATIN_NAME_FIELD];
+    if (!n) continue;
+    counts.set(n, (counts.get(n) || 0) + 1);
+  }
+  const rare = new Set();
+  for (const [name, count] of counts) {
+    if (count <= RARITY_MAX_COUNT) rare.add(name);
+  }
+  return rare;
+}
+
+// True if a feature belongs to the active collection (genus set or rarity).
+function matchesCollection(p, c) {
+  if (c.type === 'rare') return rareSpeciesNames.has(p[LATIN_NAME_FIELD]);
+  return c.genera.includes(p[GENUS_FIELD]);
+}
 
 function hasActiveFilter() {
   return !!(
+    filterState.collection ||
     filterState.genus ||
     filterState.species ||
     filterState.yearMin != null ||
@@ -50,6 +80,7 @@ function hasActiveFilter() {
 
 function matchesFilter(f) {
   const p = f.properties;
+  if (filterState.collection && !matchesCollection(p, filterState.collection)) return false;
   if (filterState.genus && p[GENUS_FIELD] !== filterState.genus) return false;
   if (filterState.species && p[SPECIES_FIELD] !== filterState.species) return false;
   if (filterState.yearMin != null && !(p[YEAR_FIELD] >= filterState.yearMin)) return false;
@@ -59,6 +90,14 @@ function matchesFilter(f) {
 
 function buildMapFilter() {
   const e = ['all'];
+  const c = filterState.collection;
+  if (c) {
+    if (c.type === 'rare') {
+      e.push(['in', ['get', LATIN_NAME_FIELD], ['literal', [...rareSpeciesNames]]]);
+    } else {
+      e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
+    }
+  }
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
   if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
@@ -176,6 +215,7 @@ map.on('load', async () => {
     return;
   }
   allFeatures = treesData.features;
+  rareSpeciesNames = computeRareSpecies();
 
   map.addSource(sourceId, { type: 'geojson', data: treesData });
 
@@ -264,6 +304,9 @@ function fillSpecies(genus) {
 genusSelect.addEventListener('change', (e) => {
   const genus = e.target.value;
   filterState.species = null; // species are scoped to a genus
+  // Genus and collections are mutually exclusive.
+  filterState.collection = null;
+  clearCollectionUI();
   if (genus === '0') {
     filterState.genus = null;
     artSelect.innerHTML = '<option value="0">Alle Arten</option>';
@@ -291,12 +334,57 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
   yearMinInput.value = MIN_YEAR;
   yearMaxInput.value = MAX_YEAR;
+  clearCollectionUI();
+  filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
   filterState.yearMin = null;
   filterState.yearMax = null;
   applyFilters(); // no auto-zoom on reset
 });
+
+/* ------------------------------------------------------------------ *
+ * Collections — curated theme chips (mutually exclusive with genus)
+ * ------------------------------------------------------------------ */
+const collectionsEl = document.querySelector('#collections');
+const collectionChips = new Map(); // id → button
+
+function clearCollectionUI() {
+  for (const btn of collectionChips.values()) {
+    btn.classList.remove('is-active');
+    btn.setAttribute('aria-pressed', 'false');
+  }
+}
+
+function toggleCollection(c, btn) {
+  const wasActive = filterState.collection?.id === c.id;
+  clearCollectionUI();
+  if (wasActive) {
+    filterState.collection = null;
+    applyFilters(); // toggling off: no auto-zoom, back to full city
+    return;
+  }
+  filterState.collection = c;
+  btn.classList.add('is-active');
+  btn.setAttribute('aria-pressed', 'true');
+  // A collection replaces any manual genus/species selection.
+  filterState.genus = null;
+  filterState.species = null;
+  genusSelect.value = '0';
+  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  applyFilters({ fit: true });
+}
+
+for (const c of collections) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'collection-chip';
+  btn.setAttribute('aria-pressed', 'false');
+  btn.textContent = c.emoji ? `${c.emoji} ${c.label}` : c.label;
+  btn.addEventListener('click', () => toggleCollection(c, btn));
+  collectionsEl.appendChild(btn);
+  collectionChips.set(c.id, btn);
+}
 
 // Legend from the same GENUS_COLORS source as the map.
 const legendEl = document.querySelector('#legend');
