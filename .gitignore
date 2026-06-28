@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 .claude/
+scripts/.env
+scripts/.last_hash
+scripts/update.log
