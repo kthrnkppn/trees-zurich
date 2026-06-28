@@ -190,6 +190,34 @@ body {
   outline-offset: 1px;
 }
 
+/* Treasure map toggle */
+.treasure-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b4a00;
+  background: linear-gradient(#fff7e0, #ffeeb8);
+  border: 1px solid #e8cf8a;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.treasure-btn:hover {
+  filter: brightness(0.97);
+}
+.treasure-btn.is-active {
+  color: #fff;
+  background: linear-gradient(#f4b400, #e09b00);
+  border-color: #c98a00;
+  box-shadow: 0 2px 8px rgba(224, 155, 0, 0.4);
+}
+.treasure-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* ---- Legend ---- */
 .legend {
   font-size: 13px;
@@ -312,9 +340,25 @@ body {
   font-size: 11px;
   color: var(--muted);
 }
-.stats-open-btn {
+.facts-open-btn {
   width: 100%;
-  margin-bottom: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green-dark);
+  background: #eef6e6;
+  border: 1px solid #cfe3bf;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.facts-open-btn:hover {
+  background: #e3f0d6;
+  box-shadow: 0 2px 8px rgba(74, 173, 82, 0.18);
+}
+.facts-open-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* ---- Zahlen & Trends modal ---- */

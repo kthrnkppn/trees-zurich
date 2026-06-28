@@ -5,6 +5,7 @@ import { collections, RARITY_MAX_COUNT } from './collections.js';
 import { computeStats, renderStatsHTML } from './stats.js';
 
 const layerId = 'tree-points-layer';
+const treasureLayerId = 'treasure-stars-layer';
 const sourceId = 'zurich-trees';
 
 // Field names from the official Stadt Zürich Baumkataster GeoJSON.
@@ -34,6 +35,39 @@ function buildGenusColorExpression() {
   return ['match', ['get', GENUS_FIELD], ...pairs, OTHER_COLOR];
 }
 
+// Draw a gold five-pointed star on a canvas for the treasure-map markers.
+// Returns ImageData (+ pixelRatio) so MapLibre can use it as an icon, without
+// relying on a star glyph being present in the map font.
+function makeStarImage(size = 34) {
+  const pixelRatio = 2;
+  const s = size * pixelRatio;
+  const canvas = document.createElement('canvas');
+  canvas.width = s;
+  canvas.height = s;
+  const ctx = canvas.getContext('2d');
+  const cx = s / 2;
+  const cy = s / 2;
+  const spikes = 5;
+  const outer = s * 0.44;
+  const inner = s * 0.19;
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const a = -Math.PI / 2 + (i * Math.PI) / spikes;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#f4b400'; // gold
+  ctx.strokeStyle = '#6b4a00'; // dark outline for contrast on the light map
+  ctx.lineWidth = s * 0.07;
+  ctx.lineJoin = 'round';
+  ctx.fill();
+  ctx.stroke();
+  return { image: ctx.getImageData(0, 0, s, s), pixelRatio };
+}
+
 // All tree features, kept in memory so we can count and zoom to matches across
 // the whole city — not just what's currently on screen.
 let allFeatures = [];
@@ -49,7 +83,11 @@ const filterState = { collection: null, genus: null, species: null, yearMin: nul
 // Filled once the data is loaded; drives the "Seltene Raritäten" collection.
 let rareSpeciesNames = new Set();
 
-function computeRareSpecies() {
+// Latin names that occur exactly once in the whole city — the "Schätze"
+// (treasures) shown as gold stars on the treasure map.
+let treasureNames = new Set();
+
+function computeSpeciesCounts() {
   const counts = new Map();
   for (const f of allFeatures) {
     const n = f.properties[LATIN_NAME_FIELD];
@@ -57,10 +95,12 @@ function computeRareSpecies() {
     counts.set(n, (counts.get(n) || 0) + 1);
   }
   const rare = new Set();
+  const treasures = new Set();
   for (const [name, count] of counts) {
     if (count <= RARITY_MAX_COUNT) rare.add(name);
+    if (count === 1) treasures.add(name);
   }
-  return rare;
+  return { rare, treasures };
 }
 
 // True if a feature belongs to the active collection (genus set or rarity).
@@ -216,7 +256,7 @@ map.on('load', async () => {
     return;
   }
   allFeatures = treesData.features;
-  rareSpeciesNames = computeRareSpecies();
+  ({ rare: rareSpeciesNames, treasures: treasureNames } = computeSpeciesCounts());
 
   map.addSource(sourceId, { type: 'geojson', data: treesData });
 
@@ -234,18 +274,43 @@ map.on('load', async () => {
     },
   });
 
-  map.on('mouseenter', layerId, () => {
-    map.getCanvas().style.cursor = 'pointer';
+  // Gold star marker for the treasure map (drawn on a canvas so we don't depend
+  // on a font glyph being available).
+  if (!map.hasImage('treasure-star')) {
+    const star = makeStarImage();
+    map.addImage('treasure-star', star.image, { pixelRatio: star.pixelRatio });
+  }
+
+  // Treasure layer: the single-specimen trees as gold stars. Hidden until the
+  // user opens the treasure map.
+  map.addLayer({
+    id: treasureLayerId,
+    type: 'symbol',
+    source: sourceId,
+    filter: ['in', ['get', LATIN_NAME_FIELD], ['literal', [...treasureNames]]],
+    layout: {
+      'icon-image': 'treasure-star',
+      'icon-allow-overlap': true,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.4, 13, 0.55, 16, 0.75, 20, 1],
+      visibility: 'none',
+    },
   });
-  map.on('mouseleave', layerId, () => {
-    map.getCanvas().style.cursor = '';
-  });
-  map.on('click', layerId, (e) => {
+
+  const showPopup = (e) => {
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
       .setHTML(getPopupContent(e.features[0].properties))
       .addTo(map);
-  });
+  };
+  for (const id of [layerId, treasureLayerId]) {
+    map.on('mouseenter', id, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', id, () => {
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('click', id, showPopup);
+  }
 
   applyFilters(); // initial count (whole city, no zoom)
 });
@@ -303,6 +368,7 @@ function fillSpecies(genus) {
 }
 
 genusSelect.addEventListener('change', (e) => {
+  exitTreasureMode();
   const genus = e.target.value;
   filterState.species = null; // species are scoped to a genus
   // Genus and collections are mutually exclusive.
@@ -325,12 +391,14 @@ artSelect.addEventListener('change', (e) => {
 });
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
+  exitTreasureMode();
   filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
   filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
   applyFilters({ fit: true });
 });
 
 document.querySelector('#reset_filters').addEventListener('click', () => {
+  exitTreasureMode();
   genusSelect.value = '0';
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
   yearMinInput.value = MIN_YEAR;
@@ -343,6 +411,54 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
   filterState.yearMax = null;
   applyFilters(); // no auto-zoom on reset
 });
+
+/* ------------------------------------------------------------------ *
+ * Treasure map — the single-specimen trees as gold stars
+ * ------------------------------------------------------------------ */
+const treasureBtn = document.querySelector('#treasure-toggle');
+let treasureMode = false;
+
+// Restore the normal map without touching the filter state (used when the user
+// switches to a regular filter while the treasure map is open).
+function exitTreasureMode() {
+  if (!treasureMode) return;
+  treasureMode = false;
+  treasureBtn.classList.remove('is-active');
+  treasureBtn.setAttribute('aria-pressed', 'false');
+  if (map.getLayer(treasureLayerId)) map.setLayoutProperty(treasureLayerId, 'visibility', 'none');
+  if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
+}
+
+function toggleTreasureMode() {
+  if (treasureMode) {
+    exitTreasureMode();
+    applyFilters();
+    return;
+  }
+  if (!allFeatures.length) return; // data not loaded yet
+
+  // The treasure map is its own view — clear any active filters/collections.
+  clearCollectionUI();
+  genusSelect.value = '0';
+  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  filterState.collection = null;
+  filterState.genus = null;
+  filterState.species = null;
+
+  treasureMode = true;
+  treasureBtn.classList.add('is-active');
+  treasureBtn.setAttribute('aria-pressed', 'true');
+  map.setLayoutProperty(layerId, 'visibility', 'none');
+  map.setLayoutProperty(treasureLayerId, 'visibility', 'visible');
+
+  const treasures = allFeatures.filter((f) => treasureNames.has(f.properties[LATIN_NAME_FIELD]));
+  if (treeCountElem) {
+    treeCountElem.textContent = `🗺️ ${numberFormat.format(treasures.length)} Schätze – je nur 1× in Zürich`;
+  }
+  fitToMatches(treasures);
+}
+
+treasureBtn.addEventListener('click', toggleTreasureMode);
 
 /* ------------------------------------------------------------------ *
  * Collections — curated theme chips (mutually exclusive with genus)
@@ -358,6 +474,7 @@ function clearCollectionUI() {
 }
 
 function toggleCollection(c, btn) {
+  exitTreasureMode();
   const wasActive = filterState.collection?.id === c.id;
   clearCollectionUI();
   if (wasActive) {

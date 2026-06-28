@@ -81,6 +81,10 @@
           </p>
         </header>
 
+        <button id="open-stats" class="facts-open-btn">
+          💡 Wussten Sie schon …?
+        </button>
+
         <noscript>
           <p>
             Diese Karte benötigt JavaScript. Die Daten stammen aus dem
@@ -127,6 +131,9 @@
         <section class="panel" aria-labelledby="collections-heading">
           <h2 id="collections-heading">Sammlungen</h2>
           <div id="collections" class="collections"></div>
+          <button id="treasure-toggle" class="treasure-btn" aria-pressed="false">
+            🗺️ Schatzkarte – Zürichs Einzelstücke
+          </button>
         </section>
 
         <section class="panel" aria-labelledby="legend-heading">
@@ -135,9 +142,6 @@
         </section>
 
         <footer class="sidebar-footer">
-          <button id="open-stats" class="btn btn-secondary stats-open-btn">
-            📊 Zahlen &amp; Trends
-          </button>
           <output id="tree-count" class="tree-count" aria-live="polite"></output>
           <p class="source">Datenquelle: Stadt Zürich (Baumkataster)</p>
         </footer>
