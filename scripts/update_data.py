@@ -204,6 +204,7 @@ def build_tree_meta(features):
             genus_species_counts[genus] = {}
         if art not in genus_species_names[genus]:
             genus_species_names[genus][art] = {}
+            genus_species_counts[genus][art] = {}
         genus_species_counts[genus][art][german] = (
             genus_species_counts[genus][art].get(german, 0) + 1
         )
