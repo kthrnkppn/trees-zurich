@@ -131,9 +131,25 @@
         <section class="panel" aria-labelledby="collections-heading">
           <h2 id="collections-heading">Sammlungen</h2>
           <div id="collections" class="collections"></div>
-          <button id="treasure-toggle" class="treasure-btn" aria-pressed="false">
-            🗺️ Schatzkarte – Zürichs Einzelstücke
+        </section>
+
+        <section class="panel" aria-labelledby="rarities-heading">
+          <h2 id="rarities-heading">Raritäten &amp; Kuriositäten</h2>
+
+          <button id="genbank-toggle" class="treasure-btn" aria-pressed="false">
+            🍎 Lebende Genbank – alte Obstsorten
           </button>
+          <button id="loner-toggle" class="treasure-btn" aria-pressed="false">
+            💎 Einzelgänger – je nur 1× in Zürich
+          </button>
+
+          <details class="curiosities">
+            <summary>✨ Kuriositäten – exotische Bäume</summary>
+            <p class="curiosities-hint">
+              Tippe einen Baum an – die Karte bringt dich direkt hin.
+            </p>
+            <ul id="curiosities-list" class="curiosities-list"></ul>
+          </details>
         </section>
 
         <section class="panel" aria-labelledby="legend-heading">

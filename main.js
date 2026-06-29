@@ -1,7 +1,8 @@
 import { GenusDeNames } from './GenusDeNames.js';
 import { treeMeta } from './treeMeta.js';
 import { getPopupContent } from './helpers.js';
-import { collections, RARITY_MAX_COUNT } from './collections.js';
+import { collections } from './collections.js';
+import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
 
 const layerId = 'tree-points-layer';
@@ -79,33 +80,36 @@ const LATIN_NAME_FIELD = 'baumnamelat';
 // collection object (or null); it's mutually exclusive with genus/species.
 const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null };
 
-// Latin names (baumnamelat) that occur only rarely across the whole city.
-// Filled once the data is loaded; drives the "Seltene Raritäten" collection.
-let rareSpeciesNames = new Set();
+// Classic orchard-fruit genera — used to split the single-specimen trees into
+// the "living gene bank" (old fruit varieties) versus the exotic "Einzelgänger".
+const GENE_BANK_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
 
-// Latin names that occur exactly once in the whole city — the "Schätze"
-// (treasures) shown as gold stars on the treasure map.
-let treasureNames = new Set();
+// Latin names (baumnamelat) that occur exactly once in the whole city, split by
+// kind. Filled once the data is loaded; drive the two gold-star map modes.
+let genbankNames = new Set(); // unique old fruit varieties
+let loanerNames = new Set(); // unique non-fruit exotics
 
 function computeSpeciesCounts() {
   const counts = new Map();
+  const genusOf = new Map(); // latin name → genus (unambiguous for unique names)
   for (const f of allFeatures) {
     const n = f.properties[LATIN_NAME_FIELD];
     if (!n) continue;
     counts.set(n, (counts.get(n) || 0) + 1);
+    genusOf.set(n, f.properties[GENUS_FIELD]);
   }
-  const rare = new Set();
-  const treasures = new Set();
+  const genbank = new Set();
+  const loner = new Set();
   for (const [name, count] of counts) {
-    if (count <= RARITY_MAX_COUNT) rare.add(name);
-    if (count === 1) treasures.add(name);
+    if (count !== 1) continue;
+    if (GENE_BANK_GENERA.has(genusOf.get(name))) genbank.add(name);
+    else loner.add(name);
   }
-  return { rare, treasures };
+  return { genbank, loner };
 }
 
-// True if a feature belongs to the active collection (genus set or rarity).
+// True if a feature belongs to the active collection (a curated genus set).
 function matchesCollection(p, c) {
-  if (c.type === 'rare') return rareSpeciesNames.has(p[LATIN_NAME_FIELD]);
   return c.genera.includes(p[GENUS_FIELD]);
 }
 
@@ -132,13 +136,7 @@ function matchesFilter(f) {
 function buildMapFilter() {
   const e = ['all'];
   const c = filterState.collection;
-  if (c) {
-    if (c.type === 'rare') {
-      e.push(['in', ['get', LATIN_NAME_FIELD], ['literal', [...rareSpeciesNames]]]);
-    } else {
-      e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
-    }
-  }
+  if (c) e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
   if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
@@ -256,7 +254,8 @@ map.on('load', async () => {
     return;
   }
   allFeatures = treesData.features;
-  ({ rare: rareSpeciesNames, treasures: treasureNames } = computeSpeciesCounts());
+  ({ genbank: genbankNames, loner: loanerNames } = computeSpeciesCounts());
+  renderCuriosities();
 
   map.addSource(sourceId, { type: 'geojson', data: treesData });
 
@@ -281,13 +280,13 @@ map.on('load', async () => {
     map.addImage('treasure-star', star.image, { pixelRatio: star.pixelRatio });
   }
 
-  // Treasure layer: the single-specimen trees as gold stars. Hidden until the
-  // user opens the treasure map.
+  // Treasure layer: rare trees as gold stars. The filter is set per mode
+  // (gene bank / Einzelgänger) on activation; starts matching nothing.
   map.addLayer({
     id: treasureLayerId,
     type: 'symbol',
     source: sourceId,
-    filter: ['in', ['get', LATIN_NAME_FIELD], ['literal', [...treasureNames]]],
+    filter: ['in', ['get', LATIN_NAME_FIELD], ['literal', []]],
     layout: {
       'icon-image': 'treasure-star',
       'icon-allow-overlap': true,
@@ -413,31 +412,44 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
 });
 
 /* ------------------------------------------------------------------ *
- * Treasure map — the single-specimen trees as gold stars
+ * Rarities — gold-star map modes (gene bank & Einzelgänger)
  * ------------------------------------------------------------------ */
-const treasureBtn = document.querySelector('#treasure-toggle');
-let treasureMode = false;
+const treasureModes = {
+  genbank: {
+    btn: document.querySelector('#genbank-toggle'),
+    names: () => genbankNames,
+    label: (n) => `🍎 ${numberFormat.format(n)} alte Obstsorten – lebende Genbank`,
+  },
+  loner: {
+    btn: document.querySelector('#loner-toggle'),
+    names: () => loanerNames,
+    label: (n) => `💎 ${numberFormat.format(n)} Einzelgänger – je nur 1× in Zürich`,
+  },
+};
+let activeTreasure = null; // 'genbank' | 'loner' | null
 
 // Restore the normal map without touching the filter state (used when the user
-// switches to a regular filter while the treasure map is open).
+// switches to a regular filter while a gold-star mode is open).
 function exitTreasureMode() {
-  if (!treasureMode) return;
-  treasureMode = false;
-  treasureBtn.classList.remove('is-active');
-  treasureBtn.setAttribute('aria-pressed', 'false');
+  if (!activeTreasure) return;
+  const { btn } = treasureModes[activeTreasure];
+  btn.classList.remove('is-active');
+  btn.setAttribute('aria-pressed', 'false');
+  activeTreasure = null;
   if (map.getLayer(treasureLayerId)) map.setLayoutProperty(treasureLayerId, 'visibility', 'none');
   if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
 }
 
-function toggleTreasureMode() {
-  if (treasureMode) {
+function toggleTreasure(modeKey) {
+  if (activeTreasure === modeKey) {
     exitTreasureMode();
     applyFilters();
     return;
   }
   if (!allFeatures.length) return; // data not loaded yet
+  exitTreasureMode(); // turn off the other mode if it was active
 
-  // The treasure map is its own view — clear any active filters/collections.
+  // A gold-star mode is its own view — clear any active filters/collections.
   clearCollectionUI();
   genusSelect.value = '0';
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
@@ -445,20 +457,58 @@ function toggleTreasureMode() {
   filterState.genus = null;
   filterState.species = null;
 
-  treasureMode = true;
-  treasureBtn.classList.add('is-active');
-  treasureBtn.setAttribute('aria-pressed', 'true');
+  const mode = treasureModes[modeKey];
+  const names = mode.names();
+  activeTreasure = modeKey;
+  mode.btn.classList.add('is-active');
+  mode.btn.setAttribute('aria-pressed', 'true');
+  map.setFilter(treasureLayerId, ['in', ['get', LATIN_NAME_FIELD], ['literal', [...names]]]);
   map.setLayoutProperty(layerId, 'visibility', 'none');
   map.setLayoutProperty(treasureLayerId, 'visibility', 'visible');
 
-  const treasures = allFeatures.filter((f) => treasureNames.has(f.properties[LATIN_NAME_FIELD]));
-  if (treeCountElem) {
-    treeCountElem.textContent = `🗺️ ${numberFormat.format(treasures.length)} Schätze – je nur 1× in Zürich`;
-  }
-  fitToMatches(treasures);
+  const matches = allFeatures.filter((f) => names.has(f.properties[LATIN_NAME_FIELD]));
+  if (treeCountElem) treeCountElem.textContent = mode.label(matches.length);
+  fitToMatches(matches);
 }
 
-treasureBtn.addEventListener('click', toggleTreasureMode);
+treasureModes.genbank.btn.addEventListener('click', () => toggleTreasure('genbank'));
+treasureModes.loner.btn.addEventListener('click', () => toggleTreasure('loner'));
+
+/* ------------------------------------------------------------------ *
+ * Curiosities — a clickable list that jumps to an exotic genus
+ * ------------------------------------------------------------------ */
+const curiosityListEl = document.querySelector('#curiosities-list');
+
+// Select a genus the same way the dropdown does (clears treasure mode /
+// collections, zooms to the matches) — reuses the dropdown change handler.
+function jumpToGenus(genus) {
+  genusSelect.value = genus;
+  genusSelect.dispatchEvent(new Event('change'));
+}
+
+function renderCuriosities() {
+  if (!curiosityListEl) return;
+  const counts = new Map();
+  for (const f of allFeatures) {
+    const g = f.properties[GENUS_FIELD];
+    counts.set(g, (counts.get(g) || 0) + 1);
+  }
+  curiosityListEl.innerHTML = '';
+  for (const c of curiosities) {
+    const n = counts.get(c.genus) || 0;
+    if (!n) continue; // skip genera not present in the current data
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'curio-item';
+    btn.innerHTML =
+      `<span class="curio-name">${c.emoji} ${c.label}</span>` +
+      `<span class="curio-count">${numberFormat.format(n)}×</span>`;
+    btn.addEventListener('click', () => jumpToGenus(c.genus));
+    li.appendChild(btn);
+    curiosityListEl.appendChild(li);
+  }
+}
 
 /* ------------------------------------------------------------------ *
  * Collections — curated theme chips (mutually exclusive with genus)

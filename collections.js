@@ -47,14 +47,4 @@ export const collections = [
       'Crataegus', 'Pyrus', 'Davidia', 'Amelanchier', 'Laburnum',
     ],
   },
-  {
-    id: 'rar',
-    label: 'Seltene Raritäten',
-    emoji: '🦄',
-    type: 'rare', // dynamisch berechnet, keine feste Gattungsliste
-  },
 ];
-
-// Eine Art (voller lateinischer Name, baumnamelat) gilt als "selten", wenn sie
-// stadtweit höchstens so oft vorkommt.
-export const RARITY_MAX_COUNT = 5;
