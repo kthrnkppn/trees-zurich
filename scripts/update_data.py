@@ -30,6 +30,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_DIR = SCRIPT_DIR.parent
 TREES_GEOJSON = REPO_DIR / "trees.geojson"
 TREE_META_JS = REPO_DIR / "treeMeta.js"
+DATA_VERSION_JSON = REPO_DIR / "data-version.json"
 LOG_FILE = SCRIPT_DIR / "update.log"
 HASH_FILE = SCRIPT_DIR / ".last_hash"
 
@@ -289,6 +290,15 @@ def pull():
     git("pull", "--ff-only", "origin", "main")
 
 
+def write_data_version(date_str, feature_count):
+    """Record when the data was last pulled, so the app can show a 'Stand: …'."""
+    DATA_VERSION_JSON.write_text(
+        json.dumps({"pulled": date_str, "count": feature_count}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    log.info(f"Wrote data-version.json (pulled {date_str})")
+
+
 def commit_and_push(feature_count):
     pull()
 
@@ -297,7 +307,9 @@ def commit_and_push(feature_count):
     date_str = datetime.now().strftime("%Y-%m-%d")
     msg = f"Baumdaten aktualisiert: {date_str}, {count_str} Bäume"
 
-    files_to_stage = [str(TREES_GEOJSON), str(TREE_META_JS)]
+    write_data_version(date_str, feature_count)
+
+    files_to_stage = [str(TREES_GEOJSON), str(TREE_META_JS), str(DATA_VERSION_JSON)]
     git("add", *files_to_stage)
 
     # Double-check: git might see no diff even if our hash changed (rare edge case)

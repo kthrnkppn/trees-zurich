@@ -320,6 +320,18 @@ map.on('load', async () => {
 const treeCountElem = document.querySelector('#tree-count');
 const numberFormat = new Intl.NumberFormat('de-CH');
 
+// Show when the tree data was last pulled from the city's WFS (written by the
+// update script into data-version.json). Silently skipped if unavailable.
+fetch('./data-version.json')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((v) => {
+    const dateEl = document.querySelector('#data-date');
+    if (!dateEl || !v?.pulled) return;
+    const [y, m, d] = v.pulled.split('-');
+    if (y && m && d) dateEl.textContent = ` · Datenstand: ${d}.${m}.${y}`;
+  })
+  .catch(() => {});
+
 // Stable total across all of Zurich (not just the viewport): how many trees
 // match the active filter. With no filter it's simply the grand total.
 function updateTreeCount(matchCount) {
