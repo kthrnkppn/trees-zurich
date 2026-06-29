@@ -117,6 +117,53 @@ body {
   outline-offset: 1px;
 }
 
+/* Tree search with auto-suggest */
+.tree-search-field {
+  position: relative;
+}
+.tree-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  max-height: 264px;
+  overflow-y: auto;
+}
+.tree-suggestions[hidden] {
+  display: none;
+}
+.tree-suggestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.tree-suggestion:hover,
+.tree-suggestion.is-active {
+  background: #f1f6ee;
+}
+.ts-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ts-sub {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .year-field {
   margin-bottom: 14px;
 }

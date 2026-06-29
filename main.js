@@ -574,6 +574,129 @@ for (const c of collections) {
   collectionChips.set(c.id, btn);
 }
 
+/* ------------------------------------------------------------------ *
+ * Tree search with auto-suggest (genera + species, German & Latin)
+ * ------------------------------------------------------------------ */
+const treeSearchInput = document.querySelector('#tree-search');
+const treeSuggestionsEl = document.querySelector('#tree-suggestions');
+
+// Build a search index once: one entry per genus and per species, each with a
+// lowercased haystack of German + Latin names.
+const searchIndex = [];
+for (const genus of treeMeta.genera) {
+  const de = GenusDeNames[genus];
+  searchIndex.push({
+    kind: 'genus',
+    genus,
+    label: de ? `${de} (${genus})` : genus,
+    sub: 'Gattung',
+    search: `${de || ''} ${genus}`.toLowerCase(),
+  });
+  for (const { art, label } of treeMeta.speciesByGenus[genus] || []) {
+    searchIndex.push({
+      kind: 'species',
+      genus,
+      art,
+      label,
+      sub: `Art · ${de || genus}`,
+      search: `${label} ${genus} ${de || ''}`.toLowerCase(),
+    });
+  }
+}
+
+let suggestions = [];
+let activeSuggestion = -1;
+
+function searchTrees(query) {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const starts = [];
+  const contains = [];
+  for (const e of searchIndex) {
+    const i = e.search.indexOf(q);
+    if (i === -1) continue;
+    if (i === 0 || e.search.includes(' ' + q)) starts.push(e);
+    else contains.push(e);
+  }
+  return [...starts, ...contains].slice(0, 8);
+}
+
+function hideSuggestions() {
+  treeSuggestionsEl.hidden = true;
+  treeSuggestionsEl.innerHTML = '';
+  treeSearchInput.setAttribute('aria-expanded', 'false');
+  activeSuggestion = -1;
+}
+
+function renderSuggestions() {
+  if (!suggestions.length) {
+    hideSuggestions();
+    return;
+  }
+  treeSuggestionsEl.innerHTML = '';
+  suggestions.forEach((e, idx) => {
+    const li = document.createElement('li');
+    li.className = 'tree-suggestion' + (idx === activeSuggestion ? ' is-active' : '');
+    li.setAttribute('role', 'option');
+    li.innerHTML = `<span class="ts-label">${e.label}</span><span class="ts-sub">${e.sub}</span>`;
+    li.addEventListener('mousedown', (ev) => {
+      ev.preventDefault(); // keep focus so blur doesn't fire first
+      selectSuggestion(idx);
+    });
+    treeSuggestionsEl.appendChild(li);
+  });
+  treeSuggestionsEl.hidden = false;
+  treeSearchInput.setAttribute('aria-expanded', 'true');
+}
+
+function jumpToSpecies(genus, art) {
+  genusSelect.value = genus;
+  genusSelect.dispatchEvent(new Event('change')); // fills species options + sets genus
+  artSelect.value = art;
+  artSelect.dispatchEvent(new Event('change')); // sets species filter + zooms
+}
+
+function selectSuggestion(idx) {
+  const e = suggestions[idx];
+  if (!e) return;
+  treeSearchInput.value = e.label;
+  hideSuggestions();
+  if (e.kind === 'genus') jumpToGenus(e.genus);
+  else jumpToSpecies(e.genus, e.art);
+}
+
+treeSearchInput.addEventListener('input', () => {
+  suggestions = searchTrees(treeSearchInput.value);
+  activeSuggestion = -1;
+  renderSuggestions();
+});
+
+treeSearchInput.addEventListener('keydown', (ev) => {
+  if (treeSuggestionsEl.hidden) return;
+  if (ev.key === 'ArrowDown') {
+    ev.preventDefault();
+    activeSuggestion = Math.min(activeSuggestion + 1, suggestions.length - 1);
+    renderSuggestions();
+  } else if (ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    activeSuggestion = Math.max(activeSuggestion - 1, 0);
+    renderSuggestions();
+  } else if (ev.key === 'Enter') {
+    ev.preventDefault();
+    selectSuggestion(activeSuggestion >= 0 ? activeSuggestion : 0);
+  } else if (ev.key === 'Escape') {
+    hideSuggestions();
+  }
+});
+
+treeSearchInput.addEventListener('focus', () => {
+  if (treeSearchInput.value.trim().length >= 2) {
+    suggestions = searchTrees(treeSearchInput.value);
+    renderSuggestions();
+  }
+});
+treeSearchInput.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
+
 // Legend from the same GENUS_COLORS source as the map.
 const legendEl = document.querySelector('#legend');
 for (const { name, color } of [...GENUS_COLORS, { name: 'Andere', color: OTHER_COLOR }]) {

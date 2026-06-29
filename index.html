@@ -97,6 +97,21 @@
         <section class="panel" aria-labelledby="filter-heading">
           <h2 id="filter-heading">Filter</h2>
 
+          <div class="field tree-search-field">
+            <label class="field-label" for="tree-search">Baum suchen</label>
+            <input
+              id="tree-search"
+              type="text"
+              autocomplete="off"
+              placeholder="z.B. Eiche, Olive, Acer …"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="tree-suggestions"
+              aria-autocomplete="list"
+            />
+            <ul id="tree-suggestions" class="tree-suggestions" role="listbox" hidden></ul>
+          </div>
+
           <label class="field">
             <span class="field-label">Baumgattung</span>
             <select id="baumgattung_id">
