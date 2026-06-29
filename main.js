@@ -188,7 +188,11 @@ const geocoderApi = {
         `https://nominatim.openstreetmap.org/search?${params}`
       );
       const geojson = await res.json();
+      const seen = new Set(); // drop duplicate display names (e.g. street segments)
       for (const f of geojson.features || []) {
+        const name = f.properties.display_name;
+        if (seen.has(name)) continue;
+        seen.add(name);
         const center =
           f.geometry?.type === 'Point'
             ? f.geometry.coordinates
@@ -240,7 +244,11 @@ const map = new maplibregl.Map({
       maplibregl,
       placeholder: 'Ort suchen',
       marker: false,
-      showResultsWhileTyping: false,
+      // Auto-suggest: show matching places while typing. minLength + a generous
+      // debounce keep us within Nominatim's fair-use policy (~1 request/sec).
+      showResultsWhileTyping: true,
+      minLength: 3,
+      debounceSearch: 350,
     }),
     'top-left'
   );
