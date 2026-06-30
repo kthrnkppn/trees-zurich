@@ -96,7 +96,7 @@ export const genusInfo = {
   },
   Liquidambar: {
     desc: 'Der Amberbaum hat ahornähnliche Blätter und eine der spektakulärsten Herbstfärbungen überhaupt.',
-    tags: ['Herbstfärbung', 'Stadtklima-fest'],
+    tags: ['Herbstfärbung', 'Besondere Blätter'],
   },
   Liriodendron: {
     desc: 'Der Tulpenbaum trägt tulpenförmige Blüten und ungewöhnlich geschnittene Blätter, die im Herbst goldgelb leuchten.',
@@ -124,7 +124,7 @@ export const genusInfo = {
   },
   Ulmus: {
     desc: 'Traditioneller Stadtbaum mit asymmetrischen, rauen Blättern und breit ausladender Krone.',
-    tags: ['Schattenspender', 'Stadtbaum'],
+    tags: ['Schattenspender', 'Stadtklima-fest'],
   },
   Gleditsia: {
     desc: 'Feines, lichtes Fiederlaub, das im Herbst goldgelb wird; sehr verträglich für schwierige Strassenstandorte.',
@@ -145,5 +145,71 @@ export const genusInfo = {
   Sequoiadendron: {
     desc: 'Der Riesenmammutbaum gehört zu den grössten Bäumen der Welt und hat eine dicke, weiche, rotbraune Rinde.',
     tags: ['Riesenwuchs', 'Markante Rinde', 'Immergrün'],
+  },
+
+  // --- Exoten aus der Kuriositäten-Liste ---
+  Olea: {
+    desc: 'Immergrüner Mittelmeerbaum mit silbrig schimmernden Blättern und den bekannten Oliven – liebt Wärme und geschützte Standorte.',
+    tags: ['Immergrün', 'Früchte'],
+  },
+  Ficus: {
+    desc: 'Eine der ältesten Kulturpflanzen mit grossen, handförmigen Blättern und süssen Feigen; nach römischer Gründungssage säugte die Wölfin Romulus und Remus unter einem Feigenbaum.',
+    tags: ['Früchte', 'Grosse Blätter'],
+  },
+  Diospyros: {
+    desc: 'Trägt im Herbst leuchtend orange Früchte (Kaki), die oft bis in den Winter an den kahlen Ästen hängen.',
+    tags: ['Früchte', 'Herbstfärbung'],
+  },
+  Morus: {
+    desc: 'Süsse, brombeerähnliche Früchte für Mensch und Vogel; die Blätter sind das klassische Futter der Seidenraupe.',
+    tags: ['Früchte', 'Vogelnährgehölz', 'Schattenspender'],
+  },
+  Asimina: {
+    desc: 'Trägt die grössten essbaren Früchte Nordamerikas – cremig und exotisch nach Banane und Mango; dazu grosse, tropisch wirkende Blätter.',
+    tags: ['Früchte', 'Grosse Blätter'],
+  },
+  Ziziphus: {
+    desc: 'Die roten, dattelähnlichen Früchte („Chinesische Dattel") sind ein Klassiker der chinesischen Küche und Medizin; der Baum ist wärmeliebend und trockenheitshart.',
+    tags: ['Früchte', 'Stadtklima-fest'],
+  },
+  Poncirus: {
+    desc: 'Die winterharte „Dreiblättrige Orange" mit duftenden weissen Blüten und kleinen, ungeniessbar bitteren Früchten – nicht zu verwechseln mit der Pomeranze, die in Aperol und Marmelade steckt.',
+    tags: ['Duftblüte', 'Früchte'],
+  },
+  Zanthoxylum: {
+    desc: 'Aus den Fruchtschalen mancher Arten gewinnt man den prickelnden Sichuanpfeffer; das Laub duftet aromatisch, die Zweige tragen Stacheln.',
+    tags: ['Früchte', 'Besondere Blätter'],
+  },
+  Albizia: {
+    desc: 'Im Sommer rosa, federartige „Seiden"-Blüten; nachts klappt der „Schlafbaum" seine feinen Fiederblätter zusammen.',
+    tags: ['Blütenpracht', 'Besondere Blätter', 'Bienenweide'],
+  },
+  Davidia: {
+    desc: 'Im Mai hängen grosse weisse Hochblätter wie Taschentücher an den Zweigen – ein spektakulärer Anblick.',
+    tags: ['Blütenpracht', 'Besondere Blätter'],
+  },
+  Eucommia: {
+    desc: 'Der einzige winterharte Kautschukbaum – reisst man ein Blatt, hängen feine Gummifäden daran; ausgesprochen robust.',
+    tags: ['Besondere Blätter', 'Stadtklima-fest'],
+  },
+  Gymnocladus: {
+    desc: 'Im Winter geweihartig grobe Verzweigung, im Sommer riesige doppelt gefiederte Blätter; kommt mit schwierigen Stadtstandorten gut zurecht.',
+    tags: ['Grosse Blätter', 'Stadtklima-fest'],
+  },
+  Maclura: {
+    desc: 'Trägt grosse, gehirnartig gerunzelte grüne Scheinfrüchte; extrem hartes Holz und dornige Zweige machen ihn unverwüstlich.',
+    tags: ['Früchte', 'Stadtklima-fest'],
+  },
+  Koelreuteria: {
+    desc: 'Gelbe Blütenrispen im Hochsommer, danach lampionartig aufgeblasene Fruchtkapseln; hitze- und trockenheitsverträglich.',
+    tags: ['Blüte', 'Stadtklima-fest', 'Herbstfärbung'],
+  },
+  Araucaria: {
+    desc: 'Ein lebendes Fossil aus den Anden: immergrüne, messerscharfe Schuppenzweige an gleichmässig gewundenen Ästen.',
+    tags: ['Immergrün', 'Besondere Blätter', 'Langlebig'],
+  },
+  Metasequoia: {
+    desc: 'Ein lebendes Fossil – galt nur aus Versteinerungen bekannt als ausgestorben, bis 1940 lebende Bäume in China entdeckt wurden; laubabwerfender Nadelbaum mit kupferroter Herbstfärbung.',
+    tags: ['Herbstfärbung', 'Nadelbaum', 'Schnellwüchsig'],
   },
 };
