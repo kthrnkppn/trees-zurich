@@ -29,7 +29,7 @@ export const trendReasons = {
 
   // --- Auf dem Rückzug ---
   Carpinus:
-    'Lange der Standard-Stadtbaum – verliert Anteil an klimafittere Arten und leidet zunehmend unter Hitze.',
+    'Lange der Standard-Stadtbaum – verliert Anteil, weil heute gezielt auf grössere Vielfalt und klimafittere Arten gesetzt wird.',
   Picea:
     'Der grosse Klimaverlierer: flachwurzelnd und sehr trockenheitsempfindlich – in der heissen Stadt kaum noch gepflanzt.',
   Pinus:
@@ -49,5 +49,5 @@ export const trendReasons = {
 
   // --- Sonderfall (taucht je nach Zeitfenster auf) ---
   Ailanthus:
-    'Gilt heute als invasiver Neophyt (Schweizer Schwarze Liste) – die Anpflanzung wird vermieden, so toll er auch duftet.',
+    'Gilt heute als invasiver Neophyt (Schweizer Schwarze Liste) – die Anpflanzung wird vermieden, so stadtklimafest er auch ist.',
 };
