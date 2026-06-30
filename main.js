@@ -508,15 +508,22 @@ function jumpToGenus(genus) {
 
 function renderCuriosities() {
   if (!curiosityListEl) return;
-  const counts = new Map();
+  // Count both by genus and by genus+species, so curiosities can be pinned to a
+  // single species when the genus holds several (e.g. Zanthoxylum piperitum).
+  const genusCounts = new Map();
+  const speciesCounts = new Map();
   for (const f of allFeatures) {
     const g = f.properties[GENUS_FIELD];
-    counts.set(g, (counts.get(g) || 0) + 1);
+    genusCounts.set(g, (genusCounts.get(g) || 0) + 1);
+    const key = `${g}|${f.properties[SPECIES_FIELD]}`;
+    speciesCounts.set(key, (speciesCounts.get(key) || 0) + 1);
   }
   curiosityListEl.innerHTML = '';
   for (const c of curiosities) {
-    const n = counts.get(c.genus) || 0;
-    if (!n) continue; // skip genera not present in the current data
+    const n = c.art
+      ? speciesCounts.get(`${c.genus}|${c.art}`) || 0
+      : genusCounts.get(c.genus) || 0;
+    if (!n) continue; // skip entries not present in the current data
     const li = document.createElement('li');
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -524,7 +531,9 @@ function renderCuriosities() {
     btn.innerHTML =
       `<span class="curio-name">${c.emoji} ${c.label}</span>` +
       `<span class="curio-count">${numberFormat.format(n)}×</span>`;
-    btn.addEventListener('click', () => jumpToGenus(c.genus));
+    btn.addEventListener('click', () =>
+      c.art ? jumpToSpecies(c.genus, c.art) : jumpToGenus(c.genus)
+    );
     li.appendChild(btn);
     curiosityListEl.appendChild(li);
   }

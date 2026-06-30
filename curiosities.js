@@ -4,7 +4,9 @@
 // Karte. `genus` ist der lateinische Gattungsname (baumgattunglat).
 export const curiosities = [
   { genus: 'Olea', label: 'Olive', emoji: '🫒' },
-  { genus: 'Zanthoxylum', label: 'Sichuanpfeffer', emoji: '🌶️' },
+  // `art` grenzt auf eine bestimmte Art ein, wenn die Gattung mehrere enthält.
+  { genus: 'Zanthoxylum', art: 'piperitum', label: 'Sichuanpfeffer', emoji: '🌶️' },
+  { genus: 'Zanthoxylum', art: 'simulans', label: 'Täuschende Stachelesche', emoji: '🌶️' },
   { genus: 'Asimina', label: 'Indianerbanane', emoji: '🍌' },
   { genus: 'Poncirus', label: 'Bitterorange', emoji: '🍊' },
   { genus: 'Ziziphus', label: 'Chinesische Jujube', emoji: '🌴' },
