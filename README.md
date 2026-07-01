@@ -1,6 +1,6 @@
 # Zürichs Stadtbäume
 
-**Live: [kthrnkppn.github.io/trees-zurich](https://kthrnkppn.github.io/trees-zurich)**
+**Live: [trees.watch](https://trees.watch)**
 
 Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art und Pflanzjahr. Klick auf einen Baum zeigt Alter, Artbeschreibung, Eigenschaften und ein historisches Welt-Event aus dem Pflanzjahr.
 
