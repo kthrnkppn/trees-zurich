@@ -31,6 +31,7 @@ REPO_DIR = SCRIPT_DIR.parent
 TREES_GEOJSON = REPO_DIR / "trees.geojson"
 TREE_META_JS = REPO_DIR / "treeMeta.js"
 DATA_VERSION_JSON = REPO_DIR / "data-version.json"
+NEW_TREES_JSON = REPO_DIR / "new-trees.json"
 LOG_FILE = SCRIPT_DIR / "update.log"
 HASH_FILE = SCRIPT_DIR / ".last_hash"
 
@@ -172,6 +173,41 @@ def save_hash(h):
 
 
 # ---------------------------------------------------------------------------
+# "New since last update" — diff against the file on disk before overwriting it
+# ---------------------------------------------------------------------------
+def _coord_key(feature):
+    x, y = feature["geometry"]["coordinates"]
+    return (x, y)  # already rounded to COORD_PRECISION during processing
+
+
+def compute_new_trees(features):
+    """Trees present now but not in the currently-committed trees.geojson.
+
+    Coordinates (rounded to ~1m) serve as the identity — the cadastre has no
+    stable per-tree ID once trimmed to KEEP_FIELDS. Must be called BEFORE
+    write_geojson() overwrites the old file.
+    """
+    if not TREES_GEOJSON.exists():
+        return []
+    try:
+        old = json.loads(TREES_GEOJSON.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    old_keys = {_coord_key(f) for f in old.get("features", [])}
+    return [f for f in features if _coord_key(f) not in old_keys]
+
+
+def write_new_trees(new_trees):
+    """Always overwrite — this file reflects only the most recent diff."""
+    fc = {"type": "FeatureCollection", "features": new_trees}
+    NEW_TREES_JSON.write_text(
+        json.dumps(fc, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    log.info(f"Wrote new-trees.json ({len(new_trees)} new trees)")
+
+
+# ---------------------------------------------------------------------------
 # Write trees.geojson
 # ---------------------------------------------------------------------------
 def write_geojson(features):
@@ -309,7 +345,7 @@ def commit_and_push(feature_count):
 
     write_data_version(date_str, feature_count)
 
-    files_to_stage = [str(TREES_GEOJSON), str(TREE_META_JS), str(DATA_VERSION_JSON)]
+    files_to_stage = [str(TREES_GEOJSON), str(TREE_META_JS), str(DATA_VERSION_JSON), str(NEW_TREES_JSON)]
     git("add", *files_to_stage)
 
     # Double-check: git might see no diff even if our hash changed (rare edge case)
@@ -349,7 +385,9 @@ def main():
             return
 
         log.info("Hash differs — updating repository")
+        new_trees = compute_new_trees(features)  # diff BEFORE the old file is gone
         write_geojson(features)
+        write_new_trees(new_trees)
         maybe_update_tree_meta(features)
         save_hash(new_hash)
         commit_and_push(len(features))

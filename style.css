@@ -443,6 +443,36 @@ body {
   border-top: 1px solid var(--line);
   padding-top: 14px;
 }
+.new-trees-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(#4aad52, #3c8f43);
+  border: 1px solid #357a3b;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.new-trees-btn[hidden] {
+  display: none;
+}
+.new-trees-btn:hover {
+  filter: brightness(1.05);
+}
+.new-trees-btn.is-active {
+  background: linear-gradient(#c5e063, #a9c94a);
+  border-color: #93b23a;
+  color: var(--green-dark);
+  box-shadow: 0 2px 8px rgba(74, 173, 82, 0.35);
+}
+.new-trees-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
 .tree-count {
   display: block;
   font-size: 15px;

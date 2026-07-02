@@ -7,6 +7,8 @@ import { computeStats, renderStatsHTML } from './stats.js';
 
 const layerId = 'tree-points-layer';
 const treasureLayerId = 'treasure-stars-layer';
+const newTreesLayerId = 'new-trees-layer';
+const newTreesSourceId = 'new-trees';
 const sourceId = 'zurich-trees';
 
 // Field names from the official Stadt Zürich Baumkataster GeoJSON.
@@ -72,6 +74,9 @@ function makeStarImage(size = 34) {
 // All tree features, kept in memory so we can count and zoom to matches across
 // the whole city — not just what's currently on screen.
 let allFeatures = [];
+
+// Trees added since the last successful data update (see newTreesLayerId).
+let newTreesFeatures = [];
 
 // Full latin species name (baumnamelat → baumnamelat) field, used for rarity.
 const LATIN_NAME_FIELD = 'baumnamelat';
@@ -265,6 +270,18 @@ map.on('load', async () => {
   ({ genbank: genbankNames, loner: loanerNames } = computeSpeciesCounts());
   renderCuriosities();
 
+  // Trees added since the last successful data update (written by the update
+  // script as a small diff). Optional file — missing/empty just hides the button.
+  let newTreesData = { type: 'FeatureCollection', features: [] };
+  try {
+    const r = await fetch('./new-trees.json');
+    if (r.ok) newTreesData = await r.json();
+  } catch (e) {
+    /* optional — silently skip */
+  }
+  newTreesFeatures = newTreesData.features || [];
+  setupNewTreesButton();
+
   map.addSource(sourceId, { type: 'geojson', data: treesData });
 
   map.addLayer({
@@ -303,13 +320,31 @@ map.on('load', async () => {
     },
   });
 
+  // New-trees layer: its own small source (not filtered from the main one),
+  // since "new since last update" isn't a property of a tree — it's a diff
+  // result computed once by the update script. Hidden until toggled on.
+  map.addSource(newTreesSourceId, { type: 'geojson', data: newTreesData });
+  map.addLayer({
+    id: newTreesLayerId,
+    type: 'circle',
+    source: newTreesSourceId,
+    paint: {
+      'circle-color': '#22c55e',
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 13, 6, 16, 8, 22, 13],
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 2,
+      'circle-stroke-opacity': 1,
+    },
+    layout: { visibility: 'none' },
+  });
+
   const showPopup = (e) => {
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
       .setHTML(getPopupContent(e.features[0].properties))
       .addTo(map);
   };
-  for (const id of [layerId, treasureLayerId]) {
+  for (const id of [layerId, treasureLayerId, newTreesLayerId]) {
     map.on('mouseenter', id, () => {
       map.getCanvas().style.cursor = 'pointer';
     });
@@ -388,6 +423,7 @@ function fillSpecies(genus) {
 
 genusSelect.addEventListener('change', (e) => {
   exitTreasureMode();
+  exitNewTreesMode();
   const genus = e.target.value;
   filterState.species = null; // species are scoped to a genus
   // Genus and collections are mutually exclusive.
@@ -411,6 +447,7 @@ artSelect.addEventListener('change', (e) => {
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
   exitTreasureMode();
+  exitNewTreesMode();
   filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
   filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
   applyFilters({ fit: true });
@@ -418,6 +455,7 @@ document.querySelector('#apply_filters').addEventListener('click', () => {
 
 document.querySelector('#reset_filters').addEventListener('click', () => {
   exitTreasureMode();
+  exitNewTreesMode();
   genusSelect.value = '0';
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
   yearMinInput.value = MIN_YEAR;
@@ -468,6 +506,7 @@ function toggleTreasure(modeKey) {
   }
   if (!allFeatures.length) return; // data not loaded yet
   exitTreasureMode(); // turn off the other mode if it was active
+  exitNewTreesMode();
 
   // A gold-star mode is its own view — clear any active filters/collections.
   clearCollectionUI();
@@ -493,6 +532,67 @@ function toggleTreasure(modeKey) {
 
 treasureModes.genbank.btn.addEventListener('click', () => toggleTreasure('genbank'));
 treasureModes.loner.btn.addEventListener('click', () => toggleTreasure('loner'));
+
+/* ------------------------------------------------------------------ *
+ * New trees — highlight what was added since the last data update
+ * ------------------------------------------------------------------ */
+const newTreesBtn = document.querySelector('#new-trees-toggle');
+let newTreesModeActive = false;
+
+function newTreesLabel(n) {
+  return n === 1
+    ? '🌱 1 neuer Baum seit dem letzten Update'
+    : `🌱 ${numberFormat.format(n)} neue Bäume seit dem letzten Update`;
+}
+
+// Show the button only if the last update actually added trees — nothing to
+// see otherwise, so no point cluttering the sidebar with a dead button.
+function setupNewTreesButton() {
+  if (!newTreesFeatures.length) {
+    newTreesBtn.hidden = true;
+    return;
+  }
+  newTreesBtn.hidden = false;
+  newTreesBtn.textContent = newTreesLabel(newTreesFeatures.length);
+}
+
+function exitNewTreesMode() {
+  if (!newTreesModeActive) return;
+  newTreesModeActive = false;
+  newTreesBtn.classList.remove('is-active');
+  newTreesBtn.setAttribute('aria-pressed', 'false');
+  if (map.getLayer(newTreesLayerId)) map.setLayoutProperty(newTreesLayerId, 'visibility', 'none');
+  if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
+}
+
+function toggleNewTreesMode() {
+  if (newTreesModeActive) {
+    exitNewTreesMode();
+    applyFilters();
+    return;
+  }
+  if (!newTreesFeatures.length) return;
+  exitTreasureMode();
+
+  // Its own view — clear any active filters/collections, same as the other modes.
+  clearCollectionUI();
+  genusSelect.value = '0';
+  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  filterState.collection = null;
+  filterState.genus = null;
+  filterState.species = null;
+
+  newTreesModeActive = true;
+  newTreesBtn.classList.add('is-active');
+  newTreesBtn.setAttribute('aria-pressed', 'true');
+  map.setLayoutProperty(layerId, 'visibility', 'none');
+  map.setLayoutProperty(newTreesLayerId, 'visibility', 'visible');
+
+  if (treeCountElem) treeCountElem.textContent = newTreesLabel(newTreesFeatures.length);
+  fitToMatches(newTreesFeatures);
+}
+
+newTreesBtn.addEventListener('click', toggleNewTreesMode);
 
 /* ------------------------------------------------------------------ *
  * Curiosities — a clickable list that jumps to an exotic genus
@@ -554,6 +654,7 @@ function clearCollectionUI() {
 
 function toggleCollection(c, btn) {
   exitTreasureMode();
+  exitNewTreesMode();
   const wasActive = filterState.collection?.id === c.id;
   clearCollectionUI();
   if (wasActive) {
