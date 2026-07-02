@@ -807,18 +807,38 @@ treeSearchInput.addEventListener('focus', () => {
 });
 treeSearchInput.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
 
-// Legend from the same GENUS_COLORS source as the map.
+// Legend from the same GENUS_COLORS source as the map. Each named genus is a
+// clickable filter (jumps to that genus like the dropdown); "Andere" is the
+// catch-all fallback and stays a plain, non-clickable row.
 const legendEl = document.querySelector('#legend');
-for (const { name, color } of [...GENUS_COLORS, { name: 'Andere', color: OTHER_COLOR }]) {
-  const row = document.createElement('div');
-  row.className = 'legend-row';
-  const swatch = document.createElement('span');
-  swatch.className = 'legend-swatch';
-  swatch.style.background = color;
-  const label = document.createElement('span');
-  label.textContent = name;
-  row.append(swatch, label);
-  legendEl.appendChild(row);
+
+function makeSwatch(color) {
+  const s = document.createElement('span');
+  s.className = 'legend-swatch';
+  s.style.background = color;
+  return s;
+}
+function makeLabel(name) {
+  const l = document.createElement('span');
+  l.textContent = name;
+  return l;
+}
+
+for (const { genus, name, color } of [...GENUS_COLORS, { name: 'Andere', color: OTHER_COLOR }]) {
+  if (genus) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'legend-row legend-btn';
+    btn.title = `Nur ${name} anzeigen`;
+    btn.append(makeSwatch(color), makeLabel(name));
+    btn.addEventListener('click', () => jumpToGenus(genus));
+    legendEl.appendChild(btn);
+  } else {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.append(makeSwatch(color), makeLabel(name));
+    legendEl.appendChild(row);
+  }
 }
 
 /* ------------------------------------------------------------------ *

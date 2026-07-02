@@ -335,7 +335,12 @@ body {
   color: var(--muted);
 }
 
-/* ---- Legend ---- */
+/* ---- Legend (genus rows double as filters) ---- */
+.legend-hint {
+  margin: -6px 0 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
 .legend {
   font-size: 13px;
   line-height: 1.6;
@@ -344,6 +349,26 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* Clickable genus rows: reset the button chrome, add hover affordance. */
+.legend-btn {
+  width: 100%;
+  padding: 3px 6px;
+  margin-left: -6px;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.legend-btn:hover {
+  background: #f1f6ee;
+}
+.legend-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
 }
 .legend-swatch {
   display: inline-block;
