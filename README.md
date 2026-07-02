@@ -15,20 +15,39 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 | Geocoder | [Nominatim](https://nominatim.org/) (OpenStreetMap, fair use) |
 | Baumdaten | [Baumkataster Stadt Zürich](https://www.ogd.stadt-zuerich.ch/) – Open Data, wöchentlich aktualisiert |
 
+## Funktionen
+
+- Filter nach **Gattung, Art, Pflanzjahr** + Freitext-**Baum-Suche** mit Auto-Suggest
+- **Ortssuche** (Auto-Suggest) auf der Karte
+- **Sammlungen** (Obstbäume, Nadelbäume, Herbstfärbung, Frühlingsblüher)
+- **Raritäten**: Lebende Genbank (alte Obstsorten) & Einzelgänger (goldene Sterne)
+- **Kuriositäten**: anklickbare Liste exotischer Bäume, springt direkt hin
+- **Zahlen & Trends**-Modal – live aus den Daten berechnet
+- **Neue Bäume** seit dem letzten Update hervorheben
+- Reiches **Klick-Popup**: Alter, Beschreibung, Eigenschaften, Welt-Event im Pflanzjahr
+
 ## Dateien
 
 ```
-index.html       Einstiegspunkt
-style.css        Layout, Sidebar, Popup-Styles
-main.js          Karte, Filter, Zähler, Auto-Zoom
-helpers.js       Popup-HTML generieren
-GenusDeNames.js  Lateinischer Gattungsname → deutscher Name
-genusInfo.js     Beschreibungen und Eigenschaften pro Gattung
-treeMeta.js      Gattungen und Arten für die Dropdowns (generiert)
-yearEvents.js    Welt-Event pro Pflanzjahr (1665–2026)
-trees.geojson    Baumdaten (~19 MB, 81'048 Punkte)
-server.mjs       Lokaler Entwicklungsserver (nur für lokales Testen)
+index.html         Einstiegspunkt (Sidebar + Karte + Statistik-Modal)
+style.css          Gesamtes Styling
+main.js            Karte, Layer, Filter, alle Modi
+helpers.js         Popup-HTML
+stats.js           „Zahlen & Trends" berechnen + rendern
+GenusDeNames.js    Lateinischer Gattungsname → deutscher Name
+genusInfo.js       Beschreibung + Attribut-Tags pro Gattung
+trendReasons.js    „Warum"-Erklärungen zu den Trends
+collections.js     Themen-Sammlungen
+curiosities.js     Kuratierte Exoten-Liste
+treeMeta.js        Gattungen/Arten für die Dropdowns (generiert)
+yearEvents.js      Welt-Event pro Pflanzjahr (1665–2026)
+trees.geojson      Baumdaten (~19 MB, ~81'000 Punkte)
+data-version.json  Datenstand (Datum + Anzahl)
+new-trees.json     Seit letztem Update neu dazugekommene Bäume
+server.mjs         Lokaler Entwicklungsserver (nur zum Testen)
 ```
+
+**Technische Gesamtübersicht:** → [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## Lokal starten
 
