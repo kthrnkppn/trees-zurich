@@ -371,6 +371,20 @@ body {
   font-weight: 700;
   color: var(--green-dark);
 }
+/* "×" on the active row signals it can be clicked again to deselect. */
+.legend-btn.is-active::after {
+  content: "×";
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--green-dark);
+  opacity: 0.6;
+}
+.legend-btn.is-active:hover::after {
+  opacity: 1;
+}
 .legend-btn:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 1px;

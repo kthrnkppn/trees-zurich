@@ -833,9 +833,19 @@ for (const { genus, name, color } of [...GENUS_COLORS, { name: 'Andere', color: 
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'legend-row legend-btn';
+    btn.dataset.name = name;
     btn.title = `Nur ${name} anzeigen`;
     btn.append(makeSwatch(color), makeLabel(name));
-    btn.addEventListener('click', () => jumpToGenus(genus));
+    // Click toggles: pick this genus, or — if it's already active — clear the
+    // filter (via the dropdown's "Alle Gattungen" path) and show all again.
+    btn.addEventListener('click', () => {
+      if (filterState.genus === genus) {
+        genusSelect.value = '0';
+        genusSelect.dispatchEvent(new Event('change'));
+      } else {
+        jumpToGenus(genus);
+      }
+    });
     legendButtons.set(genus, btn);
     legendEl.appendChild(btn);
   } else {
@@ -853,6 +863,7 @@ function updateLegendHighlight() {
     const active = filterState.genus === genus;
     btn.classList.toggle('is-active', active);
     btn.setAttribute('aria-pressed', String(active));
+    btn.title = active ? 'Auswahl aufheben' : `Nur ${btn.dataset.name} anzeigen`;
   }
 }
 
