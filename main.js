@@ -172,6 +172,7 @@ function applyFilters({ fit = false } = {}) {
   if (map.getLayer(layerId)) map.setFilter(layerId, buildMapFilter());
   const matches = hasActiveFilter() ? allFeatures.filter(matchesFilter) : allFeatures;
   updateTreeCount(matches.length);
+  updateLegendHighlight();
   if (fit && hasActiveFilter()) fitToMatches(matches);
 }
 
@@ -515,6 +516,7 @@ function toggleTreasure(modeKey) {
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
+  updateLegendHighlight();
 
   const mode = treasureModes[modeKey];
   const names = mode.names();
@@ -581,6 +583,7 @@ function toggleNewTreesMode() {
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
+  updateLegendHighlight();
 
   newTreesModeActive = true;
   newTreesBtn.classList.add('is-active');
@@ -824,6 +827,7 @@ function makeLabel(name) {
   return l;
 }
 
+const legendButtons = new Map(); // genus → button, for active-state highlighting
 for (const { genus, name, color } of [...GENUS_COLORS, { name: 'Andere', color: OTHER_COLOR }]) {
   if (genus) {
     const btn = document.createElement('button');
@@ -832,12 +836,23 @@ for (const { genus, name, color } of [...GENUS_COLORS, { name: 'Andere', color: 
     btn.title = `Nur ${name} anzeigen`;
     btn.append(makeSwatch(color), makeLabel(name));
     btn.addEventListener('click', () => jumpToGenus(genus));
+    legendButtons.set(genus, btn);
     legendEl.appendChild(btn);
   } else {
     const row = document.createElement('div');
     row.className = 'legend-row';
     row.append(makeSwatch(color), makeLabel(name));
     legendEl.appendChild(row);
+  }
+}
+
+// Highlight the legend row of the currently filtered genus (if it's one of the
+// legend genera). Called from applyFilters and when entering star/new-tree modes.
+function updateLegendHighlight() {
+  for (const [genus, btn] of legendButtons) {
+    const active = filterState.genus === genus;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', String(active));
   }
 }
 

@@ -366,6 +366,11 @@ body {
 .legend-btn:hover {
   background: #f1f6ee;
 }
+.legend-btn.is-active {
+  background: #e3f0d6;
+  font-weight: 700;
+  color: var(--green-dark);
+}
 .legend-btn:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 1px;
