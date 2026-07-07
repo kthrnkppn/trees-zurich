@@ -574,6 +574,17 @@ body {
   color: #6b726c;
 }
 
+/* Disclaimer shown while the (incomplete) memorial year is active */
+.gone-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.gone-note[hidden] {
+  display: none;
+}
+
 .tree-count {
   display: block;
   font-size: 15px;

@@ -648,7 +648,12 @@ newTreesBtn.addEventListener('click', toggleNewTreesMode);
  * Verschwundene Bäume — annual "In Memoriam", revealed each December
  * ------------------------------------------------------------------ */
 const goneTreesBtn = document.querySelector('#gone-trees-toggle');
+const goneNoteEl = document.querySelector('#gone-note');
 let goneModeActive = false;
+
+// Tracking of vanished trees began mid-2026, so 2026's memorial is partial.
+// Years after this are tracked for the full year → complete, no disclaimer.
+const GONE_INCOMPLETE_THROUGH_YEAR = 2026;
 
 // Group the graveyard by disappearance year and pick the newest year that is
 // already "revealed" — a year is revealed from 1 December of that year onward.
@@ -696,6 +701,7 @@ function exitGoneMode() {
   goneModeActive = false;
   goneTreesBtn.classList.remove('is-active');
   goneTreesBtn.setAttribute('aria-pressed', 'false');
+  if (goneNoteEl) goneNoteEl.hidden = true;
   if (map.getLayer(goneTreesLayerId)) map.setLayoutProperty(goneTreesLayerId, 'visibility', 'none');
   if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
 }
@@ -728,6 +734,14 @@ function toggleGoneMode() {
   map.setLayoutProperty(goneTreesLayerId, 'visibility', 'visible');
 
   if (treeCountElem) treeCountElem.textContent = goneLabel(goneRevealYear, goneTreesFeatures.length);
+  if (goneNoteEl) {
+    if (goneRevealYear <= GONE_INCOMPLETE_THROUGH_YEAR) {
+      goneNoteEl.textContent = `Hinweis: Die Bilanz ${goneRevealYear} ist unvollständig – Verluste werden erst seit Mitte 2026 erfasst.`;
+      goneNoteEl.hidden = false;
+    } else {
+      goneNoteEl.hidden = true;
+    }
+  }
   fitToMatches(goneTreesFeatures);
 }
 
