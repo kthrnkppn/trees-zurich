@@ -9,6 +9,8 @@ const layerId = 'tree-points-layer';
 const treasureLayerId = 'treasure-stars-layer';
 const newTreesLayerId = 'new-trees-layer';
 const newTreesSourceId = 'new-trees';
+const goneTreesLayerId = 'gone-trees-layer';
+const goneTreesSourceId = 'gone-trees';
 const sourceId = 'zurich-trees';
 
 // Field names from the official Stadt Zürich Baumkataster GeoJSON.
@@ -77,6 +79,12 @@ let allFeatures = [];
 
 // Trees added since the last successful data update (see newTreesLayerId).
 let newTreesFeatures = [];
+
+// "Verschwundene Bäume" — the annual memorial. Trees the update script recorded
+// as gone. Only the trees of a *revealed* year (see goneRevealYear) are shown;
+// a year is revealed from 1 December of that year.
+let goneTreesFeatures = []; // the features of the currently revealed year
+let goneRevealYear = null; // the year those features belong to (or null = teaser)
 
 // Full latin species name (baumnamelat → baumnamelat) field, used for rarity.
 const LATIN_NAME_FIELD = 'baumnamelat';
@@ -284,6 +292,20 @@ map.on('load', async () => {
   newTreesFeatures = newTreesData.features || [];
   setupNewTreesButton();
 
+  // "Verschwundene Bäume" — the accumulated graveyard, grouped by the year each
+  // tree vanished. Only a revealed year (from 1 December) is displayed.
+  let goneTreesData = { type: 'FeatureCollection', features: [] };
+  try {
+    const r = await fetch('./gone-trees.json');
+    if (r.ok) goneTreesData = await r.json();
+  } catch (e) {
+    /* optional — silently skip */
+  }
+  const revealed = pickRevealedGoneYear(goneTreesData.features || []);
+  goneRevealYear = revealed.year;
+  goneTreesFeatures = revealed.features;
+  setupGoneTreesButton();
+
   map.addSource(sourceId, { type: 'geojson', data: treesData });
 
   map.addLayer({
@@ -340,13 +362,33 @@ map.on('load', async () => {
     layout: { visibility: 'none' },
   });
 
+  // Gone-trees layer: muted grey "ghosts" of the revealed year. Hidden until toggled.
+  map.addSource(goneTreesSourceId, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: goneTreesFeatures },
+  });
+  map.addLayer({
+    id: goneTreesLayerId,
+    type: 'circle',
+    source: goneTreesSourceId,
+    paint: {
+      'circle-color': '#8a938c',
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 13, 5, 16, 7, 22, 11],
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 1.5,
+      'circle-stroke-opacity': 1,
+      'circle-opacity': 0.85,
+    },
+    layout: { visibility: 'none' },
+  });
+
   const showPopup = (e) => {
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
       .setHTML(getPopupContent(e.features[0].properties))
       .addTo(map);
   };
-  for (const id of [layerId, treasureLayerId, newTreesLayerId]) {
+  for (const id of [layerId, treasureLayerId, newTreesLayerId, goneTreesLayerId]) {
     map.on('mouseenter', id, () => {
       map.getCanvas().style.cursor = 'pointer';
     });
@@ -426,6 +468,7 @@ function fillSpecies(genus) {
 genusSelect.addEventListener('change', (e) => {
   exitTreasureMode();
   exitNewTreesMode();
+  exitGoneMode();
   const genus = e.target.value;
   filterState.species = null; // species are scoped to a genus
   // Genus and collections are mutually exclusive.
@@ -450,6 +493,7 @@ artSelect.addEventListener('change', (e) => {
 document.querySelector('#apply_filters').addEventListener('click', () => {
   exitTreasureMode();
   exitNewTreesMode();
+  exitGoneMode();
   filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
   filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
   applyFilters({ fit: true });
@@ -458,6 +502,7 @@ document.querySelector('#apply_filters').addEventListener('click', () => {
 document.querySelector('#reset_filters').addEventListener('click', () => {
   exitTreasureMode();
   exitNewTreesMode();
+  exitGoneMode();
   genusSelect.value = '0';
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';
   yearMinInput.value = MIN_YEAR;
@@ -576,6 +621,7 @@ function toggleNewTreesMode() {
   }
   if (!newTreesFeatures.length) return;
   exitTreasureMode();
+  exitGoneMode();
 
   // Its own view — clear any active filters/collections, same as the other modes.
   clearCollectionUI();
@@ -597,6 +643,95 @@ function toggleNewTreesMode() {
 }
 
 newTreesBtn.addEventListener('click', toggleNewTreesMode);
+
+/* ------------------------------------------------------------------ *
+ * Verschwundene Bäume — annual "In Memoriam", revealed each December
+ * ------------------------------------------------------------------ */
+const goneTreesBtn = document.querySelector('#gone-trees-toggle');
+let goneModeActive = false;
+
+// Group the graveyard by disappearance year and pick the newest year that is
+// already "revealed" — a year is revealed from 1 December of that year onward.
+function pickRevealedGoneYear(features) {
+  const byYear = new Map();
+  for (const f of features) {
+    const d = f.properties?.verschwunden;
+    const y = d ? Number(String(d).slice(0, 4)) : 0;
+    if (!y) continue;
+    if (!byYear.has(y)) byYear.set(y, []);
+    byYear.get(y).push(f);
+  }
+  const now = new Date();
+  const revealed = [...byYear.keys()]
+    .filter((y) => now >= new Date(y, 11, 1)) // month 11 = December
+    .sort((a, b) => b - a);
+  const year = revealed[0] ?? null;
+  return { year, features: year ? byYear.get(year) : [] };
+}
+
+function goneLabel(year, n) {
+  const noun = n === 1 ? 'verschwundener Baum' : 'verschwundene Bäume';
+  return `🪦 ${numberFormat.format(n)} ${noun} ${year}`;
+}
+
+// Button is always visible. Active once a year is revealed and has data; a teaser
+// (greyed, not clickable, tooltip) otherwise so the feature is already visible.
+function setupGoneTreesButton() {
+  if (goneRevealYear && goneTreesFeatures.length) {
+    goneTreesBtn.classList.remove('is-teaser');
+    goneTreesBtn.setAttribute('aria-disabled', 'false');
+    goneTreesBtn.removeAttribute('title');
+    goneTreesBtn.textContent = goneLabel(goneRevealYear, goneTreesFeatures.length);
+  } else {
+    const year = new Date().getFullYear();
+    goneTreesBtn.classList.add('is-teaser');
+    goneTreesBtn.setAttribute('aria-disabled', 'true');
+    goneTreesBtn.title = `Verfügbar ab Dezember ${year}`;
+    goneTreesBtn.textContent = `🪦 Verschwundene Bäume ${year}`;
+  }
+}
+
+function exitGoneMode() {
+  if (!goneModeActive) return;
+  goneModeActive = false;
+  goneTreesBtn.classList.remove('is-active');
+  goneTreesBtn.setAttribute('aria-pressed', 'false');
+  if (map.getLayer(goneTreesLayerId)) map.setLayoutProperty(goneTreesLayerId, 'visibility', 'none');
+  if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
+}
+
+function toggleGoneMode() {
+  if (goneTreesBtn.getAttribute('aria-disabled') === 'true') return; // teaser: not yet available
+  if (goneModeActive) {
+    exitGoneMode();
+    applyFilters();
+    return;
+  }
+  if (!goneTreesFeatures.length) return;
+  exitTreasureMode();
+  exitNewTreesMode();
+  exitGoneMode();
+
+  // Its own view — clear any active filters/collections, same as the other modes.
+  clearCollectionUI();
+  genusSelect.value = '0';
+  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  filterState.collection = null;
+  filterState.genus = null;
+  filterState.species = null;
+  updateLegendHighlight();
+
+  goneModeActive = true;
+  goneTreesBtn.classList.add('is-active');
+  goneTreesBtn.setAttribute('aria-pressed', 'true');
+  map.setLayoutProperty(layerId, 'visibility', 'none');
+  map.setLayoutProperty(goneTreesLayerId, 'visibility', 'visible');
+
+  if (treeCountElem) treeCountElem.textContent = goneLabel(goneRevealYear, goneTreesFeatures.length);
+  fitToMatches(goneTreesFeatures);
+}
+
+goneTreesBtn.addEventListener('click', toggleGoneMode);
 
 /* ------------------------------------------------------------------ *
  * Curiosities — a clickable list that jumps to an exotic genus
@@ -659,6 +794,7 @@ function clearCollectionUI() {
 function toggleCollection(c, btn) {
   exitTreasureMode();
   exitNewTreesMode();
+  exitGoneMode();
   const wasActive = filterState.collection?.id === c.id;
   clearCollectionUI();
   if (wasActive) {
@@ -914,6 +1050,7 @@ function flyToTree(lng, lat) {
 function applyYearRange(min, max) {
   exitTreasureMode();
   exitNewTreesMode();
+  exitGoneMode();
   clearCollectionUI();
   genusSelect.value = '0';
   artSelect.innerHTML = '<option value="0">Alle Arten</option>';

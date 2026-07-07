@@ -528,6 +528,52 @@ body {
   outline: 3px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* Verschwundene Bäume — memorial toggle (grey, with a teaser state) */
+.gone-trees-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(#7c857e, #656d67);
+  border: 1px solid #565d58;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.gone-trees-btn:hover {
+  filter: brightness(1.05);
+}
+.gone-trees-btn.is-active {
+  background: linear-gradient(#d7ddd8, #c2cac4);
+  border-color: #a9b1ab;
+  color: var(--ink);
+  box-shadow: 0 2px 8px rgba(60, 70, 63, 0.3);
+}
+/* Teaser: visible but not yet available (revealed each December). */
+.gone-trees-btn.is-teaser {
+  background: #eef0ee;
+  border: 1px dashed #c3ccc5;
+  color: var(--muted);
+  cursor: not-allowed;
+  filter: none;
+}
+.gone-trees-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Popup line for a memorial (gone) tree */
+.tp-gone {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b726c;
+}
+
 .tree-count {
   display: block;
   font-size: 15px;

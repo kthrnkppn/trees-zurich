@@ -47,11 +47,18 @@ Daten-Update stimmen daher alle Zahlen automatisch, ohne Code-Änderung.
 | `treeMeta.js` | `{ genera, speciesByGenus }` für die Dropdowns (generiert) | Update-Script |
 | `data-version.json` | `{ pulled: "YYYY-MM-DD", count }` → „Datenstand" im Footer | Update-Script |
 | `new-trees.json` | FeatureCollection der seit letztem Update neu hinzugekommenen Bäume | Update-Script |
+| `gone-trees.json` | Akkumulierter „Friedhof": verschwundene Bäume, je mit `verschwunden`-Datum | Update-Script |
 
 **Felder pro Baum** (getrimmt aus dem WFS, `KEEP_FIELDS` im Script):
 `baumgattunglat` (lat. Gattung, z. B. `Acer`), `baumartlat` (lat. Artepitheton,
 gruppiert Sorten), `baumnamedeu` (deutscher Name), `baumnamelat` (voller lat.
-Name), `pflanzjahr`. Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
+Name), `pflanzjahr`, **`baumnummer`** (stabile ID für den Diff neu/verschwunden).
+Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
+
+> **Neu/verschwunden-Diff:** `diff_trees()` vergleicht die neue mit der alten
+> `trees.geojson` (vor dem Überschreiben). Identität = `baumnummer`, sonst
+> Koordinaten. Verschwundene Bäume akkumulieren in `gone-trees.json` (mit
+> Auferstehungs-Korrektur); die App enthüllt eine Jahres-Karte je ab 1. Dezember.
 
 > Der WFS hat mehr Felder (`quartier`, `strasse`, `kategorie`, `baumtyptext`,
 > `kronendurchmesser` …), die wir bewusst weggelassen haben. Zum Nutzen: in

@@ -56,9 +56,15 @@ export const getPopupContent = (p) => {
 
   const wikiUrl = wikipediaUrl(p);
 
+  // For a "gone" tree from the memorial layer: when it disappeared.
+  const goneBlock = p.verschwunden
+    ? `<div class="tp-gone">🪦 Verschwunden ${esc(String(p.verschwunden).slice(0, 4))}</div>`
+    : '';
+
   return `<div class="tree-popup">
     <a class="tp-title" href="${wikiUrl}" target="_blank" rel="noopener">${esc(title)}</a>
     ${baumnamelat ? `<div class="tp-lat"><em>${esc(baumnamelat)}</em></div>` : ''}
+    ${goneBlock}
     <div class="tp-meta">${metaParts.join(' · ')}</div>
     ${info?.desc ? `<p class="tp-desc">${esc(info.desc)}</p>` : ''}
     ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
