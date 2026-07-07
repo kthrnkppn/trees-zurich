@@ -84,13 +84,15 @@ Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
 
 ## 6. Karten-Layer (in `main.js`)
 
-Alle aus einer GeoJSON-Source (`sourceId = 'zurich-trees'`), ausser den neuen Bäumen:
+Alle aus einer GeoJSON-Source (`sourceId = 'zurich-trees'`), ausser den neuen und
+verschwundenen Bäumen (je eigene, kleine Source):
 
 | Layer-ID | Typ | Zweck | Sichtbarkeit |
 |---|---|---|---|
 | `tree-points-layer` | circle | alle Bäume, nach Gattung eingefärbt | Standard sichtbar |
 | `treasure-stars-layer` | symbol | goldene Sterne (Genbank / Einzelgänger) | `none`, Filter je Modus gesetzt |
 | `new-trees-layer` | circle | grüne Punkte, eigene Source `new-trees` | `none`, per Button |
+| `gone-trees-layer` | circle | graue „Geister", eigene Source `gone-trees` | `none`, per Button (nur wenn Jahr enthüllt) |
 
 Der goldene Stern ist ein zur Laufzeit auf Canvas gezeichnetes Icon
 (`makeStarImage()`) — unabhängig von Font-Glyphen.
@@ -107,11 +109,16 @@ Beim Aktivieren einer wird die jeweils andere sauber beendet.
   Haupt-Layer aus, zeigen Sterne, Zähler zeigt Modus-Text.
 - **Neue Bäume** (`new-trees-layer`): grüne Punkte, nur wenn `new-trees.json`
   Features hat (sonst Button `hidden`).
+- **Verschwundene Bäume** (`gone-trees-layer`): graue „Geister" des aktuell
+  **enthüllten** Jahres (s. Abschnitt 8). Der Footer-Button ist immer sichtbar —
+  entweder aktiv (enthülltes Jahr mit Daten) oder als ausgegrauter **Teaser**
+  (`aria-disabled`, Tooltip „Verfügbar ab Dezember …") vor der Enthüllung.
 
 **Wichtig beim Erweitern:** Jeder neue Modus muss in den bestehenden
 Umschalt-Punkten `exit…()` aufrufen (Genus-Dropdown-Change, Filtern, Zurücksetzen,
-`toggleTreasure`, `toggleCollection`) und umgekehrt die anderen beenden. Suchmuster:
-`grep -n "exitTreasureMode\|exitNewTreesMode" main.js`.
+`toggleTreasure`, `toggleCollection`, `toggleNewTreesMode`) und umgekehrt die
+anderen beenden. Suchmuster:
+`grep -n "exitTreasureMode\|exitNewTreesMode\|exitGoneMode" main.js`.
 
 ## 8. Discovery-Features
 
@@ -119,6 +126,10 @@ Umschalt-Punkten `exit…()` aufrufen (Genus-Dropdown-Change, Filtern, Zurückse
   Auswahl setzt Dropdown(s) + zoomt. Reine Client-Logik.
 - **Ortssuche** (Geocoder oben links): Auto-Suggest via Nominatim, `minLength: 3`,
   `debounceSearch: 350` (Fair-Use), Duplikate entdoppelt.
+- **Klickbare Legende**: jede Gattungs-Zeile ist ein Toggle-Button (`jumpToGenus`
+  bei Auswahl, „Alle Gattungen" bei erneutem Klick auf die aktive Zeile). Die
+  aktive Gattung wird hervorgehoben (`updateLegendHighlight()`), synchron mit
+  Dropdown, Suche und Kuriositäten-Liste.
 - **Sammlungen**: Obstbäume, Nadelbäume, Herbstfärbung, Frühlingsblüher.
 - **Raritäten**: Lebende Genbank (293 einmalige Obstsorten), Einzelgänger (175
   einmalige Nicht-Obst-Arten) — Aufteilung nach `GENE_BANK_GENERA` in `main.js`.
@@ -126,22 +137,45 @@ Umschalt-Punkten `exit…()` aufrufen (Genus-Dropdown-Change, Filtern, Zurückse
   auf eine Art ein, wenn die Gattung mehrere hat (z. B. Zanthoxylum piperitum).
 - **Zahlen & Trends** („💡 Wussten Sie schon …?"): Modal, live aus `allFeatures`
   berechnet (Jahrzehnt-Balken, häufigste Bäume, Auf-/Absteiger mit Begründung,
-  Kurioses & Rekorde, Wussten-Sie-Fakten).
-- **Neue Bäume**: s. o.
+  Kurioses & Rekorde, Wussten-Sie-Fakten). Alle Einträge sind klickbar: Balken/
+  Trends/Fakten filtern nach Gattung (`data-genus`), Jahrzehnt-Balken filtern
+  nach Pflanzjahr-Bereich (`data-year-min/-max`), der „Ältester Baum"-Eintrag
+  fliegt direkt zum Baum (`data-lng/-lat`) — Klick schliesst das Modal zuerst
+  (`handleStatsAction()` in `main.js`, delegierter Listener auf `#stats-body`).
+- **Neue Bäume**: s. Abschnitt 6/7.
+- **Verschwundene Bäume** („In Memoriam"): jährlicher Gedenk-Layer, s. Abschnitt 9.
+- **Popup-Zusatz**: Link zum deutschen Wikipedia-Artikel (`wikipediaUrl()` in
+  `helpers.js`, lat. Binomial → Redirect auf den deutschen Artikelnamen); bei
+  Bäumen aus dem Gedenk-Layer zusätzlich „🪦 Verschwunden {Jahr}".
+- **Attribution**: „Baumdaten: …" unten rechts verlinkt zum Open-Data-Datensatz
+  (`customAttribution` in der `AttributionControl`, main.js).
 
 ## 9. Update-Pipeline (`scripts/update_data.py`)
 
 Läuft per Cron auf einem Raspberry Pi. Ablauf in `main()`:
 1. `/start`-Ping an healthchecks.io (URL aus Env `HC_URL` oder `scripts/.env`).
-2. WFS herunterladen → auf 5 Felder trimmen, Koordinaten runden.
+2. WFS herunterladen → auf 6 Felder trimmen (s. Abschnitt 4), Koordinaten runden.
 3. **Kanonischer Hash** (Features nach Koordinaten sortiert) vs. `.last_hash`.
    Gleich → nichts zu tun, OK-Ping, Ende.
-4. Geändert → **Diff** `compute_new_trees()` (VOR dem Überschreiben!) → schreibt
-   `trees.geojson`, `new-trees.json`, ggf. `treeMeta.js`, `data-version.json`.
+4. Geändert → **`diff_trees(old, new)`** (VOR dem Überschreiben!) liefert
+   `added`/`removed` → schreibt `trees.geojson`, `new-trees.json` (= `added`),
+   akkumuliert `removed` in `gone-trees.json` (s. u.), ggf. `treeMeta.js`,
+   `data-version.json`.
 5. `git pull --ff-only` → commit → push. OK-Ping; bei Fehler `/fail`-Ping.
 
-**Identität der Bäume** = gerundete Koordinaten (der getrimmte Datensatz hat keine
-stabile ID). Darum wird der Diff vor `write_geojson()` berechnet.
+**Identität der Bäume** = `baumnummer` (stabil), Fallback auf gerundete
+Koordinaten falls die *alte* Snapshot-Datei noch keine `baumnummer` hat (fängt
+den Übergangs-Lauf ab). Darum wird der Diff vor `write_geojson()` berechnet.
+
+### Gedenk-Layer: `accumulate_gone_trees()`
+`gone-trees.json` ist kein Diff, sondern ein **wachsender Friedhof**: jeder neu
+verschwundene Baum wird mit `properties.verschwunden = "YYYY-MM-DD"` markiert und
+dauerhaft angehängt (dedupliziert nach Identität). Taucht ein Baum später wieder
+auf (Auferstehung = Daten-Glitch), wird er wieder entfernt. Die App gruppiert die
+Einträge nach Jahr (`pickRevealedGoneYear()` in `main.js`) und zeigt nur ein
+Jahr, sobald `heute >= 1. Dezember` dieses Jahres — bis dahin ein ausgegrauter
+Teaser-Button. `GONE_INCOMPLETE_THROUGH_YEAR` (main.js) steuert den
+Unvollständigkeits-Hinweis, da die Erfassung erst Mitte 2026 begann.
 
 ### Bekannter Stolperstein: Selbst-Update-Reihenfolge
 Das Script pullt sich erst **kurz vor dem Commit** selbst. Ändert man das Script,

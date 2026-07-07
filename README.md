@@ -19,12 +19,15 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 
 - Filter nach **Gattung, Art, Pflanzjahr** + Freitext-**Baum-Suche** mit Auto-Suggest
 - **Ortssuche** (Auto-Suggest) auf der Karte
+- **Klickbare Legende**: Gattung antippen filtert die Karte, nochmal antippen hebt die Auswahl wieder auf
 - **Sammlungen** (Obstbäume, Nadelbäume, Herbstfärbung, Frühlingsblüher)
 - **Raritäten**: Lebende Genbank (alte Obstsorten) & Einzelgänger (goldene Sterne)
 - **Kuriositäten**: anklickbare Liste exotischer Bäume, springt direkt hin
-- **Zahlen & Trends**-Modal – live aus den Daten berechnet
+- **Zahlen & Trends**-Modal – live aus den Daten berechnet, alle Werte anklickbar (springen direkt zur Gattung/zum Jahr/zum Baum)
 - **Neue Bäume** seit dem letzten Update hervorheben
-- Reiches **Klick-Popup**: Alter, Beschreibung, Eigenschaften, Welt-Event im Pflanzjahr
+- **Verschwundene Bäume**: jährliches „In Memoriam" – wird jeweils ab Dezember für das laufende Jahr enthüllt
+- Reiches **Klick-Popup**: Alter, Beschreibung, Eigenschaften, Welt-Event im Pflanzjahr, Link zum deutschen Wikipedia-Artikel
+- Datenquelle unten rechts verlinkt zu [Open Data Zürich](https://data.stadt-zuerich.ch/dataset/geo_baumkataster)
 
 ## Dateien
 
@@ -44,6 +47,7 @@ yearEvents.js      Welt-Event pro Pflanzjahr (1665–2026)
 trees.geojson      Baumdaten (~19 MB, ~81'000 Punkte)
 data-version.json  Datenstand (Datum + Anzahl)
 new-trees.json     Seit letztem Update neu dazugekommene Bäume
+gone-trees.json    Akkumulierter „Friedhof" verschwundener Bäume (In-Memoriam-Layer)
 server.mjs         Lokaler Entwicklungsserver (nur zum Testen)
 ```
 
