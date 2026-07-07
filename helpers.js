@@ -3,8 +3,19 @@ import { yearEvents } from './yearEvents.js';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-function googleSearchUrl(query) {
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+// Best-effort German Wikipedia article for the tree. The latin binomial reliably
+// redirects to the German-named article (e.g. "Quercus robur" → "Stiel-Eiche");
+// for unspecified/hybrid species we fall back to the genus article.
+function wikipediaUrl(p) {
+  const genus = (p.baumgattunglat || '').trim();
+  let art = (p.baumartlat || '').trim();
+  art = art.replace(/\(.*?\)/g, '').replace(/\b(subsp|var|f|cv)\.?.*/i, '').trim();
+  const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
+  let title;
+  if (genus && usableArt) title = `${genus} ${art}`;
+  else if (genus) title = genus;
+  else title = p.baumnamedeu || p.baumnamelat || '';
+  return 'https://de.wikipedia.org/wiki/' + encodeURIComponent(title.replace(/\s+/g, '_'));
 }
 
 const esc = (s) =>
@@ -18,7 +29,6 @@ export const getPopupContent = (p) => {
   const info = genusInfo[baumgattunglat];
 
   const title = baumnamedeu || baumnamelat || 'Unbekannter Baum';
-  const titleLink = baumnamedeu || baumnamelat;
 
   // Planting year and a friendly computed age.
   const metaParts = [];
@@ -44,12 +54,15 @@ export const getPopupContent = (p) => {
     </div>`;
   }
 
+  const wikiUrl = wikipediaUrl(p);
+
   return `<div class="tree-popup">
-    <a class="tp-title" href="${googleSearchUrl(titleLink || title)}" target="_blank" rel="noopener">${esc(title)}</a>
+    <a class="tp-title" href="${wikiUrl}" target="_blank" rel="noopener">${esc(title)}</a>
     ${baumnamelat ? `<div class="tp-lat"><em>${esc(baumnamelat)}</em></div>` : ''}
     <div class="tp-meta">${metaParts.join(' · ')}</div>
     ${info?.desc ? `<p class="tp-desc">${esc(info.desc)}</p>` : ''}
     ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
+    <a class="tp-wiki" href="${wikiUrl}" target="_blank" rel="noopener">📖 Auf Wikipedia lesen &rarr;</a>
     ${eventBlock}
   </div>`;
 };

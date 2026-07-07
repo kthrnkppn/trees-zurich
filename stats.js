@@ -82,7 +82,7 @@ export function computeStats(features) {
   const topGenera = [...genusTotals.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([genus, count]) => ({ name: deName(genus), count, pct: (100 * count) / total }));
+    .map(([genus, count]) => ({ genus, name: deName(genus), count, pct: (100 * count) / total }));
 
   // Trends: Anteil im alten vs. neuen Zeitfenster.
   const oldShare = shareByGenus(features, OLD_WINDOW);
@@ -93,6 +93,7 @@ export function computeStats(features) {
     const oldPct = (100 * (oldShare.counts.get(genus) || 0)) / oldShare.total;
     const newPct = (100 * newCount) / newShare.total;
     trendRows.push({
+      genus,
       name: deName(genus),
       oldPct,
       newPct,
@@ -138,6 +139,8 @@ function computeCuriosities(features, genusTotals) {
           .replace(/\s*\([^)]*\)/g, '') // technischen Klammerzusatz entfernen
           .trim(),
         year: oldestFeat.properties[YEAR_FIELD],
+        lng: oldestFeat.geometry.coordinates[0],
+        lat: oldestFeat.geometry.coordinates[1],
       }
     : null;
 
@@ -196,7 +199,7 @@ function computeCuriosities(features, genusTotals) {
   let mostDiverse = null;
   for (const [genus, set] of speciesByGenus) {
     if (!mostDiverse || set.size > mostDiverse.count) {
-      mostDiverse = { name: deName(genus), count: set.size };
+      mostDiverse = { genus, name: deName(genus), count: set.size };
     }
   }
 
@@ -207,12 +210,17 @@ function computeCuriosities(features, genusTotals) {
  * Rendering (reines HTML; Styles in style.css)
  * ---------------------------------------------------------------- */
 
-function bars(items, valueOf, labelOf, countOf, kind = '') {
+// `attrsOf(item)` may return a string of data-* attributes to make the row a
+// clickable filter (handled by a delegated listener in main.js).
+function bars(items, valueOf, labelOf, countOf, kind = '', attrsOf = null) {
   const max = Math.max(...items.map(valueOf));
   return items
     .map((it) => {
       const w = max > 0 ? (100 * valueOf(it)) / max : 0;
-      return `<div class="stat-bar-row">
+      const attrs = attrsOf ? attrsOf(it) : '';
+      const cls = 'stat-bar-row' + (attrs ? ' is-clickable' : '');
+      const role = attrs ? ` ${attrs} role="button" tabindex="0"` : '';
+      return `<div class="${cls}"${role}>
         <span class="stat-bar-label">${labelOf(it)}</span>
         <span class="stat-bar-track"><span class="stat-bar-fill ${kind}" style="width:${w.toFixed(1)}%"></span></span>
         <span class="stat-bar-value">${countOf(it)}</span>
@@ -225,7 +233,7 @@ function trendList(rows, kind) {
   const arrow = kind === 'up' ? '▲' : '▼';
   return rows
     .map(
-      (r) => `<li class="stat-trend-item ${kind}">
+      (r) => `<li class="stat-trend-item is-clickable ${kind}" data-genus="${r.genus}" role="button" tabindex="0">
         <span class="stat-trend-arrow">${arrow}</span>
         <span class="stat-trend-name">${r.name}</span>
         <span class="stat-trend-change">${r.oldPct.toFixed(1)}% → ${r.newPct.toFixed(1)}%</span>
@@ -240,7 +248,7 @@ function renderCuriosities(c) {
   const cards = [];
   if (c.oldestTree) {
     const age = new Date().getFullYear() - c.oldestTree.year;
-    cards.push(`<li><span class="stat-cur-icon">🏆</span>
+    cards.push(`<li class="is-clickable" data-lng="${c.oldestTree.lng}" data-lat="${c.oldestTree.lat}" role="button" tabindex="0"><span class="stat-cur-icon">🏆</span>
       <span><strong>Ältester Baum:</strong> ${c.oldestTree.name}, gepflanzt ${c.oldestTree.year} – über ${age} Jahre alt.</span></li>`);
   }
   if (c.uniqueFruit > 0) {
@@ -256,7 +264,7 @@ function renderCuriosities(c) {
       <span><strong>Exoten mit Seltenheitswert:</strong> Nur je ein Exemplar in ganz Zürich – ${list}.</span></li>`);
   }
   if (c.mostDiverse) {
-    cards.push(`<li><span class="stat-cur-icon">🌳</span>
+    cards.push(`<li class="is-clickable" data-genus="${c.mostDiverse.genus}" role="button" tabindex="0"><span class="stat-cur-icon">🌳</span>
       <span><strong>Grösste Vielfalt:</strong> Die ${c.mostDiverse.name} bringt es auf ${c.mostDiverse.count} verschiedene Arten.</span></li>`);
   }
   if (c.uniqueSpecies) {
@@ -275,13 +283,17 @@ export function renderStatsHTML(s) {
     s.byDecade,
     (d) => d.count,
     (d) => `${d.decade}er`,
-    (d) => fmt.format(d.count)
+    (d) => fmt.format(d.count),
+    '',
+    (d) => `data-year-min="${d.decade}" data-year-max="${d.decade + 9}"`
   );
   const generaBars = bars(
     s.topGenera,
     (g) => g.count,
     (g) => g.name,
-    (g) => fmt.format(g.count)
+    (g) => fmt.format(g.count),
+    '',
+    (g) => `data-genus="${g.genus}"`
   );
 
   return `
@@ -321,10 +333,10 @@ export function renderStatsHTML(s) {
     <section class="stats-section stats-facts">
       <h3>Wussten Sie?</h3>
       <ul>
-        <li><strong>${s.facts.topName.name}</strong> ist mit ${s.facts.topName.pct.toFixed(1)}% Zürichs häufigster Baum.</li>
+        <li><strong class="stat-fact-link" data-genus="${s.facts.topName.genus}" role="button" tabindex="0">${s.facts.topName.name}</strong> ist mit ${s.facts.topName.pct.toFixed(1)}% Zürichs häufigster Baum.</li>
         <li>Zwischen 1700 und 1799 sind nur <strong>${s.facts.c18}</strong> Bäume datiert – systematisch erfasst wird erst seit dem 20. Jahrhundert.</li>
-        <li>Die <strong>Ulme</strong> feiert ein Comeback: ${fmt.format(s.facts.ulmePre)} vor 2000, ${fmt.format(s.facts.ulmePost)} seither (vermutlich neue, gegen das Ulmensterben resistente Sorten).</li>
-        <li>Der <strong>Götterbaum</strong> wird kaum noch gepflanzt: ${fmt.format(s.facts.goetterPre)} vor 2000, nur noch ${fmt.format(s.facts.goetterPost)} seither – er gilt heute als invasiver Neophyt.</li>
+        <li>Die <strong class="stat-fact-link" data-genus="Ulmus" role="button" tabindex="0">Ulme</strong> feiert ein Comeback: ${fmt.format(s.facts.ulmePre)} vor 2000, ${fmt.format(s.facts.ulmePost)} seither (vermutlich neue, gegen das Ulmensterben resistente Sorten).</li>
+        <li>Der <strong class="stat-fact-link" data-genus="Ailanthus" role="button" tabindex="0">Götterbaum</strong> wird kaum noch gepflanzt: ${fmt.format(s.facts.goetterPre)} vor 2000, nur noch ${fmt.format(s.facts.goetterPost)} seither – er gilt heute als invasiver Neophyt.</li>
       </ul>
     </section>
   `;

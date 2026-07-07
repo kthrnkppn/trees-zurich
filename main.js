@@ -233,7 +233,8 @@ const map = new maplibregl.Map({
 })
   .addControl(
     new maplibregl.AttributionControl({
-      customAttribution: 'Baumdaten: Stadt Zürich (Baumkataster)',
+      customAttribution:
+        'Baumdaten: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">Stadt Zürich (Baumkataster)</a>',
     })
   )
   .addControl(new maplibregl.FullscreenControl())
@@ -892,6 +893,65 @@ statsModal.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !statsModal.hidden) closeStats();
+});
+
+// Fly to a specific tree (by coordinates) and open its popup.
+function flyToTree(lng, lat) {
+  map.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+  const f = allFeatures.find((ft) => {
+    const [x, y] = ft.geometry.coordinates;
+    return Math.abs(x - lng) < 1e-6 && Math.abs(y - lat) < 1e-6;
+  });
+  if (f) {
+    new maplibregl.Popup()
+      .setLngLat([lng, lat])
+      .setHTML(getPopupContent(f.properties))
+      .addTo(map);
+  }
+}
+
+// Filter to a planting-year range (used by the decade bars in the stats modal).
+function applyYearRange(min, max) {
+  exitTreasureMode();
+  exitNewTreesMode();
+  clearCollectionUI();
+  genusSelect.value = '0';
+  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  filterState.collection = null;
+  filterState.genus = null;
+  filterState.species = null;
+  filterState.yearMin = min;
+  filterState.yearMax = max;
+  yearMinInput.value = min;
+  yearMaxInput.value = max;
+  applyFilters({ fit: true });
+}
+
+// Clickable stats: genus → filter, coords → fly to tree, year → year filter.
+// The modal closes first so the result is visible on the map.
+function handleStatsAction(el) {
+  if (el.dataset.genus) {
+    closeStats();
+    jumpToGenus(el.dataset.genus);
+  } else if (el.dataset.lng) {
+    closeStats();
+    flyToTree(parseFloat(el.dataset.lng), parseFloat(el.dataset.lat));
+  } else if (el.dataset.yearMin) {
+    closeStats();
+    applyYearRange(Number(el.dataset.yearMin), Number(el.dataset.yearMax));
+  }
+}
+statsBody.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-genus],[data-lng],[data-year-min]');
+  if (el) handleStatsAction(el);
+});
+statsBody.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest('[data-genus],[data-lng],[data-year-min]');
+  if (el) {
+    e.preventDefault();
+    handleStatsAction(el);
+  }
 });
 
 // Mobile: toggle the sidebar and let the map reclaim the space.

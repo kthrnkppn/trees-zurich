@@ -446,6 +446,17 @@ body {
   border-radius: 999px;
   padding: 2px 9px;
 }
+.tp-wiki {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  text-decoration: none;
+}
+.tp-wiki:hover {
+  text-decoration: underline;
+}
 .maplibregl-popup-close-button {
   font-size: 18px;
   width: 24px;
@@ -661,6 +672,41 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--green-dark);
+}
+
+/* Clickable stats elements (filter / fly-to on click) */
+.stat-bar-row.is-clickable,
+.stat-trend-item.is-clickable,
+.stats-curios li.is-clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.stat-bar-row.is-clickable {
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+.stat-bar-row.is-clickable:hover,
+.stat-trend-item.is-clickable:hover,
+.stats-curios li.is-clickable:hover {
+  background: #f1f6ee;
+}
+.stat-bar-row.is-clickable:focus-visible,
+.stat-trend-item.is-clickable:focus-visible,
+.stats-curios li.is-clickable:focus-visible,
+.stat-fact-link:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.stat-fact-link {
+  color: var(--green-dark);
+  text-decoration: underline;
+  text-decoration-color: var(--green);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.stat-fact-link:hover {
+  color: var(--green);
 }
 
 /* Trends */
