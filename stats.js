@@ -268,8 +268,9 @@ function renderCuriosities(c) {
       <span><strong>Grösste Vielfalt:</strong> Die ${c.mostDiverse.name} bringt es auf ${c.mostDiverse.count} verschiedene Arten.</span></li>`);
   }
   if (c.uniqueSpecies) {
+    const others = c.uniqueSpecies - c.uniqueFruit;
     cards.push(`<li><span class="stat-cur-icon">🦄</span>
-      <span><strong>${fmt.format(c.uniqueSpecies)} Einzelstücke:</strong> So viele Arten kommen stadtweit nur ein einziges Mal vor.</span></li>`);
+      <span><strong>${fmt.format(c.uniqueSpecies)} Einzelstücke insgesamt:</strong> So viele Arten kommen stadtweit nur ein einziges Mal vor – ${fmt.format(c.uniqueFruit)} alte Obstsorten (Genbank) und ${fmt.format(others)} Exoten (Einzelgänger).</span></li>`);
   }
   return `<section class="stats-section stats-curios">
     <h3>Kurioses &amp; Rekorde</h3>
