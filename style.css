@@ -930,6 +930,27 @@ body {
   cursor: pointer;
 }
 
+/* ---- Responsive: scale up on large/high-res external monitors ----
+ * Fixed px sizes read fine on a laptop but shrink into illegibility on a
+ * big external display, since the browser window simply gets wider/taller
+ * without the text getting physically bigger. `zoom` scales the whole
+ * block (text, spacing, buttons) together, like a built-in browser zoom
+ * scoped to just these panels. (Not applied to the map popup — its
+ * position is pixel-anchored to the map and zoom would throw that off.)
+ */
+@media (min-width: 1800px) {
+  .sidebar,
+  .stats-dialog {
+    zoom: 1.2;
+  }
+}
+@media (min-width: 2400px) {
+  .sidebar,
+  .stats-dialog {
+    zoom: 1.4;
+  }
+}
+
 /* ---- Responsive: stack on narrow screens ---- */
 @media (max-width: 760px) {
   .app {
