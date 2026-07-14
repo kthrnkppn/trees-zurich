@@ -409,8 +409,13 @@ const numberFormat = new Intl.NumberFormat('de-CH');
 
 // Show when the tree data was last pulled from the city's WFS (written by the
 // update script into data-version.json), plus the next scheduled check — the
-// Raspi cron runs every 15 days, so pulled + 15 days is an estimate.
-const UPDATE_INTERVAL_DAYS = 15;
+// Raspi cron runs on fixed calendar dates, the 1st and the 15th of each month
+// (not "every 15 days"), so this finds the next of those two dates after today.
+function nextScheduledUpdate(from = new Date()) {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 1);
+  while (d.getDate() !== 1 && d.getDate() !== 15) d.setDate(d.getDate() + 1);
+  return d;
+}
 fetch('./data-version.json')
   .then((r) => (r.ok ? r.json() : null))
   .then((v) => {
@@ -421,11 +426,7 @@ fetch('./data-version.json')
     if (!y || !m || !d) return;
     const fmt = (dt) => `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}.${dt.getFullYear()}`;
     if (dateEl) dateEl.textContent = ` · Datenstand: ${fmt(new Date(y, m - 1, d))}`;
-    if (nextEl) {
-      const next = new Date(y, m - 1, d);
-      next.setDate(next.getDate() + UPDATE_INTERVAL_DAYS);
-      nextEl.textContent = `Nächste Aktualisierung am ${fmt(next)}`;
-    }
+    if (nextEl) nextEl.textContent = `Nächste Aktualisierung am ${fmt(nextScheduledUpdate())}`;
   })
   .catch(() => {});
 
