@@ -937,16 +937,21 @@ body {
  * block (text, spacing, buttons) together, like a built-in browser zoom
  * scoped to just these panels. (Not applied to the map popup — its
  * position is pixel-anchored to the map and zoom would throw that off.)
+ *
+ * The modal only zooms its inner #stats-body, not the .stats-dialog frame
+ * itself — the frame's `max-height: 88vh` would otherwise get scaled up
+ * together with the zoom, pushing the dialog (and its close button) off
+ * the actual viewport with no way to reach it.
  */
 @media (min-width: 1800px) {
   .sidebar,
-  .stats-dialog {
+  #stats-body {
     zoom: 1.2;
   }
 }
 @media (min-width: 2400px) {
   .sidebar,
-  .stats-dialog {
+  #stats-body {
     zoom: 1.4;
   }
 }
