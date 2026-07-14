@@ -1,12 +1,64 @@
+/* ------------------------------------------------------------------ *
+ * Zürichs Stadtbäume — design system
+ *
+ * Minimal + color blocking: the dark forest sidebar sits as one solid
+ * block against the light map. One loud accent (lime), flat surfaces,
+ * hard edges (radius 0), no gradients, no drop shadows.
+ *
+ * Two typefaces with a strict division of labour:
+ *   Bricolage Grotesque (self-hosted, SIL OFL) — the title and every
+ *     section/panel heading. Structural, not interactive.
+ *   Iosevka Charon (self-hosted, MIT)          — everything you click,
+ *     read or count: buttons, labels, body copy, numbers.
+ * ------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('./fonts/bricolage-grotesque.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Iosevka Charon';
+  src: url('./fonts/iosevka-charon-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Iosevka Charon';
+  src: url('./fonts/iosevka-charon-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  /* Green palette: Deep Teal / Sea Green / Medium Jungle / Moss / Lemon Lime */
-  --green: #4aad52; /* Medium Jungle — primary buttons */
-  --green-dark: #507255; /* Deep Teal — headings, hover, strong text */
-  --accent: #c5e063; /* Lemon Lime — focus rings / highlights */
-  --ink: #28392f;
-  --muted: #5b6b60;
-  --line: #e2e7e3;
+  /* Color blocks */
+  --forest: #1c3527; /* the sidebar block */
+  --paper: #f7f5ef; /* warm off-white: text on forest, modal/popup surfaces */
+  --lime: #c5e063; /* THE accent — primary actions, active states */
+  --ink: #1a231c; /* text on light surfaces */
+
+  /* Derived tones */
+  --lime-deep: #b6d44f;
+  --paper-dim: rgba(247, 245, 239, 0.62); /* muted text on forest */
+  --line-dark: rgba(247, 245, 239, 0.16); /* dividers on forest */
+  --border-dark: rgba(247, 245, 239, 0.32); /* control borders on forest */
+  --hover-dark: rgba(247, 245, 239, 0.08); /* hover fill on forest */
+  --ink-muted: #5c655e; /* muted text on paper */
+  --line-light: #e3e0d4; /* dividers on paper */
+  --hover-light: #edeadd; /* hover fill on paper */
+
+  /* Functional marker colors (match the map layers) */
+  --gold: #f4b400; /* treasure stars */
+  --sprout: #22c55e; /* new trees */
+  --ash: #8a938c; /* gone trees */
+
   --sidebar-width: 340px;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-ui: 'Iosevka Charon', system-ui, sans-serif;
 }
 
 * {
@@ -16,7 +68,13 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-ui);
+  font-weight: 300;
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--lime);
   color: var(--ink);
 }
 
@@ -33,7 +91,7 @@ body {
   border: 0;
 }
 
-/* ---- Layout: sidebar + map ---- */
+/* ---- Layout: dark sidebar block + light map block ---- */
 .app {
   display: flex;
   height: 100vh;
@@ -50,43 +108,69 @@ body {
   width: var(--sidebar-width);
   height: 100%;
   overflow-y: auto;
-  background: #fff;
-  border-right: 1px solid var(--line);
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
+  background: var(--forest);
+  color: var(--paper);
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  gap: 20px;
+  padding: 24px 22px;
   z-index: 2;
 }
 
 /* ---- Header ---- */
 .sidebar-header h1 {
-  margin: 0 0 6px;
-  font-size: 20px;
-  color: var(--green-dark);
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--paper);
 }
 .subtitle {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--muted);
+  color: var(--paper-dim);
+}
+
+/* ---- The one loud block: stats opener ---- */
+.facts-open-btn {
+  width: 100%;
+  padding: 14px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--lime);
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.facts-open-btn:hover {
+  background: var(--lime-deep);
+}
+.facts-open-btn:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
 }
 
 /* ---- Panels ---- */
 .panel {
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
+  border-top: 1px solid var(--line-dark);
+  padding-top: 18px;
 }
 .panel h2 {
-  margin: 0 0 12px;
-  font-size: 13px;
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
+  letter-spacing: 0.14em;
+  color: var(--paper-dim);
 }
 
-/* ---- Form fields ---- */
+/* ---- Form fields (on forest) ---- */
 .field {
   display: block;
   border: 0;
@@ -95,25 +179,33 @@ body {
 }
 .field-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 400;
+  margin-bottom: 6px;
+  color: var(--paper);
 }
 .field select,
 .field input {
   width: 100%;
-  height: 38px;
+  height: 40px;
   padding: 0 10px;
   font-size: 14px;
+  color: var(--paper);
+  background: rgba(247, 245, 239, 0.07);
+  border: 1px solid var(--border-dark);
+  border-radius: 0;
+}
+.field select option {
   color: var(--ink);
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--paper);
+}
+.field input::placeholder {
+  color: var(--paper-dim);
 }
 .field select:focus,
 .field input:focus,
 .btn:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 2px solid var(--lime);
   outline-offset: 1px;
 }
 
@@ -130,10 +222,9 @@ body {
   margin: 4px 0 0;
   padding: 4px;
   list-style: none;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 0;
   max-height: 264px;
   overflow-y: auto;
 }
@@ -145,23 +236,22 @@ body {
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
-  padding: 7px 10px;
-  border-radius: 6px;
+  padding: 8px 10px;
   cursor: pointer;
 }
 .tree-suggestion:hover,
 .tree-suggestion.is-active {
-  background: #f1f6ee;
+  background: var(--hover-light);
 }
 .ts-label {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--ink);
 }
 .ts-sub {
   flex: 0 0 auto;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 
 .year-field {
@@ -184,27 +274,28 @@ body {
 }
 .btn {
   flex: 1;
-  height: 38px;
+  height: 40px;
+  font-family: var(--font-ui);
   font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
+  font-weight: 400;
+  border-radius: 0;
   cursor: pointer;
   border: 1px solid transparent;
 }
 .btn-primary {
-  background: var(--green);
-  color: #fff;
+  background: var(--lime);
+  color: var(--ink);
 }
 .btn-primary:hover {
-  background: var(--green-dark);
+  background: var(--lime-deep);
 }
 .btn-secondary {
-  background: #fff;
-  color: var(--ink);
-  border-color: var(--line);
+  background: transparent;
+  color: var(--paper);
+  border-color: var(--border-dark);
 }
 .btn-secondary:hover {
-  background: #f4f6f4;
+  background: var(--hover-dark);
 }
 
 /* ---- Collections (theme chips) ---- */
@@ -214,90 +305,130 @@ body {
   gap: 8px;
 }
 .collection-chip {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--green-dark);
-  background: #f1f6ee;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 12px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+  border-radius: 0;
+  padding: 7px 12px;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 .collection-chip:hover {
-  background: #e8f1e6;
+  background: var(--hover-dark);
 }
 .collection-chip.is-active {
-  background: var(--green);
-  border-color: var(--green);
-  color: #fff;
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--ink);
 }
 .collection-chip:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
 }
 
-/* Treasure map toggle */
-.treasure-btn {
+/* ---- Mode buttons (treasure / new / gone) — one unified row style ---- */
+.treasure-btn,
+.new-trees-btn,
+.gone-trees-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  margin-top: 12px;
-  padding: 9px 12px;
+  margin-top: 10px;
+  padding: 11px 12px;
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 600;
-  color: #6b4a00;
-  background: linear-gradient(#fff7e0, #ffeeb8);
-  border: 1px solid #e8cf8a;
-  border-radius: 10px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+  border-radius: 0;
   cursor: pointer;
-  transition: filter 0.12s;
 }
-.treasure-btn:hover {
-  filter: brightness(0.97);
+/* Small square marker in the mode's map color — the color-block echo. */
+.treasure-btn::before,
+.new-trees-btn::before,
+.gone-trees-btn::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
 }
-.treasure-btn.is-active {
-  color: #fff;
-  background: linear-gradient(#f4b400, #e09b00);
-  border-color: #c98a00;
-  box-shadow: 0 2px 8px rgba(224, 155, 0, 0.4);
+.treasure-btn::before {
+  background: var(--gold);
 }
-.treasure-btn:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
+.new-trees-btn::before {
+  background: var(--sprout);
+}
+.gone-trees-btn::before {
+  background: var(--ash);
+}
+.treasure-btn:hover,
+.new-trees-btn:hover,
+.gone-trees-btn:hover {
+  background: var(--hover-dark);
+}
+.treasure-btn.is-active,
+.new-trees-btn.is-active,
+.gone-trees-btn.is-active {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+/* Teaser: announced but not yet available (revealed each December). */
+.gone-trees-btn.is-teaser {
+  border-style: dashed;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.gone-trees-btn.is-teaser:hover {
+  background: transparent;
+}
+.treasure-btn:focus-visible,
+.new-trees-btn:focus-visible,
+.gone-trees-btn:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.new-trees-btn[hidden] {
+  display: none;
 }
 
-/* Curiosities — expandable clickable list */
+/* ---- Curiosities — expandable clickable list ---- */
 .curiosities {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .curiosities summary {
   list-style: none;
   cursor: pointer;
-  padding: 10px 12px;
+  padding: 11px 12px;
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--green-dark);
-  background: #f1f6ee;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  font-weight: 400;
+  color: var(--paper);
+  border: 1px solid var(--border-dark);
+  border-radius: 0;
 }
 .curiosities summary::-webkit-details-marker {
   display: none;
 }
 .curiosities summary::after {
-  content: "▸";
+  content: '▸';
   float: right;
-  color: var(--muted);
+  color: var(--paper-dim);
 }
 .curiosities[open] summary::after {
-  content: "▾";
+  content: '▾';
 }
 .curiosities summary:hover {
-  background: #e8f1e6;
+  background: var(--hover-dark);
 }
 .curiosities-hint {
   margin: 10px 2px 6px;
   font-size: 11.5px;
-  color: var(--muted);
+  color: var(--paper-dim);
 }
 .curiosities-list {
   list-style: none;
@@ -305,7 +436,7 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .curio-item {
   width: 100%;
@@ -315,31 +446,31 @@ body {
   gap: 8px;
   padding: 7px 10px;
   font-size: 13px;
-  color: var(--ink);
+  color: var(--paper);
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
   text-align: left;
 }
 .curio-item:hover {
-  background: #f1f6ee;
+  background: var(--hover-dark);
 }
 .curio-name {
-  font-weight: 600;
+  font-weight: 400;
 }
 .curio-count {
   flex: 0 0 auto;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
+  color: var(--paper-dim);
 }
 
 /* ---- Legend (genus rows double as filters) ---- */
 .legend-hint {
-  margin: -6px 0 10px;
+  margin: -8px 0 10px;
   font-size: 11.5px;
-  color: var(--muted);
+  color: var(--paper-dim);
 }
 .legend {
   font-size: 13px;
@@ -348,62 +479,108 @@ body {
 .legend-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
+  color: var(--paper);
 }
-/* Clickable genus rows: reset the button chrome, add hover affordance. */
+.legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 1px rgba(247, 245, 239, 0.4);
+}
 .legend-btn {
   width: 100%;
-  padding: 3px 6px;
+  padding: 4px 6px;
   margin-left: -6px;
   font: inherit;
-  color: var(--ink);
+  color: var(--paper);
   text-align: left;
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
 }
 .legend-btn:hover {
-  background: #f1f6ee;
+  background: var(--hover-dark);
 }
 .legend-btn.is-active {
-  background: #e3f0d6;
-  font-weight: 700;
-  color: var(--green-dark);
+  color: var(--lime);
+  font-weight: 400;
 }
-/* "×" on the active row signals it can be clicked again to deselect. */
 .legend-btn.is-active::after {
-  content: "×";
+  content: '×';
   margin-left: auto;
   padding-left: 8px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1;
-  color: var(--green-dark);
-  opacity: 0.6;
+  color: var(--lime);
+  opacity: 0.7;
 }
 .legend-btn.is-active:hover::after {
   opacity: 1;
 }
 .legend-btn:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 2px solid var(--lime);
   outline-offset: 1px;
 }
-.legend-swatch {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+
+/* ---- Footer ---- */
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--line-dark);
+  padding-top: 16px;
+}
+.tree-count {
+  display: block;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-dark);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--lime);
+}
+.tree-count:empty {
+  display: none;
+}
+.gone-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--paper-dim);
+}
+.gone-note[hidden] {
+  display: none;
+}
+.source {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--paper-dim);
 }
 
-/* ---- Tree popup ---- */
+/* ---- Map controls (library overrides: square the corners) ---- */
+.maplibregl-ctrl-group,
+.maplibregl-ctrl-geocoder {
+  border-radius: 0 !important;
+}
+
+/* ---- Tree popup (paper block on the map) ---- */
 .maplibregl-popup-content {
-  padding: 12px 30px 14px 14px;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  max-width: 250px;
+  padding: 14px 30px 16px 14px;
+  border-radius: 0;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: none;
+  max-width: 260px;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--ink);
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: var(--ink);
 }
 .tree-popup {
   font-size: 13px;
@@ -412,22 +589,29 @@ body {
 }
 .tp-title {
   display: inline-block;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--green-dark);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--forest);
   text-decoration: none;
 }
 .tp-title:hover {
   text-decoration: underline;
 }
 .tp-lat {
-  color: var(--muted);
+  color: var(--ink-muted);
   margin-top: 1px;
+}
+.tp-gone {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-muted);
 }
 .tp-meta {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 .tp-desc {
   margin: 9px 0 0;
@@ -440,18 +624,18 @@ body {
 }
 .tp-tag {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--green-dark);
-  background: #e8f1e6;
-  border-radius: 999px;
-  padding: 2px 9px;
+  font-weight: 400;
+  color: var(--ink-muted);
+  border: 1px solid var(--line-light);
+  border-radius: 0;
+  padding: 2px 8px;
 }
 .tp-wiki {
   display: inline-block;
   margin-top: 10px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--green);
+  font-weight: 400;
+  color: var(--forest);
   text-decoration: none;
 }
 .tp-wiki:hover {
@@ -460,23 +644,24 @@ body {
 .maplibregl-popup-close-button {
   font-size: 18px;
   width: 24px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 .tp-event {
-  margin-top: 11px;
-  padding: 9px 10px;
-  background: #f1f6ee;
-  border-radius: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--hover-light);
+  border-radius: 0;
 }
 .tp-event-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--green-dark);
+  letter-spacing: 0.1em;
+  color: var(--forest);
 }
 .tp-event-text {
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -484,143 +669,15 @@ body {
   display: inline-block;
   margin-top: 6px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--green);
+  font-weight: 400;
+  color: var(--forest);
   text-decoration: none;
 }
 .tp-event-link:hover {
   text-decoration: underline;
 }
 
-/* ---- Footer ---- */
-.sidebar-footer {
-  margin-top: auto;
-  border-top: 1px solid var(--line);
-  padding-top: 14px;
-}
-.new-trees-btn {
-  display: block;
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(#4aad52, #3c8f43);
-  border: 1px solid #357a3b;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: filter 0.12s;
-}
-.new-trees-btn[hidden] {
-  display: none;
-}
-.new-trees-btn:hover {
-  filter: brightness(1.05);
-}
-.new-trees-btn.is-active {
-  background: linear-gradient(#c5e063, #a9c94a);
-  border-color: #93b23a;
-  color: var(--green-dark);
-  box-shadow: 0 2px 8px rgba(74, 173, 82, 0.35);
-}
-.new-trees-btn:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* Verschwundene Bäume — memorial toggle (grey, with a teaser state) */
-.gone-trees-btn {
-  display: block;
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(#7c857e, #656d67);
-  border: 1px solid #565d58;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: filter 0.12s;
-}
-.gone-trees-btn:hover {
-  filter: brightness(1.05);
-}
-.gone-trees-btn.is-active {
-  background: linear-gradient(#d7ddd8, #c2cac4);
-  border-color: #a9b1ab;
-  color: var(--ink);
-  box-shadow: 0 2px 8px rgba(60, 70, 63, 0.3);
-}
-/* Teaser: visible but not yet available (revealed each December). */
-.gone-trees-btn.is-teaser {
-  background: #eef0ee;
-  border: 1px dashed #c3ccc5;
-  color: var(--muted);
-  cursor: not-allowed;
-  filter: none;
-}
-.gone-trees-btn:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* Popup line for a memorial (gone) tree */
-.tp-gone {
-  margin-top: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6b726c;
-}
-
-/* Disclaimer shown while the (incomplete) memorial year is active */
-.gone-note {
-  margin: 6px 0 0;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-.gone-note[hidden] {
-  display: none;
-}
-
-.tree-count {
-  display: block;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--green-dark);
-}
-.tree-count:empty {
-  display: none;
-}
-.source {
-  margin: 6px 0 0;
-  font-size: 11px;
-  color: var(--muted);
-}
-.facts-open-btn {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--green-dark);
-  background: #eef6e6;
-  border: 1px solid #cfe3bf;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.12s, box-shadow 0.12s;
-}
-.facts-open-btn:hover {
-  background: #e3f0d6;
-  box-shadow: 0 2px 8px rgba(74, 173, 82, 0.18);
-}
-.facts-open-btn:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* ---- Zahlen & Trends modal ---- */
+/* ---- Zahlen & Trends modal (paper block) ---- */
 .stats-modal {
   position: fixed;
   inset: 0;
@@ -636,62 +693,66 @@ body {
 .stats-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(40, 57, 47, 0.5);
+  background: rgba(16, 26, 19, 0.6);
 }
 .stats-dialog {
   position: relative;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-  width: min(560px, 100%);
+  background: var(--paper);
+  border-radius: 0;
+  width: min(580px, 100%);
   max-height: 88vh;
   overflow-y: auto;
-  padding: 24px 26px 28px;
+  padding: 30px 32px 34px;
 }
 .stats-close {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 14px;
+  right: 16px;
   width: 32px;
   height: 32px;
   font-size: 22px;
   line-height: 1;
-  color: var(--muted);
+  color: var(--ink-muted);
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
 }
 .stats-close:hover {
-  background: #f1f6ee;
+  background: var(--hover-light);
   color: var(--ink);
 }
 .stats-h1 {
-  margin: 0 0 4px;
-  font-size: 22px;
-  color: var(--green-dark);
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--forest);
 }
 .stats-lead {
   margin: 0 0 8px;
   font-size: 14px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 .stats-section {
   margin-top: 30px;
   padding-top: 28px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-light);
 }
 .stats-section h3 {
   margin: 0 0 14px;
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
 }
 .stats-note {
   margin: -4px 0 12px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
 
 /* Bar charts */
@@ -714,21 +775,20 @@ body {
   text-overflow: ellipsis;
 }
 .stat-bar-track {
-  background: #eef2ec;
-  border-radius: 6px;
-  height: 16px;
+  background: #e9e6da;
+  height: 14px;
   overflow: hidden;
 }
 .stat-bar-fill {
   display: block;
   height: 100%;
-  background: var(--green);
-  border-radius: 6px;
+  background: var(--forest);
 }
 .stat-bar-value {
+  font-family: var(--font-ui);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--green-dark);
+  font-weight: 400;
+  color: var(--ink);
 }
 
 /* Clickable stats elements (filter / fly-to on click) */
@@ -736,8 +796,6 @@ body {
 .stat-trend-item.is-clickable,
 .stats-curios li.is-clickable {
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.12s;
 }
 .stat-bar-row.is-clickable {
   margin: 0 -6px;
@@ -746,24 +804,23 @@ body {
 .stat-bar-row.is-clickable:hover,
 .stat-trend-item.is-clickable:hover,
 .stats-curios li.is-clickable:hover {
-  background: #f1f6ee;
+  background: var(--hover-light);
 }
 .stat-bar-row.is-clickable:focus-visible,
 .stat-trend-item.is-clickable:focus-visible,
 .stats-curios li.is-clickable:focus-visible,
 .stat-fact-link:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 2px solid var(--forest);
   outline-offset: 1px;
 }
 .stat-fact-link {
-  color: var(--green-dark);
+  color: var(--forest);
   text-decoration: underline;
-  text-decoration-color: var(--green);
   text-underline-offset: 2px;
   cursor: pointer;
 }
 .stat-fact-link:hover {
-  color: var(--green);
+  color: var(--ink);
 }
 
 /* Trends */
@@ -773,14 +830,15 @@ body {
   gap: 22px;
 }
 .stats-trend-head {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
   font-size: 13px;
 }
 .stats-trend-head.up {
-  color: var(--green);
+  color: #3c7a46;
 }
 .stats-trend-head.down {
-  color: #b23b3b;
+  color: #a04b3c;
 }
 .stat-trend-list {
   list-style: none;
@@ -799,19 +857,20 @@ body {
   margin-right: 4px;
 }
 .stat-trend-item.up .stat-trend-arrow {
-  color: var(--green);
+  color: #3c7a46;
 }
 .stat-trend-item.down .stat-trend-arrow {
-  color: #b23b3b;
+  color: #a04b3c;
 }
 .stat-trend-name {
-  font-weight: 600;
+  font-weight: 400;
 }
 .stat-trend-change {
   display: block;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ink-muted);
   margin-left: 14px;
+  font-variant-numeric: tabular-nums;
 }
 .stat-trend-why {
   display: block;
@@ -828,18 +887,17 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 12px;
 }
 .stats-curios li {
-  display: flex;
-  gap: 10px;
   font-size: 13px;
   line-height: 1.5;
 }
-.stat-cur-icon {
-  flex: 0 0 auto;
-  font-size: 17px;
-  line-height: 1.3;
+/* Charon only loads Light/Regular — emphasis comes from color, not synthetic
+   bold, so every <strong> in the modal stays at Regular weight. */
+.stats-dialog strong {
+  font-weight: 400;
+  color: var(--forest);
 }
 
 /* Wussten Sie? */
@@ -853,12 +911,6 @@ body {
   margin-bottom: 11px;
 }
 
-@media (max-width: 760px) {
-  .stats-trends {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ---- Mobile sidebar toggle ---- */
 .sidebar-toggle {
   display: none;
@@ -866,16 +918,16 @@ body {
   top: 10px;
   left: 10px;
   z-index: 3;
-  height: 38px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 16px;
+  font-family: var(--font-ui);
   font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--green);
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--lime);
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* ---- Responsive: stack on narrow screens ---- */
@@ -890,9 +942,7 @@ body {
     flex-basis: auto;
     width: 100%;
     max-height: 70vh;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    padding-top: 56px; /* clear the toggle button */
+    padding-top: 62px; /* clear the toggle button */
   }
   .sidebar[hidden] {
     display: none;
@@ -900,5 +950,8 @@ body {
   #map {
     flex: 1 1 auto;
     min-height: 50vh;
+  }
+  .stats-trends {
+    grid-template-columns: 1fr;
   }
 }

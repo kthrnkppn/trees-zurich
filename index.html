@@ -41,6 +41,22 @@
     <link rel="preconnect" href="https://nominatim.openstreetmap.org" crossorigin />
     <link rel="preconnect" href="https://unpkg.com" crossorigin />
 
+    <!-- Bricolage Grotesque (self-hosted, SIL OFL) — title + section headings -->
+    <link
+      rel="preload"
+      href="./fonts/bricolage-grotesque.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <!-- Iosevka Charon (self-hosted, MIT) — everything else: buttons, labels, numbers, text -->
+    <link
+      rel="preload"
+      href="./fonts/iosevka-charon-light.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link href="./style.css" rel="stylesheet" />
     <!-- MapLibre GL JS (open-source, no Mapbox account / token needed) -->
     <link
@@ -82,7 +98,7 @@
         </header>
 
         <button id="open-stats" class="facts-open-btn">
-          💡 Wussten Sie schon …?
+          Wussten Sie schon …?
         </button>
 
         <noscript>
@@ -152,14 +168,14 @@
           <h2 id="rarities-heading">Raritäten &amp; Kuriositäten</h2>
 
           <button id="genbank-toggle" class="treasure-btn" aria-pressed="false">
-            🍎 Lebende Genbank – alte Obstsorten
+            Lebende Genbank – alte Obstsorten
           </button>
           <button id="loner-toggle" class="treasure-btn" aria-pressed="false">
-            💎 Einzelgänger – je nur 1× in Zürich
+            Einzelgänger – je nur 1× in Zürich
           </button>
 
           <details class="curiosities">
-            <summary>✨ Kuriositäten – exotische Bäume</summary>
+            <summary>Kuriositäten – exotische Bäume</summary>
             <p class="curiosities-hint">
               Tippe einen Baum an – die Karte bringt dich direkt hin.
             </p>
@@ -190,6 +206,7 @@
           <p class="source">
             Datenquelle: Stadt Zürich (Baumkataster)<span id="data-date"></span>
           </p>
+          <p id="next-update" class="source"></p>
         </footer>
       </aside>
 

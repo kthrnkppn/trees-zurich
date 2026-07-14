@@ -408,14 +408,24 @@ const treeCountElem = document.querySelector('#tree-count');
 const numberFormat = new Intl.NumberFormat('de-CH');
 
 // Show when the tree data was last pulled from the city's WFS (written by the
-// update script into data-version.json). Silently skipped if unavailable.
+// update script into data-version.json), plus the next scheduled check — the
+// Raspi cron runs every 15 days, so pulled + 15 days is an estimate.
+const UPDATE_INTERVAL_DAYS = 15;
 fetch('./data-version.json')
   .then((r) => (r.ok ? r.json() : null))
   .then((v) => {
     const dateEl = document.querySelector('#data-date');
-    if (!dateEl || !v?.pulled) return;
-    const [y, m, d] = v.pulled.split('-');
-    if (y && m && d) dateEl.textContent = ` · Datenstand: ${d}.${m}.${y}`;
+    const nextEl = document.querySelector('#next-update');
+    if (!v?.pulled) return;
+    const [y, m, d] = v.pulled.split('-').map(Number);
+    if (!y || !m || !d) return;
+    const fmt = (dt) => `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}.${dt.getFullYear()}`;
+    if (dateEl) dateEl.textContent = ` · Datenstand: ${fmt(new Date(y, m - 1, d))}`;
+    if (nextEl) {
+      const next = new Date(y, m - 1, d);
+      next.setDate(next.getDate() + UPDATE_INTERVAL_DAYS);
+      nextEl.textContent = `Nächste Aktualisierung am ${fmt(next)}`;
+    }
   })
   .catch(() => {});
 
@@ -523,12 +533,12 @@ const treasureModes = {
   genbank: {
     btn: document.querySelector('#genbank-toggle'),
     names: () => genbankNames,
-    label: (n) => `🍎 ${numberFormat.format(n)} alte Obstsorten – lebende Genbank`,
+    label: (n) => `${numberFormat.format(n)} alte Obstsorten – lebende Genbank`,
   },
   loner: {
     btn: document.querySelector('#loner-toggle'),
     names: () => loanerNames,
-    label: (n) => `💎 ${numberFormat.format(n)} Einzelgänger – je nur 1× in Zürich`,
+    label: (n) => `${numberFormat.format(n)} Einzelgänger – je nur 1× in Zürich`,
   },
 };
 let activeTreasure = null; // 'genbank' | 'loner' | null
@@ -589,8 +599,8 @@ let newTreesModeActive = false;
 
 function newTreesLabel(n) {
   return n === 1
-    ? '🌱 1 neuer Baum seit dem letzten Update'
-    : `🌱 ${numberFormat.format(n)} neue Bäume seit dem letzten Update`;
+    ? '1 neuer Baum seit dem letzten Update'
+    : `${numberFormat.format(n)} neue Bäume seit dem letzten Update`;
 }
 
 // Show the button only if the last update actually added trees — nothing to
@@ -676,7 +686,7 @@ function pickRevealedGoneYear(features) {
 
 function goneLabel(year, n) {
   const noun = n === 1 ? 'verschwundener Baum' : 'verschwundene Bäume';
-  return `🪦 ${numberFormat.format(n)} ${noun} ${year}`;
+  return `${numberFormat.format(n)} ${noun} ${year}`;
 }
 
 // Button is always visible. Active once a year is revealed and has data; a teaser
@@ -692,7 +702,7 @@ function setupGoneTreesButton() {
     goneTreesBtn.classList.add('is-teaser');
     goneTreesBtn.setAttribute('aria-disabled', 'true');
     goneTreesBtn.title = `Verfügbar ab Dezember ${year}`;
-    goneTreesBtn.textContent = `🪦 Verschwundene Bäume ${year}`;
+    goneTreesBtn.textContent = `Verschwundene Bäume ${year}`;
   }
 }
 
@@ -832,7 +842,7 @@ for (const c of collections) {
   btn.type = 'button';
   btn.className = 'collection-chip';
   btn.setAttribute('aria-pressed', 'false');
-  btn.textContent = c.emoji ? `${c.emoji} ${c.label}` : c.label;
+  btn.textContent = c.label; // chips are UI chrome — typographic only (emojis stay in content lists)
   btn.addEventListener('click', () => toggleCollection(c, btn));
   collectionsEl.appendChild(btn);
   collectionChips.set(c.id, btn);

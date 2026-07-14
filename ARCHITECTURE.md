@@ -80,6 +80,7 @@ Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
 | `curiosities.js` | kuratierte Exoten-Liste (`genus` + optional `art`, `label`, `emoji`) |
 | `yearEvents.js` | Welt-Event pro Pflanzjahr (1665–2026) fürs Popup |
 | `icon.svg` | Favicon (grüner Baum) |
+| `fonts/` | Bricolage Grotesque (Titel/Panel-Header, variable WOFF2, SIL OFL) + Iosevka Charon (übriger UI-Text, Light/Regular WOFF2, MIT) — beide selbst gehostet, Lizenzen liegen daneben |
 | `server.mjs` | lokaler Dev-Server (Port 4178), **nicht** fürs Deploy nötig |
 
 ## 6. Karten-Layer (in `main.js`)

@@ -84,4 +84,6 @@ Für automatische Updates gibt es ein Python-Script für den Raspberry Pi (oder 
 - **OpenFreeMap** – MIT (Kacheln und Stil)
 - **OpenStreetMap** – ODbL (Namensnennung im Kartenattribut vorhanden)
 - **Baumkataster Stadt Zürich** – Open Government Data (freie Nutzung mit Quellenangabe)
+- **Bricolage Grotesque** (Titel & Panel-Überschriften, selbst gehostet in `fonts/`) – SIL Open Font License ([fonts/OFL-Bricolage.txt](fonts/OFL-Bricolage.txt))
+- **Iosevka Charon** (übriger UI-/Fliesstext, selbst gehostet in `fonts/`) – MIT License ([fonts/LICENSE-IosevkaCharon.txt](fonts/LICENSE-IosevkaCharon.txt))
 - **yearEvents.js, genusInfo.js** – eigene Texte, keine Drittlizenz

@@ -58,7 +58,7 @@ export const getPopupContent = (p) => {
 
   // For a "gone" tree from the memorial layer: when it disappeared.
   const goneBlock = p.verschwunden
-    ? `<div class="tp-gone">🪦 Verschwunden ${esc(String(p.verschwunden).slice(0, 4))}</div>`
+    ? `<div class="tp-gone">&dagger; Verschwunden ${esc(String(p.verschwunden).slice(0, 4))}</div>`
     : '';
 
   return `<div class="tree-popup">
@@ -68,7 +68,7 @@ export const getPopupContent = (p) => {
     <div class="tp-meta">${metaParts.join(' · ')}</div>
     ${info?.desc ? `<p class="tp-desc">${esc(info.desc)}</p>` : ''}
     ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
-    <a class="tp-wiki" href="${wikiUrl}" target="_blank" rel="noopener">📖 Auf Wikipedia lesen &rarr;</a>
+    <a class="tp-wiki" href="${wikiUrl}" target="_blank" rel="noopener">Auf Wikipedia lesen &rarr;</a>
     ${eventBlock}
   </div>`;
 };

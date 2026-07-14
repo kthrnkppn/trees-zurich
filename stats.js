@@ -248,28 +248,28 @@ function renderCuriosities(c) {
   const cards = [];
   if (c.oldestTree) {
     const age = new Date().getFullYear() - c.oldestTree.year;
-    cards.push(`<li class="is-clickable" data-lng="${c.oldestTree.lng}" data-lat="${c.oldestTree.lat}" role="button" tabindex="0"><span class="stat-cur-icon">🏆</span>
+    cards.push(`<li class="is-clickable" data-lng="${c.oldestTree.lng}" data-lat="${c.oldestTree.lat}" role="button" tabindex="0">
       <span><strong>Ältester Baum:</strong> ${c.oldestTree.name}, gepflanzt ${c.oldestTree.year} – über ${age} Jahre alt.</span></li>`);
   }
   if (c.uniqueFruit > 0) {
     const ex = c.fruitExamples.length
       ? ` – etwa ${c.fruitExamples.map((n) => `«${n}»`).join(' oder ')}`
       : '';
-    cards.push(`<li><span class="stat-cur-icon">🍎</span>
+    cards.push(`<li>
       <span><strong>Lebende Obst-Genbank:</strong> ${fmt.format(c.uniqueFruit)} alte Obstsorten gibt es nur ein einziges Mal in der Stadt${ex}.</span></li>`);
   }
   if (c.loners.length) {
     const list = c.loners.slice(0, 7).join(', ');
-    cards.push(`<li><span class="stat-cur-icon">🌍</span>
+    cards.push(`<li>
       <span><strong>Exoten mit Seltenheitswert:</strong> Nur je ein Exemplar in ganz Zürich – ${list}.</span></li>`);
   }
   if (c.mostDiverse) {
-    cards.push(`<li class="is-clickable" data-genus="${c.mostDiverse.genus}" role="button" tabindex="0"><span class="stat-cur-icon">🌳</span>
+    cards.push(`<li class="is-clickable" data-genus="${c.mostDiverse.genus}" role="button" tabindex="0">
       <span><strong>Grösste Vielfalt:</strong> Die ${c.mostDiverse.name} bringt es auf ${c.mostDiverse.count} verschiedene Arten.</span></li>`);
   }
   if (c.uniqueSpecies) {
     const others = c.uniqueSpecies - c.uniqueFruit;
-    cards.push(`<li><span class="stat-cur-icon">🦄</span>
+    cards.push(`<li>
       <span><strong>${fmt.format(c.uniqueSpecies)} Einzelstücke insgesamt:</strong> So viele Arten kommen stadtweit nur ein einziges Mal vor – ${fmt.format(c.uniqueFruit)} alte Obstsorten (Genbank) und ${fmt.format(others)} Exoten (Einzelgänger).</span></li>`);
   }
   return `<section class="stats-section stats-curios">
