@@ -121,7 +121,7 @@ body {
 .sidebar-header h1 {
   margin: 0 0 8px;
   font-family: var(--font-display);
-  font-size: 27px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -129,7 +129,7 @@ body {
 }
 .subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.5;
   color: var(--paper-dim);
 }
@@ -139,7 +139,7 @@ body {
   width: 100%;
   padding: 14px;
   font-family: var(--font-ui);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 400;
   color: var(--ink);
   background: var(--lime);
@@ -163,7 +163,7 @@ body {
 .panel h2 {
   margin: 0 0 14px;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -179,7 +179,7 @@ body {
 }
 .field-label {
   display: block;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 400;
   margin-bottom: 6px;
   color: var(--paper);
@@ -189,7 +189,7 @@ body {
   width: 100%;
   height: 40px;
   padding: 0 10px;
-  font-size: 14px;
+  font-size: 15.5px;
   color: var(--paper);
   background: rgba(247, 245, 239, 0.07);
   border: 1px solid var(--border-dark);
@@ -244,13 +244,13 @@ body {
   background: var(--hover-light);
 }
 .ts-label {
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 400;
   color: var(--ink);
 }
 .ts-sub {
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--ink-muted);
 }
 
@@ -276,7 +276,7 @@ body {
   flex: 1;
   height: 40px;
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 400;
   border-radius: 0;
   cursor: pointer;
@@ -306,7 +306,7 @@ body {
 }
 .collection-chip {
   font-family: var(--font-ui);
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--paper);
   background: transparent;
@@ -339,7 +339,7 @@ body {
   margin-top: 10px;
   padding: 11px 12px;
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 400;
   text-align: left;
   color: var(--paper);
@@ -405,7 +405,7 @@ body {
   cursor: pointer;
   padding: 11px 12px;
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 400;
   color: var(--paper);
   border: 1px solid var(--border-dark);
@@ -427,7 +427,7 @@ body {
 }
 .curiosities-hint {
   margin: 10px 2px 6px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--paper-dim);
 }
 .curiosities-list {
@@ -445,7 +445,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--paper);
   background: transparent;
   border: 0;
@@ -461,7 +461,7 @@ body {
 }
 .curio-count {
   flex: 0 0 auto;
-  font-size: 11.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--paper-dim);
 }
@@ -469,11 +469,11 @@ body {
 /* ---- Legend (genus rows double as filters) ---- */
 .legend-hint {
   margin: -8px 0 10px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--paper-dim);
 }
 .legend {
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.6;
 }
 .legend-row {
@@ -513,7 +513,7 @@ body {
   content: '×';
   margin-left: auto;
   padding-left: 8px;
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 400;
   line-height: 1;
   color: var(--lime);
@@ -539,7 +539,7 @@ body {
   padding-top: 16px;
   border-top: 1px solid var(--line-dark);
   font-family: var(--font-ui);
-  font-size: 17px;
+  font-size: 18.5px;
   font-weight: 400;
   color: var(--lime);
 }
@@ -548,7 +548,7 @@ body {
 }
 .gone-note {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.4;
   color: var(--paper-dim);
 }
@@ -557,7 +557,7 @@ body {
 }
 .source {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--paper-dim);
 }
 
@@ -583,14 +583,14 @@ body {
   border-bottom-color: var(--ink);
 }
 .tree-popup {
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.45;
   color: var(--ink);
 }
 .tp-title {
   display: inline-block;
   font-family: var(--font-ui);
-  font-size: 16px;
+  font-size: 17.5px;
   font-weight: 400;
   color: var(--forest);
   text-decoration: none;
@@ -604,13 +604,13 @@ body {
 }
 .tp-gone {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 400;
   color: var(--ink-muted);
 }
 .tp-meta {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--ink-muted);
 }
 .tp-desc {
@@ -623,7 +623,7 @@ body {
   margin-top: 10px;
 }
 .tp-tag {
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 400;
   color: var(--ink-muted);
   border: 1px solid var(--line-light);
@@ -633,7 +633,7 @@ body {
 .tp-wiki {
   display: inline-block;
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 400;
   color: var(--forest);
   text-decoration: none;
@@ -654,7 +654,7 @@ body {
 }
 .tp-event-label {
   font-family: var(--font-ui);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -662,13 +662,13 @@ body {
 }
 .tp-event-text {
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.4;
 }
 .tp-event-link {
   display: inline-block;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 400;
   color: var(--forest);
   text-decoration: none;
@@ -725,14 +725,14 @@ body {
 .stats-h1 {
   margin: 0 0 6px;
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 29px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--forest);
 }
 .stats-lead {
   margin: 0 0 8px;
-  font-size: 14px;
+  font-size: 15.5px;
   color: var(--ink-muted);
 }
 .stats-section {
@@ -743,7 +743,7 @@ body {
 .stats-section h3 {
   margin: 0 0 14px;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -751,7 +751,7 @@ body {
 }
 .stats-note {
   margin: -4px 0 12px;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--ink-muted);
 }
 
@@ -766,7 +766,7 @@ body {
   grid-template-columns: 92px 1fr auto;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
+  font-size: 14.5px;
 }
 .stat-bar-label {
   color: var(--ink);
@@ -832,7 +832,7 @@ body {
 .stats-trend-head {
   margin: 0 0 10px;
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 14.5px;
 }
 .stats-trend-head.up {
   color: #3c7a46;
@@ -849,11 +849,11 @@ body {
   gap: 14px;
 }
 .stat-trend-item {
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.3;
 }
 .stat-trend-arrow {
-  font-size: 10px;
+  font-size: 11.5px;
   margin-right: 4px;
 }
 .stat-trend-item.up .stat-trend-arrow {
@@ -867,14 +867,14 @@ body {
 }
 .stat-trend-change {
   display: block;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--ink-muted);
   margin-left: 14px;
   font-variant-numeric: tabular-nums;
 }
 .stat-trend-why {
   display: block;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--ink);
   margin: 3px 0 0 14px;
@@ -890,7 +890,7 @@ body {
   gap: 12px;
 }
 .stats-curios li {
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.5;
 }
 /* Charon only loads Light/Regular — emphasis comes from color, not synthetic
@@ -904,7 +904,7 @@ body {
 .stats-facts ul {
   margin: 0;
   padding-left: 18px;
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.55;
 }
 .stats-facts li {
@@ -921,7 +921,7 @@ body {
   height: 40px;
   padding: 0 16px;
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 400;
   color: var(--ink);
   background: var(--lime);
