@@ -1,6 +1,6 @@
 // Kuratierte Themen-Sammlungen. Jede Sammlung gruppiert mehrere Gattungen unter
 // einem Klick. Frei editierbar – Gattungen sind die lateinischen Namen aus dem
-// Baumkataster (baumgattunglat), z. B. "Malus".
+// Baumkataster (baumgattunglat), z. B. "Malus". `label` ist zweisprachig ({de,en}).
 //
 // Sonderfall "Seltene Raritäten": wird dynamisch aus den Daten berechnet
 // (Arten, die stadtweit höchstens RARITY_MAX_COUNT-mal vorkommen).
@@ -8,7 +8,7 @@
 export const collections = [
   {
     id: 'obst',
-    label: 'Obstbäume',
+    label: { de: 'Obstbäume', en: 'Fruit trees' },
     emoji: '🍎',
     genera: [
       'Malus', 'Pyrus', 'Prunus', 'Cydonia', 'Mespilus', 'Juglans',
@@ -18,7 +18,7 @@ export const collections = [
   },
   {
     id: 'nadel',
-    label: 'Nadelbäume',
+    label: { de: 'Nadelbäume', en: 'Conifers' },
     emoji: '🌲',
     genera: [
       'Abies', 'Araucaria', 'Calocedrus', 'Cedrus', 'Cephalotaxus',
@@ -30,7 +30,7 @@ export const collections = [
   },
   {
     id: 'herbst',
-    label: 'Herbstfärbung',
+    label: { de: 'Herbstfärbung', en: 'Autumn colour' },
     emoji: '🍂',
     genera: [
       'Acer', 'Carpinus', 'Fagus', 'Larix', 'Liquidambar', 'Parrotia',
@@ -40,7 +40,7 @@ export const collections = [
   },
   {
     id: 'bluete',
-    label: 'Frühlingsblüher',
+    label: { de: 'Frühlingsblüher', en: 'Spring bloomers' },
     emoji: '🌸',
     genera: [
       'Prunus', 'Malus', 'Magnolia', 'Cercis', 'Aesculus', 'Cornus',

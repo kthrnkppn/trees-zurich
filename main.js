@@ -1,9 +1,23 @@
-import { GenusDeNames } from './GenusDeNames.js';
 import { treeMeta } from './treeMeta.js';
 import { getPopupContent } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
+import { lang, t, genusName, numberFormat, setLang, applyStaticI18n } from './i18n.js';
+
+// Rewrite the static German markup for the active language and wire the DE|EN
+// switch. Runs first so every dynamically built string below matches.
+applyStaticI18n();
+for (const btn of document.querySelectorAll('.lang-btn')) {
+  const isActive = btn.dataset.lang === lang;
+  btn.setAttribute('aria-pressed', String(isActive));
+  btn.addEventListener('click', () => setLang(btn.dataset.lang));
+}
+
+// In English mode the species dropdowns/labels use the Latin binomial (we only
+// translate the genus): "Quercus robur" instead of the German "Stiel-Eiche".
+const speciesLabel = (genus, art, deLabel) => (lang === 'en' ? `${genus} ${art}` : deLabel);
+const allSpeciesOption = () => `<option value="0">${t('filter.allSpecies')}</option>`;
 
 const layerId = 'tree-points-layer';
 const treasureLayerId = 'treasure-stars-layer';
@@ -194,7 +208,7 @@ const geocoderApi = {
         q: config.query,
         format: 'geojson',
         limit: '5',
-        'accept-language': 'de',
+        'accept-language': lang,
         viewbox: '8.44,47.30,8.63,47.44',
         bounded: '1',
       });
@@ -241,8 +255,7 @@ const map = new maplibregl.Map({
 })
   .addControl(
     new maplibregl.AttributionControl({
-      customAttribution:
-        'Baumdaten: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">Stadt Zürich (Baumkataster)</a>',
+      customAttribution: t('map.attribution'),
     })
   )
   .addControl(new maplibregl.FullscreenControl())
@@ -257,7 +270,7 @@ const map = new maplibregl.Map({
   .addControl(
     new MaplibreGeocoder(geocoderApi, {
       maplibregl,
-      placeholder: 'Ort suchen',
+      placeholder: t('geo.placeholder'),
       marker: false,
       // Auto-suggest: show matching places while typing. minLength + a generous
       // debounce keep us within Nominatim's fair-use policy (~1 request/sec).
@@ -405,7 +418,6 @@ map.on('load', async () => {
  * Live count of distinct visible trees
  * ------------------------------------------------------------------ */
 const treeCountElem = document.querySelector('#tree-count');
-const numberFormat = new Intl.NumberFormat('de-CH');
 
 // Show when the tree data was last pulled from the city's WFS (written by the
 // update script into data-version.json), plus the next scheduled check — the
@@ -424,9 +436,13 @@ fetch('./data-version.json')
     if (!v?.pulled) return;
     const [y, m, d] = v.pulled.split('-').map(Number);
     if (!y || !m || !d) return;
-    const fmt = (dt) => `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}.${dt.getFullYear()}`;
-    if (dateEl) dateEl.textContent = ` · Datenstand: ${fmt(new Date(y, m - 1, d))}`;
-    if (nextEl) nextEl.textContent = `Nächste Aktualisierung am ${fmt(nextScheduledUpdate())}`;
+    // German: DD.MM.YYYY; English: "15 Jul 2026".
+    const fmt = (dt) =>
+      lang === 'en'
+        ? dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}.${dt.getFullYear()}`;
+    if (dateEl) dateEl.textContent = t('footer.dataDate', { date: fmt(new Date(y, m - 1, d)) });
+    if (nextEl) nextEl.textContent = t('footer.nextUpdate', { date: fmt(nextScheduledUpdate()) });
   })
   .catch(() => {});
 
@@ -436,8 +452,8 @@ function updateTreeCount(matchCount) {
   if (!treeCountElem) return;
   const total = allFeatures.length;
   treeCountElem.textContent = hasActiveFilter()
-    ? `${numberFormat.format(matchCount)} von ${numberFormat.format(total)} Bäumen`
-    : `${numberFormat.format(total)} Bäume`;
+    ? t('count.filtered', { n: numberFormat.format(matchCount), total: numberFormat.format(total) })
+    : t('count.total', { total: numberFormat.format(total) });
 }
 
 /* ------------------------------------------------------------------ *
@@ -457,21 +473,22 @@ for (const input of [yearMinInput, yearMaxInput]) {
 yearMinInput.value = MIN_YEAR;
 yearMaxInput.value = MAX_YEAR;
 
-// Genus dropdown: German name with Latin in parentheses where known, else Latin.
+// Genus dropdown: curated name (de/en) with Latin in parentheses where known,
+// else Latin only.
 for (const genus of treeMeta.genera) {
-  const de = GenusDeNames[genus];
+  const name = genusName(genus);
   const option = document.createElement('option');
   option.value = genus;
-  option.textContent = de ? `${de} (${genus})` : genus;
+  option.textContent = name !== genus ? `${name} (${genus})` : genus;
   genusSelect.appendChild(option);
 }
 
 function fillSpecies(genus) {
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   for (const { art, label } of treeMeta.speciesByGenus[genus] || []) {
     const option = document.createElement('option');
     option.value = art; // baumartlat — selecting it shows all cultivars
-    option.textContent = label;
+    option.textContent = speciesLabel(genus, art, label);
     artSelect.appendChild(option);
   }
 }
@@ -487,7 +504,7 @@ genusSelect.addEventListener('change', (e) => {
   clearCollectionUI();
   if (genus === '0') {
     filterState.genus = null;
-    artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+    artSelect.innerHTML = allSpeciesOption();
   } else {
     filterState.genus = genus;
     fillSpecies(genus);
@@ -515,7 +532,7 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
   exitNewTreesMode();
   exitGoneMode();
   genusSelect.value = '0';
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   yearMinInput.value = MIN_YEAR;
   yearMaxInput.value = MAX_YEAR;
   clearCollectionUI();
@@ -534,12 +551,12 @@ const treasureModes = {
   genbank: {
     btn: document.querySelector('#genbank-toggle'),
     names: () => genbankNames,
-    label: (n) => `${numberFormat.format(n)} alte Obstsorten – lebende Genbank`,
+    label: (n) => t('count.genbank', { n: numberFormat.format(n) }),
   },
   loner: {
     btn: document.querySelector('#loner-toggle'),
     names: () => loanerNames,
-    label: (n) => `${numberFormat.format(n)} Einzelgänger – je nur 1× in Zürich`,
+    label: (n) => t('count.loner', { n: numberFormat.format(n) }),
   },
 };
 let activeTreasure = null; // 'genbank' | 'loner' | null
@@ -569,7 +586,7 @@ function toggleTreasure(modeKey) {
   // A gold-star mode is its own view — clear any active filters/collections.
   clearCollectionUI();
   genusSelect.value = '0';
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
@@ -599,9 +616,7 @@ const newTreesBtn = document.querySelector('#new-trees-toggle');
 let newTreesModeActive = false;
 
 function newTreesLabel(n) {
-  return n === 1
-    ? '1 neuer Baum seit dem letzten Update'
-    : `${numberFormat.format(n)} neue Bäume seit dem letzten Update`;
+  return n === 1 ? t('new.one') : t('new.many', { n: numberFormat.format(n) });
 }
 
 // Show the button only if the last update actually added trees — nothing to
@@ -637,7 +652,7 @@ function toggleNewTreesMode() {
   // Its own view — clear any active filters/collections, same as the other modes.
   clearCollectionUI();
   genusSelect.value = '0';
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
@@ -686,8 +701,8 @@ function pickRevealedGoneYear(features) {
 }
 
 function goneLabel(year, n) {
-  const noun = n === 1 ? 'verschwundener Baum' : 'verschwundene Bäume';
-  return `${numberFormat.format(n)} ${noun} ${year}`;
+  const key = n === 1 ? 'gone.one' : 'gone.many';
+  return t(key, { n: numberFormat.format(n), year });
 }
 
 // Button is always visible. Active once a year is revealed and has data; a teaser
@@ -702,8 +717,8 @@ function setupGoneTreesButton() {
     const year = new Date().getFullYear();
     goneTreesBtn.classList.add('is-teaser');
     goneTreesBtn.setAttribute('aria-disabled', 'true');
-    goneTreesBtn.title = `Verfügbar ab Dezember ${year}`;
-    goneTreesBtn.textContent = `Verschwundene Bäume ${year}`;
+    goneTreesBtn.title = t('gone.teaserTitle', { year });
+    goneTreesBtn.textContent = t('gone.teaser', { year });
   }
 }
 
@@ -732,7 +747,7 @@ function toggleGoneMode() {
   // Its own view — clear any active filters/collections, same as the other modes.
   clearCollectionUI();
   genusSelect.value = '0';
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
@@ -747,7 +762,7 @@ function toggleGoneMode() {
   if (treeCountElem) treeCountElem.textContent = goneLabel(goneRevealYear, goneTreesFeatures.length);
   if (goneNoteEl) {
     if (goneRevealYear <= GONE_INCOMPLETE_THROUGH_YEAR) {
-      goneNoteEl.textContent = `Hinweis: Die Bilanz ${goneRevealYear} ist unvollständig – Verluste werden erst seit Mitte 2026 erfasst.`;
+      goneNoteEl.textContent = t('gone.note', { year: goneRevealYear });
       goneNoteEl.hidden = false;
     } else {
       goneNoteEl.hidden = true;
@@ -793,7 +808,7 @@ function renderCuriosities() {
     btn.type = 'button';
     btn.className = 'curio-item';
     btn.innerHTML =
-      `<span class="curio-name">${c.emoji} ${c.label}</span>` +
+      `<span class="curio-name">${c.emoji} ${c.label[lang] || c.label.de}</span>` +
       `<span class="curio-count">${numberFormat.format(n)}×</span>`;
     btn.addEventListener('click', () =>
       c.art ? jumpToSpecies(c.genus, c.art) : jumpToGenus(c.genus)
@@ -834,7 +849,7 @@ function toggleCollection(c, btn) {
   filterState.genus = null;
   filterState.species = null;
   genusSelect.value = '0';
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   applyFilters({ fit: true });
 }
 
@@ -843,7 +858,7 @@ for (const c of collections) {
   btn.type = 'button';
   btn.className = 'collection-chip';
   btn.setAttribute('aria-pressed', 'false');
-  btn.textContent = c.label; // chips are UI chrome — typographic only (emojis stay in content lists)
+  btn.textContent = c.label[lang] || c.label.de; // chips are UI chrome — typographic only (emojis stay in content lists)
   btn.addEventListener('click', () => toggleCollection(c, btn));
   collectionsEl.appendChild(btn);
   collectionChips.set(c.id, btn);
@@ -859,22 +874,25 @@ const treeSuggestionsEl = document.querySelector('#tree-suggestions');
 // lowercased haystack of German + Latin names.
 const searchIndex = [];
 for (const genus of treeMeta.genera) {
-  const de = GenusDeNames[genus];
+  const name = genusName(genus);
+  const named = name !== genus ? name : '';
   searchIndex.push({
     kind: 'genus',
     genus,
-    label: de ? `${de} (${genus})` : genus,
-    sub: 'Gattung',
-    search: `${de || ''} ${genus}`.toLowerCase(),
+    label: named ? `${name} (${genus})` : genus,
+    sub: t('search.genus'),
+    // Include both curated names so search works regardless of UI language.
+    search: `${named} ${genus}`.toLowerCase(),
   });
   for (const { art, label } of treeMeta.speciesByGenus[genus] || []) {
     searchIndex.push({
       kind: 'species',
       genus,
       art,
-      label,
-      sub: `Art · ${de || genus}`,
-      search: `${label} ${genus} ${de || ''}`.toLowerCase(),
+      label: speciesLabel(genus, art, label),
+      sub: `${t('search.species')} · ${name}`,
+      // German label kept in the haystack so German names still match in EN mode.
+      search: `${label} ${genus} ${art} ${named}`.toLowerCase(),
     });
   }
 }
@@ -990,13 +1008,15 @@ function makeLabel(name) {
 }
 
 const legendButtons = new Map(); // genus → button, for active-state highlighting
-for (const { genus, name, color } of [...GENUS_COLORS, { name: 'Andere', color: OTHER_COLOR }]) {
+for (const { genus, color } of [...GENUS_COLORS, { color: OTHER_COLOR }]) {
+  // Colour comes from GENUS_COLORS; the display name is localised at runtime.
+  const name = genus ? `${genusName(genus)} (${genus})` : t('legend.other');
   if (genus) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'legend-row legend-btn';
     btn.dataset.name = name;
-    btn.title = `Nur ${name} anzeigen`;
+    btn.title = t('legend.onlyShow', { name });
     btn.append(makeSwatch(color), makeLabel(name));
     // Click toggles: pick this genus, or — if it's already active — clear the
     // filter (via the dropdown's "Alle Gattungen" path) and show all again.
@@ -1025,7 +1045,7 @@ function updateLegendHighlight() {
     const active = filterState.genus === genus;
     btn.classList.toggle('is-active', active);
     btn.setAttribute('aria-pressed', String(active));
-    btn.title = active ? 'Auswahl aufheben' : `Nur ${btn.dataset.name} anzeigen`;
+    btn.title = active ? t('legend.clear') : t('legend.onlyShow', { name: btn.dataset.name });
   }
 }
 
@@ -1037,7 +1057,7 @@ const statsBody = document.querySelector('#stats-body');
 
 function openStats() {
   if (!allFeatures.length) {
-    statsBody.innerHTML = '<p class="stats-lead">Daten werden noch geladen …</p>';
+    statsBody.innerHTML = `<p class="stats-lead">${t('stats.loading')}</p>`;
   } else {
     statsBody.innerHTML = renderStatsHTML(computeStats(allFeatures));
   }
@@ -1078,7 +1098,7 @@ function applyYearRange(min, max) {
   exitGoneMode();
   clearCollectionUI();
   genusSelect.value = '0';
-  artSelect.innerHTML = '<option value="0">Alle Arten</option>';
+  artSelect.innerHTML = allSpeciesOption();
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;

@@ -118,6 +118,12 @@ body {
 }
 
 /* ---- Header ---- */
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
 .sidebar-header h1 {
   margin: 0 0 8px;
   font-family: var(--font-display);
@@ -126,6 +132,38 @@ body {
   letter-spacing: -0.01em;
   line-height: 1.1;
   color: var(--paper);
+}
+/* DE|EN language switch — segmented control, active language filled with lime */
+.lang-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--lime);
+  margin-top: 4px;
+}
+.lang-btn {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  background: transparent;
+  color: var(--paper-dim);
+  border: 0;
+  cursor: pointer;
+}
+.lang-btn + .lang-btn {
+  border-left: 1px solid var(--lime);
+}
+.lang-btn:hover {
+  color: var(--paper);
+}
+.lang-btn[aria-pressed='true'] {
+  background: var(--lime);
+  color: var(--ink);
+}
+.lang-btn:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 1px;
 }
 .subtitle {
   margin: 0;

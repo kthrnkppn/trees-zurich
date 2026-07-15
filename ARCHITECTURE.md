@@ -71,17 +71,35 @@ Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
 | `index.html` | Sidebar-Struktur + Karten-Container + Statistik-Modal |
 | `style.css` | Gesamtes Styling (Sidebar, Buttons, Popup, Modal, Chips) |
 | `main.js` | Kern: Karte, Layer, Filter, alle Modi, Verdrahtung |
+| `i18n.js` | Sprachschicht DE/EN: `lang`, `t(key, params)`, `setLang()` (Reload), `applyStaticI18n()`, `numberFormat`, `genusName()`, `tTag()`, `wikiLang` |
 | `helpers.js` | `getPopupContent(props)` → HTML fürs Klick-Popup |
 | `stats.js` | `computeStats(features)` + `renderStatsHTML(stats)` fürs „Wussten Sie?"-Modal |
 | `GenusDeNames.js` | lat. Gattung → deutscher Name |
-| `genusInfo.js` | pro Gattung: `desc` + `tags` (Attribut-Chips im Popup) |
-| `trendReasons.js` | pro Gattung: Erklärsatz „warum im Kommen/Rückzug" (fürs Modal) |
-| `collections.js` | kuratierte Themen-Sammlungen (Gattungslisten) |
-| `curiosities.js` | kuratierte Exoten-Liste (`genus` + optional `art`, `label`, `emoji`) |
-| `yearEvents.js` | Welt-Event pro Pflanzjahr (1665–2026) fürs Popup |
+| `GenusEnNames.js` | lat. Gattung → englischer Name |
+| `genusInfo.js` | pro Gattung: `desc` ({de,en}) + `tags` (Attribut-Chips im Popup) |
+| `trendReasons.js` | pro Gattung: Erklärsatz „warum im Kommen/Rückzug" ({de,en}, fürs Modal) |
+| `collections.js` | kuratierte Themen-Sammlungen (Gattungslisten, `label` {de,en}) |
+| `curiosities.js` | kuratierte Exoten-Liste (`genus` + optional `art`, `label` {de,en}, `emoji`) |
+| `yearEvents.js` | Welt-Event pro Pflanzjahr 1665–2026 ({de,en}) fürs Popup |
 | `icon.svg` | Favicon (grüner Baum) |
 | `fonts/` | Bricolage Grotesque (Titel/Panel-Header, variable WOFF2, SIL OFL) + Iosevka Charon (übriger UI-Text, Light/Regular WOFF2, MIT) — beide selbst gehostet, Lizenzen liegen daneben |
 | `server.mjs` | lokaler Dev-Server (Port 4178), **nicht** fürs Deploy nötig |
+
+### Zweisprachigkeit (DE/EN)
+
+Keine i18n-Bibliothek. `i18n.js` löst die Sprache einmalig beim Laden auf
+(`localStorage.lang`, sonst `navigator.language`); der DE|EN-Umschalter im
+Sidebar-Header setzt `localStorage` und **lädt die Seite neu** — bei einer
+statischen App wird dabei alles ohnehin frisch gerendert. Statisches Markup ist
+auf Deutsch verfasst und wird via `data-i18n`/`-placeholder`/`-title`/`-aria-label`
+von `applyStaticI18n()` übersetzt (Deutsch ohne Flash, Englisch mit kurzem
+Wechsel). Kuratierte Inhalte (`yearEvents`, `genusInfo`, `trendReasons`,
+`collections`, `curiosities`) tragen `{de,en}`; `t(key, params)` liefert die
+UI-Texte. Die vom Raspi generierte `treeMeta.js` bleibt deutsch — im
+Englisch-Modus werden Gattungen über `GenusEnNames` benannt und Artnamen als
+lateinisches Binomial (`genus art`) dargestellt; Popup-Titel nutzen den
+lateinischen Namen. Wikipedia-Links und Zahlenformat (`de-CH` ↔ `en-GB`) folgen
+der Sprache.
 
 ## 6. Karten-Layer (in `main.js`)
 
@@ -145,9 +163,9 @@ anderen beenden. Suchmuster:
   (`handleStatsAction()` in `main.js`, delegierter Listener auf `#stats-body`).
 - **Neue Bäume**: s. Abschnitt 6/7.
 - **Verschwundene Bäume** („In Memoriam"): jährlicher Gedenk-Layer, s. Abschnitt 9.
-- **Popup-Zusatz**: Link zum deutschen Wikipedia-Artikel (`wikipediaUrl()` in
-  `helpers.js`, lat. Binomial → Redirect auf den deutschen Artikelnamen); bei
-  Bäumen aus dem Gedenk-Layer zusätzlich „🪦 Verschwunden {Jahr}".
+- **Popup-Zusatz**: Link zum Wikipedia-Artikel in der aktiven Sprache
+  (`wikipediaUrl()` in `helpers.js`, lat. Binomial → Redirect auf den de- bzw.
+  en-Artikelnamen); bei Bäumen aus dem Gedenk-Layer zusätzlich „† Verschwunden {Jahr}".
 - **Attribution**: „Baumdaten: …" unten rechts verlinkt zum Open-Data-Datensatz
   (`customAttribution` in der `AttributionControl`, main.js).
 

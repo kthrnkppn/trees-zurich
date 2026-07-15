@@ -4,6 +4,8 @@
 
 Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art und Pflanzjahr. Klick auf einen Baum zeigt Alter, Artbeschreibung, Eigenschaften und ein historisches Welt-Event aus dem Pflanzjahr.
 
+**Zweisprachig (Deutsch / Englisch)** – Umschalter oben in der Seitenleiste; die Sprache wird automatisch aus dem Browser erkannt und in `localStorage` gemerkt.
+
 **Vollständig im Browser – kein Account, kein API-Token, keine Serverdaten.**
 
 ## Technologie
@@ -26,7 +28,8 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 - **Zahlen & Trends**-Modal – live aus den Daten berechnet, alle Werte anklickbar (springen direkt zur Gattung/zum Jahr/zum Baum)
 - **Neue Bäume** seit dem letzten Update hervorheben
 - **Verschwundene Bäume**: jährliches „In Memoriam" – wird jeweils ab Dezember für das laufende Jahr enthüllt
-- Reiches **Klick-Popup**: Alter, Beschreibung, Eigenschaften, Welt-Event im Pflanzjahr, Link zum deutschen Wikipedia-Artikel
+- Reiches **Klick-Popup**: Alter, Beschreibung, Eigenschaften, Welt-Event im Pflanzjahr, Link zum Wikipedia-Artikel (de bzw. en je nach Sprache)
+- **Deutsch / Englisch** umschaltbar (Umschalter in der Seitenleiste); im Englischen: englische Gattungsnamen, Artnamen in Latein
 - Datenquelle unten rechts verlinkt zu [Open Data Zürich](https://data.stadt-zuerich.ch/dataset/geo_baumkataster)
 
 ## Dateien
@@ -35,15 +38,17 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 index.html         Einstiegspunkt (Sidebar + Karte + Statistik-Modal)
 style.css          Gesamtes Styling
 main.js            Karte, Layer, Filter, alle Modi
+i18n.js            Sprachschicht (DE/EN): UI-Texte, t(), Umschalter, Zahlformat
 helpers.js         Popup-HTML
 stats.js           „Zahlen & Trends" berechnen + rendern
 GenusDeNames.js    Lateinischer Gattungsname → deutscher Name
-genusInfo.js       Beschreibung + Attribut-Tags pro Gattung
-trendReasons.js    „Warum"-Erklärungen zu den Trends
-collections.js     Themen-Sammlungen
-curiosities.js     Kuratierte Exoten-Liste
-treeMeta.js        Gattungen/Arten für die Dropdowns (generiert)
-yearEvents.js      Welt-Event pro Pflanzjahr (1665–2026)
+GenusEnNames.js    Lateinischer Gattungsname → englischer Name
+genusInfo.js       Beschreibung (de/en) + Attribut-Tags pro Gattung
+trendReasons.js    „Warum"-Erklärungen zu den Trends (de/en)
+collections.js     Themen-Sammlungen (Label de/en)
+curiosities.js     Kuratierte Exoten-Liste (Label de/en)
+treeMeta.js        Gattungen/Arten für die Dropdowns (generiert; EN nutzt Latein)
+yearEvents.js      Welt-Event pro Pflanzjahr 1665–2026 (de/en)
 trees.geojson      Baumdaten (~19 MB, ~81'000 Punkte)
 data-version.json  Datenstand (Datum + Anzahl)
 new-trees.json     Seit letztem Update neu dazugekommene Bäume

@@ -6,7 +6,7 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
 
     <!-- Primary SEO -->
-    <title>Zürcher Baumkarte – alle Stadtbäume interaktiv erkunden</title>
+    <title data-i18n="meta.title">Zürcher Baumkarte – alle Stadtbäume interaktiv erkunden</title>
     <meta
       name="description"
       content="Interaktive Karte aller von der Stadt Zürich erfassten Bäume. Filtere nach Baumgattung, Baumart und Pflanzjahr und entdecke, welche Bäume in deinem Quartier wachsen. Quelle: Stadt Zürich."
@@ -84,20 +84,27 @@
         class="sidebar-toggle"
         aria-controls="sidebar"
         aria-expanded="true"
+        data-i18n="nav.filter"
       >
         ☰ Filter
       </button>
 
       <aside id="sidebar" class="sidebar">
         <header class="sidebar-header">
-          <h1>Zürcher Baumkarte</h1>
-          <p class="subtitle">
+          <div class="header-top">
+            <h1 data-i18n="app.title">Zürcher Baumkarte</h1>
+            <div class="lang-switch" role="group" aria-label="Sprache / Language">
+              <button type="button" class="lang-btn" data-lang="de" lang="de">DE</button>
+              <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
+            </div>
+          </div>
+          <p class="subtitle" data-i18n="app.subtitle">
             Alle von der Stadt Zürich erfassten Bäume – filterbar nach Gattung,
             Art und Pflanzjahr.
           </p>
         </header>
 
-        <button id="open-stats" class="facts-open-btn">
+        <button id="open-stats" class="facts-open-btn" data-i18n="facts.open">
           Wussten Sie schon …?
         </button>
 
@@ -111,15 +118,16 @@
         </noscript>
 
         <section class="panel" aria-labelledby="filter-heading">
-          <h2 id="filter-heading">Filter</h2>
+          <h2 id="filter-heading" data-i18n="filter.heading">Filter</h2>
 
           <div class="field tree-search-field">
-            <label class="field-label" for="tree-search">Baum suchen</label>
+            <label class="field-label" for="tree-search" data-i18n="filter.searchLabel">Baum suchen</label>
             <input
               id="tree-search"
               type="text"
               autocomplete="off"
               placeholder="z.B. Eiche, Olive, Acer …"
+              data-i18n-placeholder="filter.searchPlaceholder"
               role="combobox"
               aria-expanded="false"
               aria-controls="tree-suggestions"
@@ -129,54 +137,54 @@
           </div>
 
           <label class="field">
-            <span class="field-label">Baumgattung</span>
+            <span class="field-label" data-i18n="filter.genus">Baumgattung</span>
             <select id="baumgattung_id">
-              <option value="0">Alle Gattungen</option>
+              <option value="0" data-i18n="filter.allGenera">Alle Gattungen</option>
             </select>
           </label>
 
           <label class="field">
-            <span class="field-label">Baumart</span>
+            <span class="field-label" data-i18n="filter.species">Baumart</span>
             <select id="baumart_lat_id">
-              <option value="0">Alle Arten</option>
+              <option value="0" data-i18n="filter.allSpecies">Alle Arten</option>
             </select>
           </label>
 
           <fieldset class="field year-field">
-            <legend class="field-label">Pflanzjahr</legend>
+            <legend class="field-label" data-i18n="filter.year">Pflanzjahr</legend>
             <div class="year-inputs">
-              <input id="year_min" type="number" aria-label="Pflanzjahr von" />
+              <input id="year_min" type="number" aria-label="Pflanzjahr von" data-i18n-aria-label="filter.yearFrom" />
               <span aria-hidden="true">–</span>
-              <input id="year_max" type="number" aria-label="Pflanzjahr bis" />
+              <input id="year_max" type="number" aria-label="Pflanzjahr bis" data-i18n-aria-label="filter.yearTo" />
             </div>
           </fieldset>
 
           <div class="actions">
-            <button id="apply_filters" class="btn btn-primary">Filtern</button>
-            <button id="reset_filters" class="btn btn-secondary">
+            <button id="apply_filters" class="btn btn-primary" data-i18n="filter.apply">Filtern</button>
+            <button id="reset_filters" class="btn btn-secondary" data-i18n="filter.reset">
               Zurücksetzen
             </button>
           </div>
         </section>
 
         <section class="panel" aria-labelledby="collections-heading">
-          <h2 id="collections-heading">Sammlungen</h2>
+          <h2 id="collections-heading" data-i18n="collections.heading">Sammlungen</h2>
           <div id="collections" class="collections"></div>
         </section>
 
         <section class="panel" aria-labelledby="rarities-heading">
-          <h2 id="rarities-heading">Raritäten &amp; Kuriositäten</h2>
+          <h2 id="rarities-heading" data-i18n="rarities.heading">Raritäten &amp; Kuriositäten</h2>
 
-          <button id="genbank-toggle" class="treasure-btn" aria-pressed="false">
+          <button id="genbank-toggle" class="treasure-btn" aria-pressed="false" data-i18n="rarities.genbank">
             Lebende Genbank – alte Obstsorten
           </button>
-          <button id="loner-toggle" class="treasure-btn" aria-pressed="false">
+          <button id="loner-toggle" class="treasure-btn" aria-pressed="false" data-i18n="rarities.loner">
             Einzelgänger – je nur 1× in Zürich
           </button>
 
           <details class="curiosities">
-            <summary>Kuriositäten – exotische Bäume</summary>
-            <p class="curiosities-hint">
+            <summary data-i18n="curiosities.summary">Kuriositäten – exotische Bäume</summary>
+            <p class="curiosities-hint" data-i18n="curiosities.hint">
               Tippe einen Baum an – die Karte bringt dich direkt hin.
             </p>
             <ul id="curiosities-list" class="curiosities-list"></ul>
@@ -184,8 +192,8 @@
         </section>
 
         <section class="panel" aria-labelledby="legend-heading">
-          <h2 id="legend-heading">Baumgattungen</h2>
-          <p class="legend-hint">Tippe eine Gattung an, um nur sie zu zeigen.</p>
+          <h2 id="legend-heading" data-i18n="legend.heading">Baumgattungen</h2>
+          <p class="legend-hint" data-i18n="legend.hint">Tippe eine Gattung an, um nur sie zu zeigen.</p>
           <div id="legend" class="legend"></div>
         </section>
 
@@ -204,7 +212,7 @@
           <output id="tree-count" class="tree-count" aria-live="polite"></output>
           <p id="gone-note" class="gone-note" hidden></p>
           <p class="source">
-            Datenquelle: Stadt Zürich (Baumkataster)<span id="data-date"></span>
+            <span data-i18n="footer.source">Datenquelle: Stadt Zürich (Baumkataster)</span><span id="data-date"></span>
           </p>
           <p id="next-update" class="source"></p>
         </footer>
@@ -214,6 +222,7 @@
         id="map"
         role="application"
         aria-label="Interaktive Karte der Bäume in Zürich"
+        data-i18n-aria-label="map.aria"
       ></div>
     </div>
 
@@ -228,7 +237,7 @@
     >
       <div class="stats-backdrop" data-close></div>
       <div class="stats-dialog">
-        <button class="stats-close" data-close aria-label="Schliessen">×</button>
+        <button class="stats-close" data-close aria-label="Schliessen" data-i18n-aria-label="stats.close">×</button>
         <div id="stats-body"></div>
       </div>
     </div>

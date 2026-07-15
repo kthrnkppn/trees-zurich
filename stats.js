@@ -1,10 +1,10 @@
 // "Zahlen & Trends" — live aus den geladenen Baumdaten berechnet, damit die
-// Statistik nach jedem Daten-Update automatisch aktuell bleibt. Alle Labels auf
-// Deutsch (über GenusDeNames; fällt auf den lateinischen Namen zurück, falls
-// kein deutscher hinterlegt ist).
+// Statistik nach jedem Daten-Update automatisch aktuell bleibt. Labels sind
+// zweisprachig: Gattungsnamen über genusName() (de/en, Fallback = lateinischer
+// Name), Fliesstext über t().
 
-import { GenusDeNames } from './GenusDeNames.js';
 import { trendReasons } from './trendReasons.js';
+import { lang, t, genusName, numberFormat } from './i18n.js';
 
 const GENUS_FIELD = 'baumgattunglat';
 const SPECIES_FIELD = 'baumartlat';
@@ -15,11 +15,12 @@ const YEAR_FIELD = 'pflanzjahr';
 // Fruit genera — for the "living gene bank of old fruit varieties" story.
 const FRUIT_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
 
-// A clean short label: prefer the curated German genus name, else the first
-// part of the German tree name, else the latin genus.
+// A clean short label: prefer the curated genus name in the active language,
+// else (German only) the first part of the German tree name, else the latin genus.
 function shortLabel(genus, germanName) {
-  if (GenusDeNames[genus]) return GenusDeNames[genus];
-  if (germanName) return germanName.split(',')[0].trim();
+  const curated = genusName(genus);
+  if (curated !== genus) return curated;
+  if (lang === 'de' && germanName) return germanName.split(',')[0].trim();
   return genus;
 }
 
@@ -28,8 +29,8 @@ const OLD_WINDOW = [1950, 1989];
 const NEW_WINDOW = [2010, new Date().getFullYear()];
 const MIN_RECENT = 50; // Mindestanzahl im neuen Fenster, um als Trend zu zählen
 
-const fmt = new Intl.NumberFormat('de-CH');
-const deName = (genus) => GenusDeNames[genus] || genus;
+const fmt = numberFormat;
+const deName = (genus) => genusName(genus);
 
 function shareByGenus(features, [lo, hi]) {
   const counts = new Map();
@@ -98,7 +99,7 @@ export function computeStats(features) {
       oldPct,
       newPct,
       diff: newPct - oldPct,
-      why: trendReasons[genus] || '',
+      why: trendReasons[genus]?.[lang] || trendReasons[genus]?.de || '',
     });
   }
   trendRows.sort((a, b) => b.diff - a.diff);
@@ -132,9 +133,11 @@ function computeCuriosities(features, genusTotals) {
     if (typeof y !== 'number') continue;
     if (!oldestFeat || y < oldestFeat.properties[YEAR_FIELD]) oldestFeat = f;
   }
+  // English mode names the oldest tree by its Latin name (genus-only translation).
+  const primaryNameField = lang === 'en' ? LAT_NAME_FIELD : DE_NAME_FIELD;
   const oldestTree = oldestFeat
     ? {
-        name: (oldestFeat.properties[DE_NAME_FIELD] || oldestFeat.properties[LAT_NAME_FIELD] || 'Unbekannt')
+        name: (oldestFeat.properties[primaryNameField] || oldestFeat.properties[LAT_NAME_FIELD] || '—')
           .split(',')[0]
           .replace(/\s*\([^)]*\)/g, '') // technischen Klammerzusatz entfernen
           .trim(),
@@ -249,31 +252,31 @@ function renderCuriosities(c) {
   if (c.oldestTree) {
     const age = new Date().getFullYear() - c.oldestTree.year;
     cards.push(`<li class="is-clickable" data-lng="${c.oldestTree.lng}" data-lat="${c.oldestTree.lat}" role="button" tabindex="0">
-      <span><strong>Ältester Baum:</strong> ${c.oldestTree.name}, gepflanzt ${c.oldestTree.year} – über ${age} Jahre alt.</span></li>`);
+      <span><strong>${t('stats.oldestLabel')}</strong> ${t('stats.oldest', { name: c.oldestTree.name, year: c.oldestTree.year, age })}</span></li>`);
   }
   if (c.uniqueFruit > 0) {
     const ex = c.fruitExamples.length
-      ? ` – etwa ${c.fruitExamples.map((n) => `«${n}»`).join(' oder ')}`
+      ? t('stats.genbankEx', { list: c.fruitExamples.map((n) => `«${n}»`).join(lang === 'en' ? ' or ' : ' oder ') })
       : '';
     cards.push(`<li>
-      <span><strong>Lebende Obst-Genbank:</strong> ${fmt.format(c.uniqueFruit)} alte Obstsorten gibt es nur ein einziges Mal in der Stadt${ex}.</span></li>`);
+      <span><strong>${t('stats.genbankLabel')}</strong> ${t('stats.genbank', { n: fmt.format(c.uniqueFruit), ex })}</span></li>`);
   }
   if (c.loners.length) {
     const list = c.loners.slice(0, 7).join(', ');
     cards.push(`<li>
-      <span><strong>Exoten mit Seltenheitswert:</strong> Nur je ein Exemplar in ganz Zürich – ${list}.</span></li>`);
+      <span><strong>${t('stats.lonersLabel')}</strong> ${t('stats.loners', { list })}</span></li>`);
   }
   if (c.mostDiverse) {
     cards.push(`<li class="is-clickable" data-genus="${c.mostDiverse.genus}" role="button" tabindex="0">
-      <span><strong>Grösste Vielfalt:</strong> Die ${c.mostDiverse.name} bringt es auf ${c.mostDiverse.count} verschiedene Arten.</span></li>`);
+      <span><strong>${t('stats.diverseLabel')}</strong> ${t('stats.diverse', { name: c.mostDiverse.name, count: c.mostDiverse.count })}</span></li>`);
   }
   if (c.uniqueSpecies) {
     const others = c.uniqueSpecies - c.uniqueFruit;
     cards.push(`<li>
-      <span><strong>${fmt.format(c.uniqueSpecies)} Einzelstücke insgesamt:</strong> So viele Arten kommen stadtweit nur ein einziges Mal vor – ${fmt.format(c.uniqueFruit)} alte Obstsorten (Genbank) und ${fmt.format(others)} Exoten (Einzelgänger).</span></li>`);
+      <span><strong>${t('stats.uniqueLabel', { n: fmt.format(c.uniqueSpecies) })}</strong> ${t('stats.unique', { fruit: fmt.format(c.uniqueFruit), others: fmt.format(others) })}</span></li>`);
   }
   return `<section class="stats-section stats-curios">
-    <h3>Kurioses &amp; Rekorde</h3>
+    <h3>${t('stats.curiosHead')}</h3>
     <ul>${cards.join('')}</ul>
   </section>`;
 }
@@ -283,7 +286,7 @@ export function renderStatsHTML(s) {
   const decadeBars = bars(
     s.byDecade,
     (d) => d.count,
-    (d) => `${d.decade}er`,
+    (d) => t('stats.decade', { decade: d.decade }),
     (d) => fmt.format(d.count),
     '',
     (d) => `data-year-min="${d.decade}" data-year-max="${d.decade + 9}"`
@@ -298,32 +301,31 @@ export function renderStatsHTML(s) {
   );
 
   return `
-    <h2 id="stats-title" class="stats-h1">Zahlen &amp; Trends</h2>
+    <h2 id="stats-title" class="stats-h1">${t('stats.title')}</h2>
     <p class="stats-lead">
-      <strong>${fmt.format(s.total)}</strong> Bäume · ältester von
-      <strong>${s.oldest}</strong> · ${pctDated}% mit Pflanzjahr erfasst
+      ${t('stats.lead', { total: fmt.format(s.total), oldest: s.oldest, pct: pctDated })}
     </p>
 
     <section class="stats-section">
-      <h3>Pflanzungen pro Jahrzehnt</h3>
+      <h3>${t('stats.perDecade')}</h3>
       <div class="stat-bars">${decadeBars}</div>
     </section>
 
     <section class="stats-section">
-      <h3>Häufigste Bäume</h3>
+      <h3>${t('stats.mostCommon')}</h3>
       <div class="stat-bars">${generaBars}</div>
     </section>
 
     <section class="stats-section">
-      <h3>Trends: was kommt, was geht</h3>
-      <p class="stats-note">Anteil an allen Pflanzungen ${s.windows.old[0]}–${s.windows.old[1]} gegenüber ${s.windows.new[0]}–${s.windows.new[1]}.</p>
+      <h3>${t('stats.trendsHead')}</h3>
+      <p class="stats-note">${t('stats.trendsNote', { oldFrom: s.windows.old[0], oldTo: s.windows.old[1], newFrom: s.windows.new[0], newTo: s.windows.new[1] })}</p>
       <div class="stats-trends">
         <div>
-          <h4 class="stats-trend-head up">Im Kommen</h4>
+          <h4 class="stats-trend-head up">${t('stats.rising')}</h4>
           <ul class="stat-trend-list">${trendList(s.risers, 'up')}</ul>
         </div>
         <div>
-          <h4 class="stats-trend-head down">Auf dem Rückzug</h4>
+          <h4 class="stats-trend-head down">${t('stats.falling')}</h4>
           <ul class="stat-trend-list">${trendList(s.fallers, 'down')}</ul>
         </div>
       </div>
@@ -332,12 +334,12 @@ export function renderStatsHTML(s) {
     ${renderCuriosities(s.curiosities)}
 
     <section class="stats-section stats-facts">
-      <h3>Wussten Sie?</h3>
+      <h3>${t('stats.didYouKnow')}</h3>
       <ul>
-        <li><strong class="stat-fact-link" data-genus="${s.facts.topName.genus}" role="button" tabindex="0">${s.facts.topName.name}</strong> ist mit ${s.facts.topName.pct.toFixed(1)}% Zürichs häufigster Baum.</li>
-        <li>Zwischen 1700 und 1799 sind nur <strong>${s.facts.c18}</strong> Bäume datiert – systematisch erfasst wird erst seit dem 20. Jahrhundert.</li>
-        <li>Die <strong class="stat-fact-link" data-genus="Ulmus" role="button" tabindex="0">Ulme</strong> feiert ein Comeback: ${fmt.format(s.facts.ulmePre)} vor 2000, ${fmt.format(s.facts.ulmePost)} seither (vermutlich neue, gegen das Ulmensterben resistente Sorten).</li>
-        <li>Der <strong class="stat-fact-link" data-genus="Ailanthus" role="button" tabindex="0">Götterbaum</strong> wird kaum noch gepflanzt: ${fmt.format(s.facts.goetterPre)} vor 2000, nur noch ${fmt.format(s.facts.goetterPost)} seither – er gilt heute als invasiver Neophyt.</li>
+        <li><strong class="stat-fact-link" data-genus="${s.facts.topName.genus}" role="button" tabindex="0">${s.facts.topName.name}</strong> ${t('stats.factTop', { pct: s.facts.topName.pct.toFixed(1) })}</li>
+        <li>${t('stats.factC18', { n: s.facts.c18 })}</li>
+        <li>${t('stats.factUlmeArticle')}<strong class="stat-fact-link" data-genus="Ulmus" role="button" tabindex="0">${genusName('Ulmus')}</strong> ${t('stats.factUlme', { pre: fmt.format(s.facts.ulmePre), post: fmt.format(s.facts.ulmePost) })}</li>
+        <li>${t('stats.factGoetterArticle')}<strong class="stat-fact-link" data-genus="Ailanthus" role="button" tabindex="0">${genusName('Ailanthus')}</strong> ${t('stats.factGoetter', { pre: fmt.format(s.facts.goetterPre), post: fmt.format(s.facts.goetterPost) })}</li>
       </ul>
     </section>
   `;
