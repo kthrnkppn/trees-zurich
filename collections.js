@@ -47,4 +47,21 @@ export const collections = [
       'Crataegus', 'Pyrus', 'Davidia', 'Amelanchier', 'Laburnum',
     ],
   },
+  {
+    // Windbestäubte Pollen-Allergiebäume – hilft Allergiker:innen, betroffene
+    // Orte gezielt zu meiden. Reihenfolge grob nach allergener Stärke (Quellen:
+    // aha!/pollenundallergie.ch, allvent.de, US-Allergieverbände):
+    //   sehr stark  Birke
+    //   stark       Erle, Hasel, Esche
+    //   mittel      Eiche, Hainbuche, Hopfenbuche
+    //   schwach     Buche, Ulme, Pappel, Weide
+    //   viel Pollen (gering potent)  Kiefer
+    id: 'allergie',
+    label: { de: 'Allergiebäume', en: 'Allergy trees' },
+    emoji: '🤧',
+    genera: [
+      'Betula', 'Alnus', 'Corylus', 'Fraxinus', 'Quercus', 'Carpinus',
+      'Ostrya', 'Fagus', 'Ulmus', 'Populus', 'Salix', 'Pinus',
+    ],
+  },
 ];
