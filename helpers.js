@@ -4,6 +4,22 @@ import { lang, t, tTag, wikiLang } from './i18n.js';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+// Manual overrides for the naive latin-binomial guess below, keyed by
+// "genus art" exactly as it appears in the Baumkataster fields. Only needed
+// per-language where the naive guess doesn't resolve on Wikipedia; a language
+// missing from the override just falls through to the naive guess, since that
+// edition may already have its own correct article.
+//   Ziziphus jujube: the cadastre has a typo, "jujube" for "jujuba" — the
+//     correct species is Ziziphus jujuba, so the naive guess has no article.
+//   Diospyros virginiana, Cephalotaxus harringtonii: no German article/redirect
+//     exists at all; the genus article covers each reasonably. English has its
+//     own correct article at the naive title in both cases, so no EN override.
+const WIKI_TITLE_OVERRIDES = {
+  'Ziziphus jujube': { de: 'Chinesische Jujube', en: 'Jujube' },
+  'Diospyros virginiana': { de: 'Ebenholzbäume' },
+  'Cephalotaxus harringtonii': { de: 'Kopfeiben' },
+};
+
 // Best-effort Wikipedia article for the tree, in the UI language's edition. The
 // latin binomial reliably redirects to the named article (e.g. "Quercus robur"
 // → "Stiel-Eiche" on de, "Pedunculate oak" on en); for unspecified/hybrid
@@ -11,10 +27,17 @@ const CURRENT_YEAR = new Date().getFullYear();
 function wikipediaUrl(p) {
   const genus = (p.baumgattunglat || '').trim();
   let art = (p.baumartlat || '').trim();
-  art = art.replace(/\(.*?\)/g, '').replace(/\b(subsp|var|f|cv)\.?.*/i, '').trim();
+  // Strip a trailing "subsp./var./f./cv. ..." qualifier — the period is
+  // required so this only matches the actual abbreviation (with a following
+  // qualifier name), not species epithets that merely start with "f" (e.g.
+  // "fortunei", "floribunda", which the old bare-letter alternative used to
+  // eat whole).
+  art = art.replace(/\(.*?\)/g, '').replace(/\s(?:subsp|var|f|cv)\.\s+.*/i, '').trim();
   const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
+  const override = usableArt && WIKI_TITLE_OVERRIDES[`${genus} ${art}`];
   let title;
-  if (genus && usableArt) title = `${genus} ${art}`;
+  if (override?.[wikiLang]) title = override[wikiLang];
+  else if (genus && usableArt) title = `${genus} ${art}`;
   else if (genus) title = genus;
   else title = p.baumnamelat || p.baumnamedeu || '';
   return `https://${wikiLang}.wikipedia.org/wiki/` + encodeURIComponent(title.replace(/\s+/g, '_'));
