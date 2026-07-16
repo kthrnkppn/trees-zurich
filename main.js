@@ -822,8 +822,12 @@ function renderCuriosities() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'curio-item';
+    // Most emoji fit either language; a few are {de,en} where the German and
+    // English names evoke different imagery (e.g. Geweihbaum → 🦌 vs. Kentucky
+    // coffeetree → ☕).
+    const emoji = typeof c.emoji === 'string' ? c.emoji : c.emoji[lang] || c.emoji.de;
     btn.innerHTML =
-      `<span class="curio-name">${c.emoji} ${c.label[lang] || c.label.de}</span>` +
+      `<span class="curio-name">${emoji} ${c.label[lang] || c.label.de}</span>` +
       `<span class="curio-count">${numberFormat.format(n)}×</span>`;
     btn.addEventListener('click', () =>
       c.art ? jumpToSpecies(c.genus, c.art) : jumpToGenus(c.genus)
