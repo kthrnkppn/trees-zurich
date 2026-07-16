@@ -49,6 +49,11 @@ const GENUS_COLORS = [
 ];
 const OTHER_COLOR = '#2e7d32'; // forest green for every other genus
 
+// The map colour for a genus — a named legend colour, else the "Andere" green.
+// Used so the collection legend shows the same dot colour as the map.
+const GENUS_COLOR_BY_GENUS = new Map(GENUS_COLORS.map((g) => [g.genus, g.color]));
+const genusColor = (genus) => GENUS_COLOR_BY_GENUS.get(genus) || OTHER_COLOR;
+
 function buildGenusColorExpression() {
   const pairs = GENUS_COLORS.flatMap(({ genus, color }) => [genus, color]);
   return ['match', ['get', GENUS_FIELD], ...pairs, OTHER_COLOR];
@@ -90,6 +95,11 @@ function makeStarImage(size = 34) {
 // All tree features, kept in memory so we can count and zoom to matches across
 // the whole city — not just what's currently on screen.
 let allFeatures = [];
+
+// genus → number of trees in the city (filled on load). Drives the collection
+// legend (which genera of a collection are actually present, and how many).
+let genusCounts = new Map();
+const genusCount = (genus) => genusCounts.get(genus) || 0;
 
 // Trees added since the last successful data update (see newTreesLayerId).
 let newTreesFeatures = [];
@@ -194,7 +204,7 @@ function applyFilters({ fit = false } = {}) {
   if (map.getLayer(layerId)) map.setFilter(layerId, buildMapFilter());
   const matches = hasActiveFilter() ? allFeatures.filter(matchesFilter) : allFeatures;
   updateTreeCount(matches.length);
-  updateLegendHighlight();
+  refreshLegend();
   if (fit && hasActiveFilter()) fitToMatches(matches);
 }
 
@@ -291,6 +301,11 @@ map.on('load', async () => {
   }
   allFeatures = treesData.features;
   ({ genbank: genbankNames, loner: loanerNames } = computeSpeciesCounts());
+  genusCounts = new Map();
+  for (const f of allFeatures) {
+    const g = f.properties[GENUS_FIELD];
+    genusCounts.set(g, (genusCounts.get(g) || 0) + 1);
+  }
   renderCuriosities();
 
   // Trees added since the last successful data update (written by the update
@@ -590,7 +605,7 @@ function toggleTreasure(modeKey) {
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
-  updateLegendHighlight();
+  refreshLegend();
 
   const mode = treasureModes[modeKey];
   const names = mode.names();
@@ -656,7 +671,7 @@ function toggleNewTreesMode() {
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
-  updateLegendHighlight();
+  refreshLegend();
 
   newTreesModeActive = true;
   newTreesBtn.classList.add('is-active');
@@ -751,7 +766,7 @@ function toggleGoneMode() {
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
-  updateLegendHighlight();
+  refreshLegend();
 
   goneModeActive = true;
   goneTreesBtn.classList.add('is-active');
@@ -838,8 +853,11 @@ function toggleCollection(c, btn) {
   const wasActive = filterState.collection?.id === c.id;
   clearCollectionUI();
   if (wasActive) {
+    // Toggling off: drop the collection and any genus drilled into within it.
     filterState.collection = null;
-    applyFilters(); // toggling off: no auto-zoom, back to full city
+    filterState.genus = null;
+    filterState.species = null;
+    applyFilters(); // no auto-zoom, back to full city
     return;
   }
   filterState.collection = c;
@@ -1007,39 +1025,98 @@ function makeLabel(name) {
   return l;
 }
 
+const legendHintEl = document.querySelector('.legend-hint');
 const legendButtons = new Map(); // genus → button, for active-state highlighting
-for (const { genus, color } of [...GENUS_COLORS, { color: OTHER_COLOR }]) {
-  // Colour comes from GENUS_COLORS; the display name is localised at runtime.
-  const name = genus ? `${genusName(genus)} (${genus})` : t('legend.other');
-  if (genus) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'legend-row legend-btn';
-    btn.dataset.name = name;
-    btn.title = t('legend.onlyShow', { name });
-    btn.append(makeSwatch(color), makeLabel(name));
-    // Click toggles: pick this genus, or — if it's already active — clear the
-    // filter (via the dropdown's "Alle Gattungen" path) and show all again.
-    btn.addEventListener('click', () => {
-      if (filterState.genus === genus) {
-        genusSelect.value = '0';
-        genusSelect.dispatchEvent(new Event('change'));
-      } else {
-        jumpToGenus(genus);
-      }
-    });
-    legendButtons.set(genus, btn);
-    legendEl.appendChild(btn);
-  } else {
-    const row = document.createElement('div');
-    row.className = 'legend-row';
-    row.append(makeSwatch(color), makeLabel(name));
-    legendEl.appendChild(row);
+
+// Drill into a single genus while staying inside the active collection: set (or
+// clear) the genus filter without touching the collection, so the collection
+// legend stays put and you can hop from one genus to the next. Collection ∩ genus
+// equals just that genus (it's a member), so the map shows only it.
+function selectGenusInCollection(genus) {
+  const select = filterState.genus !== genus;
+  filterState.genus = select ? genus : null;
+  filterState.species = null;
+  applyFilters({ fit: select }); // zoom in when picking; stay put when clearing
+}
+
+// One clickable genus row (swatch + name + optional count). In collection mode a
+// click drills within the collection; otherwise it isolates that genus on the
+// map (or, if already the active filter, clears it).
+function makeGenusRow(genus, count, collectionMode) {
+  const name = `${genusName(genus)} (${genus})`;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'legend-row legend-btn';
+  btn.dataset.name = name;
+  btn.title = t('legend.onlyShow', { name });
+  btn.append(makeSwatch(genusColor(genus)), makeLabel(name));
+  if (count != null) {
+    const c = document.createElement('span');
+    c.className = 'legend-count';
+    c.textContent = numberFormat.format(count);
+    btn.appendChild(c);
+  }
+  btn.addEventListener('click', () => {
+    if (collectionMode) {
+      selectGenusInCollection(genus);
+    } else if (filterState.genus === genus) {
+      genusSelect.value = '0';
+      genusSelect.dispatchEvent(new Event('change'));
+    } else {
+      jumpToGenus(genus);
+    }
+  });
+  legendButtons.set(genus, btn);
+  return btn;
+}
+
+// Default legend: the fixed set of colour-coded genera + an "Andere" catch-all.
+// Doubles as the map's colour key.
+function renderDefaultLegend() {
+  legendEl.innerHTML = '';
+  legendButtons.clear();
+  for (const { genus, color } of GENUS_COLORS) {
+    legendEl.appendChild(makeGenusRow(genus));
+  }
+  const row = document.createElement('div');
+  row.className = 'legend-row';
+  row.append(makeSwatch(OTHER_COLOR), makeLabel(t('legend.other')));
+  legendEl.appendChild(row);
+}
+
+// Collection legend: the genera of the active collection that actually occur in
+// the data, most common first, each with its count and clickable to isolate.
+function renderCollectionLegend(collection) {
+  legendEl.innerHTML = '';
+  legendButtons.clear();
+  const present = collection.genera
+    .filter((g) => genusCount(g) > 0)
+    .sort((a, b) => genusCount(b) - genusCount(a));
+  for (const genus of present) {
+    legendEl.appendChild(makeGenusRow(genus, genusCount(genus), true));
   }
 }
 
-// Highlight the legend row of the currently filtered genus (if it's one of the
-// legend genera). Called from applyFilters and when entering star/new-tree modes.
+// Keep the legend in sync with filterState: the collection's genera when a
+// collection is active, otherwise the fixed default. Only rebuilds when the mode
+// actually changes (guarded by renderedLegendKey) to avoid needless DOM churn.
+let renderedLegendKey = null;
+function refreshLegend() {
+  const key = filterState.collection?.id ?? '__default__';
+  if (key !== renderedLegendKey) {
+    if (filterState.collection) renderCollectionLegend(filterState.collection);
+    else renderDefaultLegend();
+    if (legendHintEl) {
+      legendHintEl.textContent = filterState.collection
+        ? t('legend.hintCollection')
+        : t('legend.hint');
+    }
+    renderedLegendKey = key;
+  }
+  updateLegendHighlight();
+}
+
+// Highlight the legend row of the currently filtered genus (if it's shown).
 function updateLegendHighlight() {
   for (const [genus, btn] of legendButtons) {
     const active = filterState.genus === genus;
@@ -1048,6 +1125,9 @@ function updateLegendHighlight() {
     btn.title = active ? t('legend.clear') : t('legend.onlyShow', { name: btn.dataset.name });
   }
 }
+
+renderDefaultLegend();
+renderedLegendKey = '__default__';
 
 /* ------------------------------------------------------------------ *
  * Zahlen & Trends modal

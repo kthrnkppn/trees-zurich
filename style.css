@@ -543,6 +543,14 @@ body {
 .legend-btn:hover {
   background: var(--hover-dark);
 }
+.legend-count {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding-left: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-dim);
+}
 .legend-btn.is-active {
   color: var(--lime);
   font-weight: 400;
