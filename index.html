@@ -86,16 +86,27 @@
         aria-expanded="true"
         data-i18n="nav.filter"
       >
-        ☰ Filter
+        Filter
       </button>
 
       <aside id="sidebar" class="sidebar">
         <header class="sidebar-header">
           <div class="header-top">
             <h1 data-i18n="app.title">Zürcher Baumkarte</h1>
-            <div class="lang-switch" role="group" aria-label="Sprache / Language">
-              <button type="button" class="lang-btn" data-lang="de" lang="de">DE</button>
-              <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
+            <div class="header-controls">
+              <button
+                id="intro-help"
+                type="button"
+                class="help-btn"
+                aria-label="Wie funktioniert diese Karte?"
+                data-i18n-aria-label="intro.help"
+                title="Wie funktioniert diese Karte?"
+                data-i18n-title="intro.help"
+              >?</button>
+              <div class="lang-switch" role="group" aria-label="Sprache / Language">
+                <button type="button" class="lang-btn" data-lang="de" lang="de">DE</button>
+                <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
+              </div>
             </div>
           </div>
           <p class="subtitle" data-i18n="app.subtitle">
@@ -239,6 +250,22 @@
       <div class="stats-dialog">
         <button class="stats-close" data-close aria-label="Schliessen" data-i18n-aria-label="stats.close">×</button>
         <div id="stats-body"></div>
+      </div>
+    </div>
+
+    <!-- First-visit onboarding -->
+    <div
+      id="intro-modal"
+      class="stats-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="intro-title"
+    >
+      <div class="stats-backdrop" data-close></div>
+      <div class="stats-dialog intro-dialog">
+        <button class="stats-close" data-close aria-label="Schliessen" data-i18n-aria-label="stats.close">×</button>
+        <div id="intro-body"></div>
       </div>
     </div>
 

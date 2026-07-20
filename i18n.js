@@ -89,10 +89,21 @@ export function tTag(tag) {
 const strings = {
   de: {
     'meta.title': 'Zürcher Baumkarte – alle Stadtbäume interaktiv erkunden',
-    'nav.filter': '☰ Filter',
+    'nav.filter': 'Filter',
     'app.title': 'Zürcher Baumkarte',
     'app.subtitle':
       'Alle von der Stadt Zürich erfassten Bäume – filterbar nach Gattung, Art und Pflanzjahr.',
+    'intro.help': 'Wie funktioniert diese Karte?',
+    'intro.title': 'Willkommen auf der Zürcher Baumkarte',
+    'intro.lead':
+      'Hier findest du alle von der Stadt Zürich erfassten Bäume – so kannst du loslegen:',
+    'intro.point1':
+      'Filtern nach Gattung, Art oder Pflanzjahr – oder direkt einen Baum suchen.',
+    'intro.point2':
+      'Sammlungen & Raritäten antippen, um Themen wie Obstbäume oder Allergiebäume zu erkunden.',
+    'intro.point3':
+      'Auf einen Baum auf der Karte tippen für Alter, Beschreibung und den Wikipedia-Link.',
+    'intro.cta': 'Los geht’s',
     'facts.open': 'Wussten Sie schon …?',
     'filter.heading': 'Filter',
     'filter.searchLabel': 'Baum suchen',
@@ -150,6 +161,7 @@ const strings = {
     'popup.eventLabel': 'Gepflanzt {year} – damals in der Welt',
     'popup.eventMore': 'Mehr aus {year} →',
     'popup.wiki': 'Auf Wikipedia lesen →',
+    'popup.more': 'Mehr anzeigen',
     // stats.js
     'stats.title': 'Zahlen & Trends',
     'stats.lead': '<strong>{total}</strong> Bäume · ältester von <strong>{oldest}</strong> · {pct}% mit Pflanzjahr erfasst',
@@ -182,10 +194,21 @@ const strings = {
   },
   en: {
     'meta.title': 'Zurich Tree Map – explore every city tree interactively',
-    'nav.filter': '☰ Filters',
+    'nav.filter': 'Filters',
     'app.title': 'Zurich Tree Map',
     'app.subtitle':
       'Every tree recorded by the City of Zurich – filter by genus, species and planting year.',
+    'intro.help': 'How does this map work?',
+    'intro.title': 'Welcome to the Zurich Tree Map',
+    'intro.lead':
+      'Here you can explore every tree recorded by the City of Zurich – here’s how to get started:',
+    'intro.point1':
+      'Filter by genus, species or planting year – or search for a tree directly.',
+    'intro.point2':
+      'Tap Collections & Rarities to explore themes like fruit trees or allergy trees.',
+    'intro.point3':
+      'Tap a tree on the map for its age, description and Wikipedia link.',
+    'intro.cta': 'Get started',
     'facts.open': 'Did you know …?',
     'filter.heading': 'Filters',
     'filter.searchLabel': 'Search trees',
@@ -243,6 +266,7 @@ const strings = {
     'popup.eventLabel': 'Planted {year} – meanwhile in the world',
     'popup.eventMore': 'More from {year} →',
     'popup.wiki': 'Read on Wikipedia →',
+    'popup.more': 'Show more',
     // stats.js
     'stats.title': 'Facts & Trends',
     'stats.lead': '<strong>{total}</strong> trees · oldest from <strong>{oldest}</strong> · {pct}% with a recorded planting year',

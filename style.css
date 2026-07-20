@@ -93,6 +93,7 @@ body {
 
 /* ---- Layout: dark sidebar block + light map block ---- */
 .app {
+  position: relative;
   display: flex;
   height: 100vh;
   width: 100%;
@@ -132,6 +133,34 @@ body {
   letter-spacing: -0.01em;
   line-height: 1.1;
   color: var(--paper);
+}
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+/* Small "?" button reopening the onboarding intro at any time. */
+.help-btn {
+  width: 24px;
+  height: 24px;
+  margin-top: 4px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--paper-dim);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.help-btn:hover {
+  color: var(--paper);
+  background: var(--hover-dark);
+}
+.help-btn:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 1px;
 }
 /* DE|EN language switch — segmented control, active language filled with lime */
 .lang-switch {
@@ -687,6 +716,31 @@ body {
 .tp-wiki:hover {
   text-decoration: underline;
 }
+/* "Mehr anzeigen" — collapsed by default (mobile); forced open on desktop
+   below, so nothing changes there. Same ▸/▾ marker pattern as .curiosities. */
+.tp-more {
+  margin-top: 10px;
+}
+.tp-more summary {
+  display: inline-block;
+  list-style: none;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--forest);
+}
+.tp-more summary::-webkit-details-marker {
+  display: none;
+}
+.tp-more summary::after {
+  content: ' ▸';
+}
+.tp-more[open] summary::after {
+  content: ' ▾';
+}
+.tp-more summary:hover {
+  text-decoration: underline;
+}
 .maplibregl-popup-close-button {
   font-size: 18px;
   width: 24px;
@@ -749,6 +803,47 @@ body {
   max-height: 88vh;
   overflow-y: auto;
   padding: 30px 32px 34px;
+}
+/* Onboarding intro — same dialog chrome, narrower (it's just a few lines). */
+.intro-dialog {
+  width: min(420px, 100%);
+}
+.intro-dialog h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--forest);
+}
+.intro-dialog p {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--ink-muted);
+}
+.intro-dialog ul {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.intro-dialog li {
+  font-size: 14.5px;
+  line-height: 1.4;
+  padding-left: 18px;
+  position: relative;
+}
+.intro-dialog li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: var(--lime-deep);
+  font-weight: 700;
+}
+.intro-cta {
+  width: 100%;
 }
 .stats-close {
   position: absolute;
@@ -1007,23 +1102,71 @@ body {
   .app {
     flex-direction: column;
   }
+  /* An in-flow, full-width bar rather than a floating pill — #sidebar-toggle
+     is the first child of .app in the DOM, so placing it in normal flow
+     (instead of position:absolute) puts it above the sidebar and map with no
+     risk of ever overlapping the map's own top-left controls (e.g. the place
+     search box), which is what a floating absolutely-positioned button used
+     to collide with once the sidebar was collapsed.
+     `flex: 0 0 auto` is essential: without it, this bar is just another flex
+     child of .app, and since .sidebar's max-height + #map's min-height below
+     can together demand more than the 100vh .app has to give, the flexbox
+     shrink algorithm would squeeze *every* flex-shrinkable child to fit —
+     including this bar, visibly shrinking it (measured 40px → 20.5px) only
+     while the sidebar was expanded. Pinning it to its own content height
+     keeps it a constant, reliable 40px regardless of sidebar state. */
   .sidebar-toggle {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    text-align: left;
+  }
+  /* A chevron, not a hamburger — this toggles a collapsible panel, not a
+     navigation menu, so the icon should say "expand/collapse" rather than
+     "open menu". Sits directly before the label (not off at the far edge)
+     so it's clearly read as "this chevron belongs to Filter". Flips with
+     aria-expanded, same ▸/▾ pattern used for .curiosities and .tp-more
+     elsewhere in this file. */
+  .sidebar-toggle::before {
+    content: '▾';
+    font-size: 15px;
+  }
+  .sidebar-toggle[aria-expanded='true']::before {
+    content: '▴';
   }
   .sidebar {
     flex-basis: auto;
     width: 100%;
-    max-height: 70vh;
-    padding-top: 62px; /* clear the toggle button */
+    /* Kept comfortably under 100vh together with the bar above and #map's
+       min-height below, so normal viewports never need to invoke shrinking
+       at all — see the .sidebar-toggle comment above for what happens if
+       this budget is ever widened again without checking the sum. */
+    max-height: 60vh;
   }
   .sidebar[hidden] {
     display: none;
   }
   #map {
     flex: 1 1 auto;
-    min-height: 50vh;
+    min-height: 30vh;
   }
   .stats-trends {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Desktop keeps the tree-popup description/event fully visible immediately —
+   helpers.js already renders .tp-more with the "open" attribute at this
+   breakpoint, so this just hides the now-redundant toggle affordance. */
+@media (min-width: 761px) {
+  .tp-more summary {
+    display: none;
+  }
+  /* Onboarding is mobile-only (see main.js) — no dead reopen button on desktop. */
+  .help-btn {
+    display: none;
   }
 }

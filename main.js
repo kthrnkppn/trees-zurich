@@ -291,6 +291,38 @@ const map = new maplibregl.Map({
     'top-left'
   );
 
+// MapLibre picks a popup's anchor once, purely from which third of the map
+// container the anchor point falls in — it has no idea how tall the popup's
+// *content* is, and never revisits the decision once chosen. That's fine
+// until the "Mehr anzeigen" <details> toggle grows the popup after the fact,
+// which can push it past the edge of the screen with no way back (mobile).
+// So instead of fighting MapLibre's own positioning, nudge the map itself by
+// exactly however many pixels the popup now overflows by.
+function keepPopupOnScreen(popup) {
+  requestAnimationFrame(() => {
+    const rect = popup.getElement().getBoundingClientRect();
+    const mapRect = map.getContainer().getBoundingClientRect();
+    const margin = 16;
+    const overflowBottom = rect.bottom - (mapRect.bottom - margin);
+    const overflowTop = mapRect.top + margin - rect.top;
+    if (overflowBottom > 0) map.panBy([0, overflowBottom], { duration: 300 });
+    else if (overflowTop > 0) map.panBy([0, -overflowTop], { duration: 300 });
+  });
+}
+
+// Opens a tree's popup and keeps it on-screen as its content resizes (see
+// keepPopupOnScreen above).
+function openTreePopup(lngLat, properties) {
+  const popup = new maplibregl.Popup()
+    .setLngLat(lngLat)
+    .setHTML(getPopupContent(properties))
+    .addTo(map);
+  popup.getElement().querySelector('.tp-more')?.addEventListener('toggle', () => {
+    keepPopupOnScreen(popup);
+  });
+  return popup;
+}
+
 map.on('load', async () => {
   let treesData;
   try {
@@ -411,10 +443,7 @@ map.on('load', async () => {
   });
 
   const showPopup = (e) => {
-    new maplibregl.Popup()
-      .setLngLat(e.lngLat)
-      .setHTML(getPopupContent(e.features[0].properties))
-      .addTo(map);
+    openTreePopup(e.lngLat, e.features[0].properties);
   };
   for (const id of [layerId, treasureLayerId, newTreesLayerId, goneTreesLayerId]) {
     map.on('mouseenter', id, () => {
@@ -1160,6 +1189,59 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !statsModal.hidden) closeStats();
 });
 
+/* ------------------------------------------------------------------ *
+ * First-visit onboarding — shown once, reopenable via the "?" button
+ * ------------------------------------------------------------------ */
+const INTRO_SEEN_KEY = 'introSeen';
+const introModal = document.querySelector('#intro-modal');
+const introBody = document.querySelector('#intro-body');
+
+function renderIntroHTML() {
+  return `
+    <h2 id="intro-title">${t('intro.title')}</h2>
+    <p>${t('intro.lead')}</p>
+    <ul>
+      <li>${t('intro.point1')}</li>
+      <li>${t('intro.point2')}</li>
+      <li>${t('intro.point3')}</li>
+    </ul>
+    <button id="intro-cta" type="button" class="btn btn-primary intro-cta">${t('intro.cta')}</button>
+  `;
+}
+
+function openIntro() {
+  introBody.innerHTML = renderIntroHTML();
+  introModal.hidden = false;
+  document.querySelector('#intro-cta').addEventListener('click', closeIntro);
+}
+
+function closeIntro() {
+  introModal.hidden = true;
+  try {
+    localStorage.setItem(INTRO_SEEN_KEY, '1');
+  } catch (e) {
+    /* private mode / storage blocked — intro just reopens next visit */
+  }
+}
+
+document.querySelector('#intro-help').addEventListener('click', openIntro);
+introModal.addEventListener('click', (e) => {
+  if (e.target.hasAttribute('data-close')) closeIntro();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !introModal.hidden) closeIntro();
+});
+
+// Onboarding is a mobile concern — on desktop the filter sidebar is already
+// fully visible, so there's nothing to "discover" behind a collapsed panel.
+let introSeen = false;
+try {
+  introSeen = localStorage.getItem(INTRO_SEEN_KEY) === '1';
+} catch (e) {
+  /* private mode / storage blocked — treat as not seen */
+}
+if (!introSeen && matchMedia('(max-width: 760px)').matches) openIntro();
+
 // Fly to a specific tree (by coordinates) and open its popup.
 function flyToTree(lng, lat) {
   map.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
@@ -1168,10 +1250,7 @@ function flyToTree(lng, lat) {
     return Math.abs(x - lng) < 1e-6 && Math.abs(y - lat) < 1e-6;
   });
   if (f) {
-    new maplibregl.Popup()
-      .setLngLat([lng, lat])
-      .setHTML(getPopupContent(f.properties))
-      .addTo(map);
+    openTreePopup([lng, lat], f.properties);
   }
 }
 

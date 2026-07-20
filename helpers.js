@@ -94,14 +94,29 @@ export const getPopupContent = (p) => {
     ? `<div class="tp-gone">${esc(t('popup.gone', { year: String(p.verschwunden).slice(0, 4) }))}</div>`
     : '';
 
+  // Description + world event are the longest parts of the popup, so on mobile
+  // they're tucked behind a native <details> disclosure (title, age, tags and
+  // the Wikipedia link stay visible immediately either way). Desktop keeps
+  // today's behaviour — everything visible immediately — via the `open`
+  // attribute decided here at render time; the summary toggle is then hidden
+  // by CSS on wide screens (see .tp-more in style.css). Deciding `open` here
+  // (rather than fighting the native collapsed-<details> rendering with a CSS
+  // override) is the reliable approach — some browsers render collapsed
+  // <details> content through an internal content-visibility mechanism that
+  // author CSS can't force back open.
+  const isWideScreen = matchMedia('(min-width: 761px)').matches;
+  const moreContent = `${desc ? `<p class="tp-desc">${esc(desc)}</p>` : ''}${eventBlock}`;
+  const moreBlock = moreContent
+    ? `<details class="tp-more"${isWideScreen ? ' open' : ''}><summary>${esc(t('popup.more'))}</summary>${moreContent}</details>`
+    : '';
+
   return `<div class="tree-popup">
     <a class="tp-title" href="${wikiUrl}" target="_blank" rel="noopener">${esc(title)}</a>
     ${baumnamelat ? `<div class="tp-lat"><em>${esc(baumnamelat)}</em></div>` : ''}
     ${goneBlock}
     <div class="tp-meta">${metaParts.map(esc).join(' · ')}</div>
-    ${desc ? `<p class="tp-desc">${esc(desc)}</p>` : ''}
     ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
     <a class="tp-wiki" href="${wikiUrl}" target="_blank" rel="noopener">${esc(t('popup.wiki'))}</a>
-    ${eventBlock}
+    ${moreBlock}
   </div>`;
 };
