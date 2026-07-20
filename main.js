@@ -106,9 +106,13 @@ let newTreesFeatures = [];
 let goneTreesFeatures = []; // the features of the currently revealed year
 let goneRevealYear = null; // the year those features belong to (or null = teaser)
 
-// Active filter values (null = inactive). `collection` holds the active
+// Active filter values (null/false = inactive). `collection` holds the active
 // collection object (or null); it's mutually exclusive with genus/species.
-const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null };
+// `yearUnknown` ("nur Bäume ohne erfasstes Pflanzjahr") is mutually exclusive
+// with yearMin/yearMax but combines freely with genus/species/collection —
+// it's a toggle next to the year fields, not a themed collection, since it's a
+// data-quality filter rather than a kind of tree (see the sidebar's year-field).
+const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null, yearUnknown: false };
 
 // Classic orchard-fruit genera — used to split the single-specimen trees into
 // the "living gene bank" (old fruit varieties) versus the exotic "Einzelgänger".
@@ -140,7 +144,6 @@ function computeSpeciesCounts() {
 
 // True if a feature belongs to the active collection (a curated genus set).
 function matchesCollection(p, c) {
-  if (c.yearUnknown) return p[YEAR_FIELD] == null;
   return c.genera.includes(p[GENUS_FIELD]);
 }
 
@@ -150,7 +153,8 @@ function hasActiveFilter() {
     filterState.genus ||
     filterState.species ||
     filterState.yearMin != null ||
-    filterState.yearMax != null
+    filterState.yearMax != null ||
+    filterState.yearUnknown
   );
 }
 
@@ -159,6 +163,7 @@ function matchesFilter(f) {
   if (filterState.collection && !matchesCollection(p, filterState.collection)) return false;
   if (filterState.genus && p[GENUS_FIELD] !== filterState.genus) return false;
   if (filterState.species && p[SPECIES_FIELD] !== filterState.species) return false;
+  if (filterState.yearUnknown) return p[YEAR_FIELD] == null;
   if (filterState.yearMin != null && !(p[YEAR_FIELD] >= filterState.yearMin)) return false;
   if (filterState.yearMax != null && !(p[YEAR_FIELD] <= filterState.yearMax)) return false;
   return true;
@@ -167,9 +172,10 @@ function matchesFilter(f) {
 function buildMapFilter() {
   const e = ['all'];
   const c = filterState.collection;
-  if (c) e.push(c.yearUnknown ? ['==', ['get', YEAR_FIELD], null] : ['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
+  if (c) e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
+  if (filterState.yearUnknown) e.push(['==', ['get', YEAR_FIELD], null]);
   if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
   if (filterState.yearMax != null) e.push(['<=', ['get', YEAR_FIELD], filterState.yearMax]);
   return e;
@@ -501,6 +507,7 @@ const genusSelect = document.querySelector('#baumgattung_id');
 const artSelect = document.querySelector('#baumart_lat_id');
 const yearMinInput = document.querySelector('#year_min');
 const yearMaxInput = document.querySelector('#year_max');
+const yearUnknownToggle = document.querySelector('#year-unknown-toggle');
 
 const MIN_YEAR = 1665;
 const MAX_YEAR = new Date().getFullYear();
@@ -556,8 +563,30 @@ artSelect.addEventListener('change', (e) => {
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
   exitAllModes();
-  filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
-  filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
+  if (!filterState.yearUnknown) {
+    filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
+    filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
+  }
+  applyFilters({ fit: true });
+});
+
+// "Nur Bäume mit unbekanntem Pflanzjahr" — a toggle next to the year fields
+// rather than a themed collection, since it's a data-quality filter (helps
+// spot gaps in the city's archive), not a kind of tree. Combines freely with
+// genus/species/collection, but is mutually exclusive with a year range —
+// a tree can't both have no recorded year and fall within one.
+yearUnknownToggle.addEventListener('click', () => {
+  exitAllModes();
+  const active = yearUnknownToggle.getAttribute('aria-pressed') !== 'true';
+  filterState.yearUnknown = active;
+  yearUnknownToggle.classList.toggle('is-active', active);
+  yearUnknownToggle.setAttribute('aria-pressed', String(active));
+  yearMinInput.disabled = active;
+  yearMaxInput.disabled = active;
+  if (active) {
+    filterState.yearMin = null;
+    filterState.yearMax = null;
+  }
   applyFilters({ fit: true });
 });
 
@@ -759,10 +788,10 @@ function exitAllModes() {
   exitGoneMode();
 }
 
-// Clears any active genus/species/collection filter and resets the matching
-// UI controls (dropdown, collection chips). None of the three exclusive
-// modes above mix with a manual genus/species/collection selection, so this
-// runs alongside exitAllModes() whenever entering one of them or resetting.
+// Clears any active genus/species/collection/year-unknown filter and resets
+// the matching UI controls (dropdown, collection chips, year-unknown toggle).
+// None of the three exclusive modes above mix with a manual filter selection,
+// so this runs alongside exitAllModes() whenever entering one of them or resetting.
 function resetFilterSelection() {
   clearCollectionUI();
   genusSelect.value = '0';
@@ -770,6 +799,11 @@ function resetFilterSelection() {
   filterState.collection = null;
   filterState.genus = null;
   filterState.species = null;
+  filterState.yearUnknown = false;
+  yearUnknownToggle.classList.remove('is-active');
+  yearUnknownToggle.setAttribute('aria-pressed', 'false');
+  yearMinInput.disabled = false;
+  yearMaxInput.disabled = false;
 }
 
 function toggleGoneMode() {
@@ -1103,24 +1137,16 @@ function renderDefaultLegend() {
   legendEl.appendChild(row);
 }
 
-// Collection legend: genus breakdown of the trees actually matching the active
-// collection, most common first, each with its count and clickable to isolate.
-// Counts genera among the matching features directly (rather than reading the
-// global genusCounts) so this works correctly for criterion-based collections
-// too — e.g. "Pflanzjahr unbekannt" isn't genus-based, so a genus's global
-// total would overstate how many of its trees are actually undated.
+// Collection legend: the genera of the active collection that actually occur in
+// the data, most common first, each with its count and clickable to isolate.
 function renderCollectionLegend(collection) {
   legendEl.innerHTML = '';
   legendButtons.clear();
-  const counts = new Map();
-  for (const f of allFeatures) {
-    if (!matchesCollection(f.properties, collection)) continue;
-    const g = f.properties[GENUS_FIELD];
-    counts.set(g, (counts.get(g) || 0) + 1);
-  }
-  const present = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  for (const [genus, count] of present) {
-    legendEl.appendChild(makeGenusRow(genus, count, true));
+  const present = collection.genera
+    .filter((g) => genusCount(g) > 0)
+    .sort((a, b) => genusCount(b) - genusCount(a));
+  for (const genus of present) {
+    legendEl.appendChild(makeGenusRow(genus, genusCount(genus), true));
   }
 }
 

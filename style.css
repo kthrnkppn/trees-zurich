@@ -455,6 +455,11 @@ body {
 .gone-trees-btn.is-teaser:hover {
   background: transparent;
 }
+/* Not a distinct map layer color like the others — it's a data-quality
+   filter, not a themed view, so no colored square marker. */
+.year-unknown-btn::before {
+  display: none;
+}
 .treasure-btn:focus-visible,
 .new-trees-btn:focus-visible,
 .gone-trees-btn:focus-visible {

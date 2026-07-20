@@ -4,9 +4,6 @@
 //
 // Sonderfall "Seltene Raritäten": wird dynamisch aus den Daten berechnet
 // (Arten, die stadtweit höchstens RARITY_MAX_COUNT-mal vorkommen).
-//
-// Sonderfall `yearUnknown`: statt einer Gattungsliste filtert diese Sammlung auf
-// `pflanzjahr === null` (siehe matchesCollection() in main.js) – kein `genera`-Feld.
 
 export const collections = [
   {
@@ -59,13 +56,5 @@ export const collections = [
     label: { de: 'Allergiebäume', en: 'Allergy trees' },
     emoji: '🤧',
     genera: ['Betula', 'Alnus', 'Corylus', 'Fraxinus'],
-  },
-  {
-    // Bäume ohne erfasstes Pflanzjahr (~8'400 Stadt-weit) – hilft der Stadt und
-    // Anwohner:innen, gezielt Lücken im Archiv zu finden und zu schliessen.
-    id: 'jahrUnbekannt',
-    label: { de: 'Pflanzjahr unbekannt', en: 'Unknown planting year' },
-    emoji: '❓',
-    yearUnknown: true,
   },
 ];
