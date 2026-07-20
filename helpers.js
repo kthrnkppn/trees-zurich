@@ -1,6 +1,6 @@
 import { genusInfo } from './genusInfo.js';
 import { yearEvents } from './yearEvents.js';
-import { lang, t, tTag, wikiLang } from './i18n.js';
+import { lang, t, tTag, wikiLang, localized } from './i18n.js';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -73,13 +73,13 @@ export const getPopupContent = (p) => {
     .map((tag) => `<span class="tp-tag">${esc(tTag(tag))}</span>`)
     .join('');
 
-  const desc = info?.desc?.[lang] || info?.desc?.de || '';
+  const desc = localized(info?.desc);
 
   // "What happened in the world the year this tree was planted."
   let eventBlock = '';
   const ev = pflanzjahr && yearEvents[pflanzjahr];
   if (ev) {
-    const evText = ev[lang] || ev.de;
+    const evText = localized(ev);
     eventBlock = `<div class="tp-event">
       <div class="tp-event-label">${esc(t('popup.eventLabel', { year: pflanzjahr }))}</div>
       <div class="tp-event-text">${esc(evText)}</div>

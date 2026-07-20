@@ -55,6 +55,8 @@
   --gold: #f4b400; /* treasure stars */
   --sprout: #22c55e; /* new trees */
   --ash: #8a938c; /* gone trees */
+  --trend-up: #3c7a46; /* "im Kommen" arrows/headings in Zahlen & Trends */
+  --trend-down: #a04b3c; /* "auf dem Rückzug" arrows/headings */
 
   --sidebar-width: 340px;
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
@@ -976,10 +978,10 @@ body {
   font-size: 14.5px;
 }
 .stats-trend-head.up {
-  color: #3c7a46;
+  color: var(--trend-up);
 }
 .stats-trend-head.down {
-  color: #a04b3c;
+  color: var(--trend-down);
 }
 .stat-trend-list {
   list-style: none;
@@ -998,10 +1000,10 @@ body {
   margin-right: 4px;
 }
 .stat-trend-item.up .stat-trend-arrow {
-  color: #3c7a46;
+  color: var(--trend-up);
 }
 .stat-trend-item.down .stat-trend-arrow {
-  color: #a04b3c;
+  color: var(--trend-down);
 }
 .stat-trend-name {
   font-weight: 400;

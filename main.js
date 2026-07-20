@@ -3,7 +3,8 @@ import { getPopupContent } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
-import { lang, t, genusName, numberFormat, setLang, applyStaticI18n } from './i18n.js';
+import { lang, t, genusName, numberFormat, setLang, applyStaticI18n, localized } from './i18n.js';
+import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD } from './fields.js';
 
 // Rewrite the static German markup for the active language and wire the DE|EN
 // switch. Runs first so every dynamically built string below matches.
@@ -26,11 +27,6 @@ const newTreesSourceId = 'new-trees';
 const goneTreesLayerId = 'gone-trees-layer';
 const goneTreesSourceId = 'gone-trees';
 const sourceId = 'zurich-trees';
-
-// Field names from the official Stadt Zürich Baumkataster GeoJSON.
-const GENUS_FIELD = 'baumgattunglat'; // latin genus, e.g. "Acer"
-const SPECIES_FIELD = 'baumartlat'; // latin species epithet — groups all cultivars
-const YEAR_FIELD = 'pflanzjahr';
 
 // Single source of truth for genus colouring — drives both the map paint
 // expression and the legend. Keyed by latin genus name (matches GENUS_FIELD).
@@ -110,9 +106,6 @@ let newTreesFeatures = [];
 let goneTreesFeatures = []; // the features of the currently revealed year
 let goneRevealYear = null; // the year those features belong to (or null = teaser)
 
-// Full latin species name (baumnamelat → baumnamelat) field, used for rarity.
-const LATIN_NAME_FIELD = 'baumnamelat';
-
 // Active filter values (null = inactive). `collection` holds the active
 // collection object (or null); it's mutually exclusive with genus/species.
 const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null };
@@ -147,6 +140,7 @@ function computeSpeciesCounts() {
 
 // True if a feature belongs to the active collection (a curated genus set).
 function matchesCollection(p, c) {
+  if (c.yearUnknown) return p[YEAR_FIELD] == null;
   return c.genera.includes(p[GENUS_FIELD]);
 }
 
@@ -173,7 +167,7 @@ function matchesFilter(f) {
 function buildMapFilter() {
   const e = ['all'];
   const c = filterState.collection;
-  if (c) e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
+  if (c) e.push(c.yearUnknown ? ['==', ['get', YEAR_FIELD], null] : ['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
   if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
@@ -538,9 +532,7 @@ function fillSpecies(genus) {
 }
 
 genusSelect.addEventListener('change', (e) => {
-  exitTreasureMode();
-  exitNewTreesMode();
-  exitGoneMode();
+  exitAllModes();
   const genus = e.target.value;
   filterState.species = null; // species are scoped to a genus
   // Genus and collections are mutually exclusive.
@@ -563,26 +555,17 @@ artSelect.addEventListener('change', (e) => {
 });
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
-  exitTreasureMode();
-  exitNewTreesMode();
-  exitGoneMode();
+  exitAllModes();
   filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
   filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
   applyFilters({ fit: true });
 });
 
 document.querySelector('#reset_filters').addEventListener('click', () => {
-  exitTreasureMode();
-  exitNewTreesMode();
-  exitGoneMode();
-  genusSelect.value = '0';
-  artSelect.innerHTML = allSpeciesOption();
+  exitAllModes();
+  resetFilterSelection();
   yearMinInput.value = MIN_YEAR;
   yearMaxInput.value = MAX_YEAR;
-  clearCollectionUI();
-  filterState.collection = null;
-  filterState.genus = null;
-  filterState.species = null;
   filterState.yearMin = null;
   filterState.yearMax = null;
   applyFilters(); // no auto-zoom on reset
@@ -624,16 +607,10 @@ function toggleTreasure(modeKey) {
     return;
   }
   if (!allFeatures.length) return; // data not loaded yet
-  exitTreasureMode(); // turn off the other mode if it was active
-  exitNewTreesMode();
+  exitAllModes(); // turn off any other mode if it was active
 
   // A gold-star mode is its own view — clear any active filters/collections.
-  clearCollectionUI();
-  genusSelect.value = '0';
-  artSelect.innerHTML = allSpeciesOption();
-  filterState.collection = null;
-  filterState.genus = null;
-  filterState.species = null;
+  resetFilterSelection();
   refreshLegend();
 
   const mode = treasureModes[modeKey];
@@ -690,16 +667,10 @@ function toggleNewTreesMode() {
     return;
   }
   if (!newTreesFeatures.length) return;
-  exitTreasureMode();
-  exitGoneMode();
+  exitAllModes();
 
   // Its own view — clear any active filters/collections, same as the other modes.
-  clearCollectionUI();
-  genusSelect.value = '0';
-  artSelect.innerHTML = allSpeciesOption();
-  filterState.collection = null;
-  filterState.genus = null;
-  filterState.species = null;
+  resetFilterSelection();
   refreshLegend();
 
   newTreesModeActive = true;
@@ -776,6 +747,31 @@ function exitGoneMode() {
   if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
 }
 
+// The three exclusive map "views" (gold-star rarities, new trees, gone trees)
+// are mutually exclusive with each other and with a regular filter — entering
+// any one of them, or applying a regular filter, first backs out of whichever
+// of these might currently be active. Each exit function already guards
+// against exiting a mode that isn't active, so calling all three unconditionally
+// is always safe.
+function exitAllModes() {
+  exitTreasureMode();
+  exitNewTreesMode();
+  exitGoneMode();
+}
+
+// Clears any active genus/species/collection filter and resets the matching
+// UI controls (dropdown, collection chips). None of the three exclusive
+// modes above mix with a manual genus/species/collection selection, so this
+// runs alongside exitAllModes() whenever entering one of them or resetting.
+function resetFilterSelection() {
+  clearCollectionUI();
+  genusSelect.value = '0';
+  artSelect.innerHTML = allSpeciesOption();
+  filterState.collection = null;
+  filterState.genus = null;
+  filterState.species = null;
+}
+
 function toggleGoneMode() {
   if (goneTreesBtn.getAttribute('aria-disabled') === 'true') return; // teaser: not yet available
   if (goneModeActive) {
@@ -784,17 +780,10 @@ function toggleGoneMode() {
     return;
   }
   if (!goneTreesFeatures.length) return;
-  exitTreasureMode();
-  exitNewTreesMode();
-  exitGoneMode();
+  exitAllModes();
 
   // Its own view — clear any active filters/collections, same as the other modes.
-  clearCollectionUI();
-  genusSelect.value = '0';
-  artSelect.innerHTML = allSpeciesOption();
-  filterState.collection = null;
-  filterState.genus = null;
-  filterState.species = null;
+  resetFilterSelection();
   refreshLegend();
 
   goneModeActive = true;
@@ -831,21 +820,20 @@ function jumpToGenus(genus) {
 
 function renderCuriosities() {
   if (!curiosityListEl) return;
-  // Count both by genus and by genus+species, so curiosities can be pinned to a
-  // single species when the genus holds several (e.g. Zanthoxylum piperitum).
-  const genusCounts = new Map();
+  // Genus counts are already available in the module-level genusCounts map
+  // (computed once on data load); only genus+species pairs need counting
+  // here, so curiosities can be pinned to a single species when the genus
+  // holds several (e.g. Zanthoxylum piperitum).
   const speciesCounts = new Map();
   for (const f of allFeatures) {
-    const g = f.properties[GENUS_FIELD];
-    genusCounts.set(g, (genusCounts.get(g) || 0) + 1);
-    const key = `${g}|${f.properties[SPECIES_FIELD]}`;
+    const key = `${f.properties[GENUS_FIELD]}|${f.properties[SPECIES_FIELD]}`;
     speciesCounts.set(key, (speciesCounts.get(key) || 0) + 1);
   }
   curiosityListEl.innerHTML = '';
   for (const c of curiosities) {
     const n = c.art
       ? speciesCounts.get(`${c.genus}|${c.art}`) || 0
-      : genusCounts.get(c.genus) || 0;
+      : genusCount(c.genus);
     if (!n) continue; // skip entries not present in the current data
     const li = document.createElement('li');
     const btn = document.createElement('button');
@@ -854,9 +842,9 @@ function renderCuriosities() {
     // Most emoji fit either language; a few are {de,en} where the German and
     // English names evoke different imagery (e.g. Geweihbaum → 🦌 vs. Kentucky
     // coffeetree → ☕).
-    const emoji = typeof c.emoji === 'string' ? c.emoji : c.emoji[lang] || c.emoji.de;
+    const emoji = typeof c.emoji === 'string' ? c.emoji : localized(c.emoji);
     btn.innerHTML =
-      `<span class="curio-name">${emoji} ${c.label[lang] || c.label.de}</span>` +
+      `<span class="curio-name">${emoji} ${localized(c.label)}</span>` +
       `<span class="curio-count">${numberFormat.format(n)}×</span>`;
     btn.addEventListener('click', () =>
       c.art ? jumpToSpecies(c.genus, c.art) : jumpToGenus(c.genus)
@@ -880,9 +868,7 @@ function clearCollectionUI() {
 }
 
 function toggleCollection(c, btn) {
-  exitTreasureMode();
-  exitNewTreesMode();
-  exitGoneMode();
+  exitAllModes();
   const wasActive = filterState.collection?.id === c.id;
   clearCollectionUI();
   if (wasActive) {
@@ -909,7 +895,7 @@ for (const c of collections) {
   btn.type = 'button';
   btn.className = 'collection-chip';
   btn.setAttribute('aria-pressed', 'false');
-  btn.textContent = c.label[lang] || c.label.de; // chips are UI chrome — typographic only (emojis stay in content lists)
+  btn.textContent = localized(c.label); // chips are UI chrome — typographic only (emojis stay in content lists)
   btn.addEventListener('click', () => toggleCollection(c, btn));
   collectionsEl.appendChild(btn);
   collectionChips.set(c.id, btn);
@@ -1117,16 +1103,24 @@ function renderDefaultLegend() {
   legendEl.appendChild(row);
 }
 
-// Collection legend: the genera of the active collection that actually occur in
-// the data, most common first, each with its count and clickable to isolate.
+// Collection legend: genus breakdown of the trees actually matching the active
+// collection, most common first, each with its count and clickable to isolate.
+// Counts genera among the matching features directly (rather than reading the
+// global genusCounts) so this works correctly for criterion-based collections
+// too — e.g. "Pflanzjahr unbekannt" isn't genus-based, so a genus's global
+// total would overstate how many of its trees are actually undated.
 function renderCollectionLegend(collection) {
   legendEl.innerHTML = '';
   legendButtons.clear();
-  const present = collection.genera
-    .filter((g) => genusCount(g) > 0)
-    .sort((a, b) => genusCount(b) - genusCount(a));
-  for (const genus of present) {
-    legendEl.appendChild(makeGenusRow(genus, genusCount(genus), true));
+  const counts = new Map();
+  for (const f of allFeatures) {
+    if (!matchesCollection(f.properties, collection)) continue;
+    const g = f.properties[GENUS_FIELD];
+    counts.set(g, (counts.get(g) || 0) + 1);
+  }
+  const present = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [genus, count] of present) {
+    legendEl.appendChild(makeGenusRow(genus, count, true));
   }
 }
 
@@ -1256,15 +1250,8 @@ function flyToTree(lng, lat) {
 
 // Filter to a planting-year range (used by the decade bars in the stats modal).
 function applyYearRange(min, max) {
-  exitTreasureMode();
-  exitNewTreesMode();
-  exitGoneMode();
-  clearCollectionUI();
-  genusSelect.value = '0';
-  artSelect.innerHTML = allSpeciesOption();
-  filterState.collection = null;
-  filterState.genus = null;
-  filterState.species = null;
+  exitAllModes();
+  resetFilterSelection();
   filterState.yearMin = min;
   filterState.yearMax = max;
   yearMinInput.value = min;

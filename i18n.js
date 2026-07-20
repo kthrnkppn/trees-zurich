@@ -45,6 +45,14 @@ export const numberFormat = new Intl.NumberFormat(lang === 'en' ? 'en-GB' : 'de-
 // Wikipedia language edition to link to.
 export const wikiLang = lang === 'en' ? 'en' : 'de';
 
+// Picks the active language out of a bilingual {de,en} content object (used
+// throughout the curated content files — yearEvents, genusInfo, trendReasons,
+// collections, curiosities), falling back to German, then to an empty string
+// if the object itself is missing (e.g. `localized(info?.desc)`).
+export function localized(obj) {
+  return obj?.[lang] ?? obj?.de ?? '';
+}
+
 // Curated genus name in the active language, falling back to the Latin genus.
 export function genusName(genus) {
   const map = lang === 'en' ? GenusEnNames : GenusDeNames;

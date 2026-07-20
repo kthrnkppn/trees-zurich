@@ -4,13 +4,8 @@
 // Name), Fliesstext über t().
 
 import { trendReasons } from './trendReasons.js';
-import { lang, t, genusName, numberFormat } from './i18n.js';
-
-const GENUS_FIELD = 'baumgattunglat';
-const SPECIES_FIELD = 'baumartlat';
-const LAT_NAME_FIELD = 'baumnamelat';
-const DE_NAME_FIELD = 'baumnamedeu';
-const YEAR_FIELD = 'pflanzjahr';
+import { lang, t, genusName, numberFormat, localized } from './i18n.js';
+import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD, DE_NAME_FIELD } from './fields.js';
 
 // Fruit genera — for the "living gene bank of old fruit varieties" story.
 const FRUIT_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
@@ -30,7 +25,6 @@ const NEW_WINDOW = [2010, new Date().getFullYear()];
 const MIN_RECENT = 50; // Mindestanzahl im neuen Fenster, um als Trend zu zählen
 
 const fmt = numberFormat;
-const deName = (genus) => genusName(genus);
 
 function shareByGenus(features, [lo, hi]) {
   const counts = new Map();
@@ -83,7 +77,7 @@ export function computeStats(features) {
   const topGenera = [...genusTotals.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([genus, count]) => ({ genus, name: deName(genus), count, pct: (100 * count) / total }));
+    .map(([genus, count]) => ({ genus, name: genusName(genus), count, pct: (100 * count) / total }));
 
   // Trends: Anteil im alten vs. neuen Zeitfenster.
   const oldShare = shareByGenus(features, OLD_WINDOW);
@@ -95,11 +89,11 @@ export function computeStats(features) {
     const newPct = (100 * newCount) / newShare.total;
     trendRows.push({
       genus,
-      name: deName(genus),
+      name: genusName(genus),
       oldPct,
       newPct,
       diff: newPct - oldPct,
-      why: trendReasons[genus]?.[lang] || trendReasons[genus]?.de || '',
+      why: localized(trendReasons[genus]),
     });
   }
   trendRows.sort((a, b) => b.diff - a.diff);
@@ -134,10 +128,10 @@ function computeCuriosities(features, genusTotals) {
     if (!oldestFeat || y < oldestFeat.properties[YEAR_FIELD]) oldestFeat = f;
   }
   // English mode names the oldest tree by its Latin name (genus-only translation).
-  const primaryNameField = lang === 'en' ? LAT_NAME_FIELD : DE_NAME_FIELD;
+  const primaryNameField = lang === 'en' ? LATIN_NAME_FIELD : DE_NAME_FIELD;
   const oldestTree = oldestFeat
     ? {
-        name: (oldestFeat.properties[primaryNameField] || oldestFeat.properties[LAT_NAME_FIELD] || '—')
+        name: (oldestFeat.properties[primaryNameField] || oldestFeat.properties[LATIN_NAME_FIELD] || '—')
           .split(',')[0]
           .replace(/\s*\([^)]*\)/g, '') // technischen Klammerzusatz entfernen
           .trim(),
@@ -166,7 +160,7 @@ function computeCuriosities(features, genusTotals) {
   // alte Obstsorten – Zürichs lebende Genbank.
   const speciesCounts = new Map();
   for (const f of features) {
-    const n = f.properties[LAT_NAME_FIELD];
+    const n = f.properties[LATIN_NAME_FIELD];
     if (n) speciesCounts.set(n, (speciesCounts.get(n) || 0) + 1);
   }
   let uniqueSpecies = 0;
@@ -179,7 +173,7 @@ function computeCuriosities(features, genusTotals) {
   // Zweiter Durchgang über die Features, um Beispiel-Obstsorten zu finden.
   const seenFruit = new Set();
   for (const f of features) {
-    const n = f.properties[LAT_NAME_FIELD];
+    const n = f.properties[LATIN_NAME_FIELD];
     if (!n || speciesCounts.get(n) !== 1) continue;
     if (!FRUIT_GENERA.has(f.properties[GENUS_FIELD])) continue;
     uniqueFruit++;
@@ -202,7 +196,7 @@ function computeCuriosities(features, genusTotals) {
   let mostDiverse = null;
   for (const [genus, set] of speciesByGenus) {
     if (!mostDiverse || set.size > mostDiverse.count) {
-      mostDiverse = { genus, name: deName(genus), count: set.size };
+      mostDiverse = { genus, name: genusName(genus), count: set.size };
     }
   }
 
