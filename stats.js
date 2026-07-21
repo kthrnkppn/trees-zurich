@@ -48,6 +48,42 @@ function countGenusInRange(features, genus, lo, hi) {
   return n;
 }
 
+// Share of a genus's own trees that have no recorded planting year.
+function pctUndatedInGenus(features, genus) {
+  let count = 0, undated = 0;
+  for (const f of features) {
+    if (f.properties[GENUS_FIELD] !== genus) continue;
+    count++;
+    if (f.properties[YEAR_FIELD] == null) undated++;
+  }
+  return count ? (100 * undated) / count : 0;
+}
+
+// Share of *dated* trees in a year range whose year is a multiple of 5 — a
+// classic "digit heaping" signature of estimated-then-rounded dates rather
+// than precisely recorded ones (random chance would be 20%, since 2 of every
+// 5 consecutive years are multiples of 5).
+function pctRoundedYears(features, lo, hi) {
+  let n = 0, rounded = 0;
+  for (const f of features) {
+    const y = f.properties[YEAR_FIELD];
+    if (typeof y !== 'number' || y < lo || y > hi) continue;
+    n++;
+    if (y % 5 === 0) rounded++;
+  }
+  return n ? (100 * rounded) / n : 0;
+}
+
+// Number of distinct genera planted within a year range.
+function genusDiversityInRange(features, lo, hi) {
+  const genera = new Set();
+  for (const f of features) {
+    const y = f.properties[YEAR_FIELD];
+    if (typeof y === 'number' && y >= lo && y <= hi) genera.add(f.properties[GENUS_FIELD]);
+  }
+  return genera.size;
+}
+
 export function computeStats(features) {
   const total = features.length;
   const years = features
@@ -106,12 +142,23 @@ export function computeStats(features) {
   const ulmePre = countGenusInRange(features, 'Ulmus', 0, 1999);
   const ulmePost = countGenusInRange(features, 'Ulmus', 2000, newest);
   const c18 = years.filter((y) => y >= 1700 && y <= 1799).length;
+  const crataegusUndatedPct = pctUndatedInGenus(features, 'Crataegus');
+  const corylusUndatedPct = pctUndatedInGenus(features, 'Corylus');
+  const cityUndatedPct = (100 * (total - dated)) / total;
+  const heapingOldPct = pctRoundedYears(features, 1900, 1999);
+  const heapingNewPct = pctRoundedYears(features, 2000, newest);
+  const genera1900s = genusDiversityInRange(features, 1900, 1909);
+  const genera2010s = genusDiversityInRange(features, 2010, 2019);
 
   const curiosities = computeCuriosities(features, genusTotals);
 
   return {
     total, dated, oldest, newest, byDecade, topGenera, risers, fallers,
-    facts: { goetterPre, goetterPost, ulmePre, ulmePost, c18, topName: topGenera[0] },
+    facts: {
+      goetterPre, goetterPost, ulmePre, ulmePost, c18, topName: topGenera[0],
+      crataegusUndatedPct, corylusUndatedPct, cityUndatedPct,
+      heapingOldPct, heapingNewPct, genera1900s, genera2010s,
+    },
     curiosities,
     windows: { old: OLD_WINDOW, new: NEW_WINDOW },
   };
@@ -334,6 +381,9 @@ export function renderStatsHTML(s) {
         <li>${t('stats.factC18', { n: s.facts.c18 })}</li>
         <li>${t('stats.factUlmeArticle')}<strong class="stat-fact-link" data-genus="Ulmus" role="button" tabindex="0">${genusName('Ulmus')}</strong> ${t('stats.factUlme', { pre: fmt.format(s.facts.ulmePre), post: fmt.format(s.facts.ulmePost) })}</li>
         <li>${t('stats.factGoetterArticle')}<strong class="stat-fact-link" data-genus="Ailanthus" role="button" tabindex="0">${genusName('Ailanthus')}</strong> ${t('stats.factGoetter', { pre: fmt.format(s.facts.goetterPre), post: fmt.format(s.facts.goetterPost) })}</li>
+        <li><strong class="stat-fact-link" data-genus="Crataegus" role="button" tabindex="0">${genusName('Crataegus')}</strong> ${t('stats.and')} <strong class="stat-fact-link" data-genus="Corylus" role="button" tabindex="0">${genusName('Corylus')}</strong> ${t('stats.factUndated', { crataegusPct: s.facts.crataegusUndatedPct.toFixed(1), corylusPct: s.facts.corylusUndatedPct.toFixed(1), cityPct: s.facts.cityUndatedPct.toFixed(1) })}</li>
+        <li class="is-clickable" data-year-min="1900" data-year-max="1999" role="button" tabindex="0">${t('stats.factHeaping', { oldPct: s.facts.heapingOldPct.toFixed(0), newPct: s.facts.heapingNewPct.toFixed(0) })}</li>
+        <li class="is-clickable" data-year-min="2010" data-year-max="2019" role="button" tabindex="0">${t('stats.factDiversity', { early: s.facts.genera1900s, recent: s.facts.genera2010s })}</li>
       </ul>
     </section>
   `;
