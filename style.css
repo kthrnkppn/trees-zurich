@@ -455,6 +455,17 @@ body {
 .gone-trees-btn.is-teaser:hover {
   background: transparent;
 }
+/* Two-line teaser label — the "why disabled" explanation sits directly under
+   the button's own text, not in a separate, easy-to-miss note further down. */
+.gone-trees-btn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gone-trees-btn-note {
+  font-size: 12px;
+  color: var(--paper-dim);
+}
 /* Not a distinct map layer color like the others — it's a data-quality
    filter, not a themed view, so no colored square marker. */
 .year-unknown-btn::before {

@@ -750,19 +750,26 @@ function goneLabel(year, n) {
 }
 
 // Button is always visible. Active once a year is revealed and has data; a teaser
-// (greyed, not clickable, tooltip) otherwise so the feature is already visible.
+// (greyed, not clickable) otherwise so the feature is already visible.
 function setupGoneTreesButton() {
   if (goneRevealYear && goneTreesFeatures.length) {
     goneTreesBtn.classList.remove('is-teaser');
     goneTreesBtn.setAttribute('aria-disabled', 'false');
-    goneTreesBtn.removeAttribute('title');
     goneTreesBtn.textContent = goneLabel(goneRevealYear, goneTreesFeatures.length);
+    if (goneNoteEl) goneNoteEl.hidden = true; // any teaser note no longer applies
   } else {
     const year = new Date().getFullYear();
     goneTreesBtn.classList.add('is-teaser');
     goneTreesBtn.setAttribute('aria-disabled', 'true');
-    goneTreesBtn.title = t('gone.teaserTitle', { year });
-    goneTreesBtn.textContent = t('gone.teaser', { year });
+    // Explaining *why* it's disabled used to live only in the `title` tooltip
+    // — invisible on touch devices (no hover on mobile), and even on desktop a
+    // separate note paragraph further down read as unrelated to this button.
+    // Bake it into the button itself instead, as a second, smaller line.
+    goneTreesBtn.innerHTML = `<span class="gone-trees-btn-text">
+      <span class="gone-trees-btn-label">${t('gone.teaser', { year })}</span>
+      <span class="gone-trees-btn-note">${t('gone.teaserTitle', { year })}</span>
+    </span>`;
+    if (goneNoteEl) goneNoteEl.hidden = true; // reserved for the post-reveal "Bilanz unvollständig" note
   }
 }
 
