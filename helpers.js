@@ -24,6 +24,20 @@ const WIKI_TITLE_OVERRIDES = {
 // latin binomial reliably redirects to the named article (e.g. "Quercus robur"
 // → "Stiel-Eiche" on de, "Pedunculate oak" on en); for unspecified/hybrid
 // species we fall back to the genus article.
+// Copper/blood beech cultivars (Fagus sylvatica 'Atropunicea', 'Riversii',
+// 'Purpurea Pendula', ...) carry no dedicated field in the cadastre — only
+// the curated German name calls them out ("Blutbuche" / "Blut-Buche ...");
+// genus+species is plain "Fagus sylvatica" like any ordinary beech. Used
+// both to route the Wikipedia link and to show the popup fun fact below.
+function isBlutbuche(p) {
+  return p.baumgattunglat === 'Fagus' && /blut/i.test(p.baumnamedeu || '');
+}
+
+// de.wikipedia has its own dedicated "Blutbuche" article (unlike English,
+// which only disambiguates/mentions it in passing) — route those trees
+// specifically to it instead of the generic "Rotbuche" naive guess.
+const BLUTBUCHE_OVERRIDE = { de: 'Blutbuche' };
+
 function wikipediaUrl(p) {
   const genus = (p.baumgattunglat || '').trim();
   let art = (p.baumartlat || '').trim();
@@ -34,7 +48,9 @@ function wikipediaUrl(p) {
   // eat whole).
   art = art.replace(/\(.*?\)/g, '').replace(/\s(?:subsp|var|f|cv)\.\s+.*/i, '').trim();
   const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
-  const override = usableArt && WIKI_TITLE_OVERRIDES[`${genus} ${art}`];
+  const override = isBlutbuche(p)
+    ? BLUTBUCHE_OVERRIDE
+    : usableArt && WIKI_TITLE_OVERRIDES[`${genus} ${art}`];
   let title;
   if (override?.[wikiLang]) title = override[wikiLang];
   else if (genus && usableArt) title = `${genus} ${art}`;
@@ -74,6 +90,7 @@ export const getPopupContent = (p) => {
     .join('');
 
   const desc = localized(info?.desc);
+  const funFact = isBlutbuche(p) ? t('popup.factBlutbuche') : '';
 
   // "What happened in the world the year this tree was planted."
   let eventBlock = '';
@@ -105,7 +122,7 @@ export const getPopupContent = (p) => {
   // <details> content through an internal content-visibility mechanism that
   // author CSS can't force back open.
   const isWideScreen = matchMedia('(min-width: 761px)').matches;
-  const moreContent = `${desc ? `<p class="tp-desc">${esc(desc)}</p>` : ''}${eventBlock}`;
+  const moreContent = `${desc ? `<p class="tp-desc">${esc(desc)}</p>` : ''}${funFact ? `<p class="tp-desc tp-funfact">${esc(funFact)}</p>` : ''}${eventBlock}`;
   const moreBlock = moreContent
     ? `<details class="tp-more"${isWideScreen ? ' open' : ''}><summary>${esc(t('popup.more'))}</summary>${moreContent}</details>`
     : '';

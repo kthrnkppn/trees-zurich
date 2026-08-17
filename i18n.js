@@ -171,6 +171,7 @@ const strings = {
     'popup.eventMore': 'Mehr aus {year} →',
     'popup.wiki': 'Auf Wikipedia lesen →',
     'popup.more': 'Mehr anzeigen',
+    'popup.factBlutbuche': 'Kuriosität: Rund 99% aller heutigen Blutbuchen stammen von einem einzigen Mutterbaum ab, der um 1690 im Possenwald bei Sondershausen (Thüringen) entdeckt wurde.',
     // stats.js
     'stats.title': 'Zahlen & Trends',
     'stats.lead': '<strong>{total}</strong> Bäume · ältester von <strong>{oldest}</strong> · {pct}% mit Pflanzjahr erfasst',
@@ -281,6 +282,7 @@ const strings = {
     'popup.eventMore': 'More from {year} →',
     'popup.wiki': 'Read on Wikipedia →',
     'popup.more': 'Show more',
+    'popup.factBlutbuche': 'Fun fact: About 99% of all copper beeches alive today trace back to a single mother tree discovered around 1690 in the Possenwald forest near Sondershausen, Thuringia.',
     // stats.js
     'stats.title': 'Facts & Trends',
     'stats.lead': '<strong>{total}</strong> trees · oldest from <strong>{oldest}</strong> · {pct}% with a recorded planting year',
