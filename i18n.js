@@ -140,7 +140,7 @@ const strings = {
     'legend.clear': 'Auswahl aufheben',
     'footer.source': 'Datenquelle: Stadt Zürich (Baumkataster)',
     'footer.dataDate': ' · Datenstand: {date}',
-    'footer.nextUpdate': 'Nächste Aktualisierung am {date}',
+    'footer.nextUpdate': 'Nächste Prüfung der Daten am {date}',
     'map.aria': 'Interaktive Karte der Bäume in Zürich',
     'geo.placeholder': 'Ort suchen',
     'map.attribution':
@@ -250,7 +250,7 @@ const strings = {
     'legend.clear': 'Clear selection',
     'footer.source': 'Data source: City of Zurich (tree cadastre)',
     'footer.dataDate': ' · Data as of: {date}',
-    'footer.nextUpdate': 'Next update on {date}',
+    'footer.nextUpdate': 'Next data check on {date}',
     'map.aria': "Interactive map of Zurich's trees",
     'geo.placeholder': 'Search a place',
     'map.attribution':
