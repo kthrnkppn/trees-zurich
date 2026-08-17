@@ -4,7 +4,7 @@ import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
 import { lang, t, genusName, numberFormat, setLang, applyStaticI18n, localized } from './i18n.js';
-import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD } from './fields.js';
+import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD, DE_NAME_FIELD } from './fields.js';
 
 // Rewrite the static German markup for the active language and wire the DE|EN
 // switch. Runs first so every dynamically built string below matches.
@@ -112,7 +112,17 @@ let goneRevealYear = null; // the year those features belong to (or null = tease
 // with yearMin/yearMax but combines freely with genus/species/collection —
 // it's a toggle next to the year fields, not a themed collection, since it's a
 // data-quality filter rather than a kind of tree (see the sidebar's year-field).
-const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null, yearUnknown: false };
+const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null, yearUnknown: false, blutbuche: false };
+
+// A Blutbuche cultivar tree: same genus+species as any beech, distinguished
+// only by its own German name (see the matching isBlutbuche() in helpers.js,
+// which drives the Wikipedia link + popup fun fact for the same trees).
+const BLUTBUCHE_DE_NAMES = [
+  'Blutbuche',
+  'Blut-Buche (var. purpurea)',
+  'Rot-Buche, Blutbuche',
+  'Rot-Buche, Blutbuche (hängende)',
+];
 
 // Classic orchard-fruit genera — used to split the single-specimen trees into
 // the "living gene bank" (old fruit varieties) versus the exotic "Einzelgänger".
@@ -154,7 +164,8 @@ function hasActiveFilter() {
     filterState.species ||
     filterState.yearMin != null ||
     filterState.yearMax != null ||
-    filterState.yearUnknown
+    filterState.yearUnknown ||
+    filterState.blutbuche
   );
 }
 
@@ -163,6 +174,7 @@ function matchesFilter(f) {
   if (filterState.collection && !matchesCollection(p, filterState.collection)) return false;
   if (filterState.genus && p[GENUS_FIELD] !== filterState.genus) return false;
   if (filterState.species && p[SPECIES_FIELD] !== filterState.species) return false;
+  if (filterState.blutbuche && !BLUTBUCHE_DE_NAMES.includes(p[DE_NAME_FIELD])) return false;
   if (filterState.yearUnknown) return p[YEAR_FIELD] == null;
   if (filterState.yearMin != null && !(p[YEAR_FIELD] >= filterState.yearMin)) return false;
   if (filterState.yearMax != null && !(p[YEAR_FIELD] <= filterState.yearMax)) return false;
@@ -175,6 +187,7 @@ function buildMapFilter() {
   if (c) e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
+  if (filterState.blutbuche) e.push(['in', ['get', DE_NAME_FIELD], ['literal', BLUTBUCHE_DE_NAMES]]);
   if (filterState.yearUnknown) e.push(['==', ['get', YEAR_FIELD], null]);
   if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
   if (filterState.yearMax != null) e.push(['<=', ['get', YEAR_FIELD], filterState.yearMax]);
@@ -807,6 +820,7 @@ function resetFilterSelection() {
   filterState.genus = null;
   filterState.species = null;
   filterState.yearUnknown = false;
+  filterState.blutbuche = false;
   yearUnknownToggle.classList.remove('is-active');
   yearUnknownToggle.setAttribute('aria-pressed', 'false');
   yearMinInput.disabled = false;
@@ -975,6 +989,20 @@ for (const genus of treeMeta.genera) {
   }
 }
 
+// Copper/blood beech cultivars (Fagus sylvatica 'Atropunicea', 'Riversii', ...)
+// share genus+species with every ordinary beech, so they can't be found or
+// filtered via the genus/species dropdowns at all — the cadastre only calls
+// them out through the individual tree's German name. This is its own
+// dedicated search entry + filter mode (below), not folded into the
+// "Fagus sylvatica" species entry, so selecting it isolates just the
+// cultivars instead of matching every beech in the city.
+searchIndex.push({
+  kind: 'blutbuche',
+  label: t('search.blutbucheLabel'),
+  sub: t('search.species'),
+  search: 'blutbuche blut-buche fagus sylvatica purpurea copper beech',
+});
+
 let suggestions = [];
 let activeSuggestion = -1;
 
@@ -1027,12 +1055,23 @@ function jumpToSpecies(genus, art) {
   artSelect.dispatchEvent(new Event('change')); // sets species filter + zooms
 }
 
+// Not representable via the genus/species dropdowns (see BLUTBUCHE_DE_NAMES
+// above) — set the dedicated filter flag directly instead of going through
+// jumpToSpecies/jumpToGenus.
+function jumpToBlutbuche() {
+  exitAllModes();
+  resetFilterSelection();
+  filterState.blutbuche = true;
+  applyFilters({ fit: true });
+}
+
 function selectSuggestion(idx) {
   const e = suggestions[idx];
   if (!e) return;
   treeSearchInput.value = e.label;
   hideSuggestions();
   if (e.kind === 'genus') jumpToGenus(e.genus);
+  else if (e.kind === 'blutbuche') jumpToBlutbuche();
   else jumpToSpecies(e.genus, e.art);
 }
 

@@ -147,6 +147,7 @@ const strings = {
       'Baumdaten: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">Stadt Zürich (Baumkataster)</a>',
     'search.genus': 'Gattung',
     'search.species': 'Art',
+    'search.blutbucheLabel': 'Blutbuche',
     'count.filtered': '{n} von {total} Bäumen',
     'count.total': '{total} Bäume',
     'count.genbank': '{n} alte Obstsorten – lebende Genbank',
@@ -171,7 +172,7 @@ const strings = {
     'popup.eventMore': 'Mehr aus {year} →',
     'popup.wiki': 'Auf Wikipedia lesen →',
     'popup.more': 'Mehr anzeigen',
-    'popup.factBlutbuche': 'Kuriosität: Rund 99% aller heutigen Blutbuchen stammen von einem einzigen Mutterbaum ab, der um 1690 im Possenwald bei Sondershausen (Thüringen) entdeckt wurde.',
+    'popup.factBlutbuche': 'Die Blätter sind ganzjährig rotbraun bis violett gefärbt statt grün. Rund 99% aller heutigen Blutbuchen stammen von einem einzigen Mutterbaum ab, der um 1690 im Possenwald bei Sondershausen (Thüringen) entdeckt wurde.',
     // stats.js
     'stats.title': 'Zahlen & Trends',
     'stats.lead': '<strong>{total}</strong> Bäume · ältester von <strong>{oldest}</strong> · {pct}% mit Pflanzjahr erfasst',
@@ -258,6 +259,7 @@ const strings = {
       'Tree data: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">City of Zurich (tree cadastre)</a>',
     'search.genus': 'Genus',
     'search.species': 'Species',
+    'search.blutbucheLabel': 'Copper beech',
     'count.filtered': '{n} of {total} trees',
     'count.total': '{total} trees',
     'count.genbank': '{n} old fruit varieties – living gene bank',
@@ -282,7 +284,7 @@ const strings = {
     'popup.eventMore': 'More from {year} →',
     'popup.wiki': 'Read on Wikipedia →',
     'popup.more': 'Show more',
-    'popup.factBlutbuche': 'Fun fact: About 99% of all copper beeches alive today trace back to a single mother tree discovered around 1690 in the Possenwald forest near Sondershausen, Thuringia.',
+    'popup.factBlutbuche': 'The leaves stay reddish-brown to purple year-round instead of green. About 99% of all copper beeches alive today trace back to a single mother tree discovered around 1690 in the Possenwald forest near Sondershausen, Thuringia.',
     // stats.js
     'stats.title': 'Facts & Trends',
     'stats.lead': '<strong>{total}</strong> trees · oldest from <strong>{oldest}</strong> · {pct}% with a recorded planting year',

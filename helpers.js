@@ -89,8 +89,11 @@ export const getPopupContent = (p) => {
     .map((tag) => `<span class="tp-tag">${esc(tTag(tag))}</span>`)
     .join('');
 
-  const desc = localized(info?.desc);
-  const funFact = isBlutbuche(p) ? t('popup.factBlutbuche') : '';
+  // The generic Fagus blurb ("silbergraue Rinde ... im Herbst kupferbraun")
+  // describes an ordinary green beech and doesn't fit a cultivar whose
+  // leaves stay red-purple year-round — swap it out entirely rather than
+  // show both.
+  const desc = isBlutbuche(p) ? t('popup.factBlutbuche') : localized(info?.desc);
 
   // "What happened in the world the year this tree was planted."
   let eventBlock = '';
@@ -122,7 +125,7 @@ export const getPopupContent = (p) => {
   // <details> content through an internal content-visibility mechanism that
   // author CSS can't force back open.
   const isWideScreen = matchMedia('(min-width: 761px)').matches;
-  const moreContent = `${desc ? `<p class="tp-desc">${esc(desc)}</p>` : ''}${funFact ? `<p class="tp-desc tp-funfact">${esc(funFact)}</p>` : ''}${eventBlock}`;
+  const moreContent = `${desc ? `<p class="tp-desc">${esc(desc)}</p>` : ''}${eventBlock}`;
   const moreBlock = moreContent
     ? `<details class="tp-more"${isWideScreen ? ' open' : ''}><summary>${esc(t('popup.more'))}</summary>${moreContent}</details>`
     : '';
