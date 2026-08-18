@@ -149,6 +149,10 @@ export function computeStats(features) {
   const heapingNewPct = pctRoundedYears(features, 2000, newest);
   const genera1900s = genusDiversityInRange(features, 1900, 1909);
   const genera2010s = genusDiversityInRange(features, 2010, 2019);
+  // Trees planted in the last five vintages — the count behind the
+  // "planting year isn't age" fact (street trees go in as multi-year nursery
+  // stock, so a recently planted tree can already look established).
+  const recentPlanted = years.filter((y) => y >= newest - 4).length;
 
   const curiosities = computeCuriosities(features, genusTotals);
 
@@ -158,6 +162,7 @@ export function computeStats(features) {
       goetterPre, goetterPost, ulmePre, ulmePost, c18, topName: topGenera[0],
       crataegusUndatedPct, corylusUndatedPct, cityUndatedPct,
       heapingOldPct, heapingNewPct, genera1900s, genera2010s,
+      recentPlanted, recentMinYear: newest - 4, recentMaxYear: newest,
     },
     curiosities,
     windows: { old: OLD_WINDOW, new: NEW_WINDOW },
@@ -384,6 +389,7 @@ export function renderStatsHTML(s) {
         <li><strong class="stat-fact-link" data-genus="Crataegus" role="button" tabindex="0">${genusName('Crataegus')}</strong> ${t('stats.and')} <strong class="stat-fact-link" data-genus="Corylus" role="button" tabindex="0">${genusName('Corylus')}</strong> ${t('stats.factUndated', { crataegusPct: s.facts.crataegusUndatedPct.toFixed(1), corylusPct: s.facts.corylusUndatedPct.toFixed(1), cityPct: s.facts.cityUndatedPct.toFixed(1) })}</li>
         <li class="is-clickable" data-year-min="1900" data-year-max="1999" role="button" tabindex="0">${t('stats.factHeaping', { oldPct: s.facts.heapingOldPct.toFixed(0), newPct: s.facts.heapingNewPct.toFixed(0) })}</li>
         <li class="is-clickable" data-year-min="2010" data-year-max="2019" role="button" tabindex="0">${t('stats.factDiversity', { early: s.facts.genera1900s, recent: s.facts.genera2010s })}</li>
+        <li class="is-clickable" data-year-min="${s.facts.recentMinYear}" data-year-max="${s.facts.recentMaxYear}" role="button" tabindex="0">${t('stats.factPlantingAge', { n: fmt.format(s.facts.recentPlanted) })}</li>
       </ul>
     </section>
   `;

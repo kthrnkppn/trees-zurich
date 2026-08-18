@@ -208,6 +208,7 @@ const strings = {
     'stats.factUndated': 'haben besonders oft kein erfasstes Pflanzjahr: {crataegusPct}% bzw. {corylusPct}%, gegenüber {cityPct}% stadtweit.',
     'stats.factHeaping': 'Rund {oldPct}% der Pflanzjahre zwischen 1900 und 1999 enden auf eine 0 oder 5 (Zufallserwartung: 20%) – die meisten dürften eher geschätzt als exakt erfasst worden sein. Seit 2000 sinkt der Anteil auf {newPct}%.',
     'stats.factDiversity': 'Die Gattungsvielfalt hat sich seit 1900 stark erhöht: {early} verschiedene Gattungen wurden in den 1900er-Jahren gepflanzt, {recent} in den 2010er-Jahren.',
+    'stats.factPlantingAge': 'Das Pflanzjahr ist nicht das Alter des Baums: Strassenbäume kommen meist schon als mehrjährige Baumschul-Hochstämme in den Boden – ein frisch gepflanzter Baum kann darum deutlich älter wirken. Rund {n} Bäume wurden in den letzten fünf Jahren gepflanzt.',
   },
   en: {
     'meta.title': 'Zurich Tree Map – explore every city tree interactively',
@@ -322,6 +323,7 @@ const strings = {
     'stats.factUndated': 'have an unusually high share of trees with no recorded planting year: {crataegusPct}% and {corylusPct}% respectively, versus {cityPct}% city-wide.',
     'stats.factHeaping': 'About {oldPct}% of planting years between 1900 and 1999 end in a 0 or 5 (random chance: 20%) – most were likely estimated rather than precisely recorded. Since 2000, that share has dropped to {newPct}%.',
     'stats.factDiversity': "Genus diversity has grown sharply since 1900: {early} different genera were planted in the 1900s, versus {recent} in the 2010s.",
+    'stats.factPlantingAge': "A tree's planting year isn't its age: street trees usually go into the ground as nursery stock that's already several years old – so a freshly planted tree can look much more established. About {n} trees were planted in the last five years.",
   },
 };
 
