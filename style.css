@@ -55,6 +55,7 @@
   --gold: #f4b400; /* treasure stars */
   --sprout: #22c55e; /* new trees */
   --ash: #8a938c; /* gone trees */
+  --water: #7ec8e3; /* watering filter drop — the one non-green accent, on theme */
   --trend-up: #3c7a46; /* "im Kommen" arrows/headings in Zahlen & Trends */
   --trend-down: #a04b3c; /* "auf dem Rückzug" arrows/headings */
 
@@ -466,10 +467,20 @@ body {
   font-size: 12px;
   color: var(--paper-dim);
 }
-/* Not a distinct map layer color like the others — it's a data-quality
-   filter, not a themed view, so no colored square marker. */
+/* Not a distinct map layer color like the others — a data-quality filter on
+   the existing (genus-colored) trees, not a themed view, so no marker. */
 .year-unknown-btn::before {
   display: none;
+}
+/* Watering filter: a filled water-drop marker instead of the square — a
+   rotated rounded square (pure CSS, no emoji), sharp corner up + round bottom
+   like a falling droplet. Overrides the shared gold square above. */
+.young-tree-btn::before {
+  width: 11px;
+  height: 11px;
+  background: var(--water);
+  border-radius: 0 50% 50% 50%;
+  transform: rotate(45deg);
 }
 .treasure-btn:focus-visible,
 .new-trees-btn:focus-visible,

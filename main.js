@@ -112,7 +112,7 @@ let goneRevealYear = null; // the year those features belong to (or null = tease
 // with yearMin/yearMax but combines freely with genus/species/collection —
 // it's a toggle next to the year fields, not a themed collection, since it's a
 // data-quality filter rather than a kind of tree (see the sidebar's year-field).
-const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null, yearUnknown: false, blutbuche: false };
+const filterState = { collection: null, genus: null, species: null, yearMin: null, yearMax: null, yearUnknown: false, blutbuche: false, youngTree: false };
 
 // A Blutbuche cultivar tree: same genus+species as any beech, distinguished
 // only by its own German name (see the matching isBlutbuche() in helpers.js,
@@ -165,7 +165,8 @@ function hasActiveFilter() {
     filterState.yearMin != null ||
     filterState.yearMax != null ||
     filterState.yearUnknown ||
-    filterState.blutbuche
+    filterState.blutbuche ||
+    filterState.youngTree
   );
 }
 
@@ -175,6 +176,9 @@ function matchesFilter(f) {
   if (filterState.genus && p[GENUS_FIELD] !== filterState.genus) return false;
   if (filterState.species && p[SPECIES_FIELD] !== filterState.species) return false;
   if (filterState.blutbuche && !BLUTBUCHE_DE_NAMES.includes(p[DE_NAME_FIELD])) return false;
+  // Young trees combine freely with a genus/species/collection filter (e.g.
+  // young oaks). A missing year can't qualify — null >= number is false anyway.
+  if (filterState.youngTree && !(p[YEAR_FIELD] >= YOUNG_TREE_MIN_YEAR)) return false;
   if (filterState.yearUnknown) return p[YEAR_FIELD] == null;
   if (filterState.yearMin != null && !(p[YEAR_FIELD] >= filterState.yearMin)) return false;
   if (filterState.yearMax != null && !(p[YEAR_FIELD] <= filterState.yearMax)) return false;
@@ -188,6 +192,7 @@ function buildMapFilter() {
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
   if (filterState.blutbuche) e.push(['in', ['get', DE_NAME_FIELD], ['literal', BLUTBUCHE_DE_NAMES]]);
+  if (filterState.youngTree) e.push(['>=', ['get', YEAR_FIELD], YOUNG_TREE_MIN_YEAR]);
   if (filterState.yearUnknown) e.push(['==', ['get', YEAR_FIELD], null]);
   if (filterState.yearMin != null) e.push(['>=', ['get', YEAR_FIELD], filterState.yearMin]);
   if (filterState.yearMax != null) e.push(['<=', ['get', YEAR_FIELD], filterState.yearMax]);
@@ -521,9 +526,18 @@ const artSelect = document.querySelector('#baumart_lat_id');
 const yearMinInput = document.querySelector('#year_min');
 const yearMaxInput = document.querySelector('#year_max');
 const yearUnknownToggle = document.querySelector('#year-unknown-toggle');
+const youngTreeToggle = document.querySelector('#young-tree-toggle');
 
 const MIN_YEAR = 1665;
 const MAX_YEAR = new Date().getFullYear();
+
+// Grün Stadt Zürich actively waters every street tree through its 5th
+// "Standjahr" (year of standing), counting the planting year as the 1st.
+// So in year T a tree still counts as a young, watering-dependent tree while
+// pflanzjahr >= T - 4. Surfacing exactly this group — the trees whose roots
+// haven't re-established after transplanting — is the point of the filter.
+const YOUNG_TREE_MAX_STANDJAHR = 5;
+const YOUNG_TREE_MIN_YEAR = MAX_YEAR - (YOUNG_TREE_MAX_STANDJAHR - 1);
 for (const input of [yearMinInput, yearMaxInput]) {
   input.min = MIN_YEAR;
   input.max = MAX_YEAR;
@@ -576,7 +590,9 @@ artSelect.addEventListener('change', (e) => {
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
   exitAllModes();
-  if (!filterState.yearUnknown) {
+  // A manual year range is its own thing — leave the year window untouched
+  // while either the "unknown year" or the young-tree preset owns it.
+  if (!filterState.yearUnknown && !filterState.youngTree) {
     filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
     filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
   }
@@ -591,9 +607,42 @@ document.querySelector('#apply_filters').addEventListener('click', () => {
 yearUnknownToggle.addEventListener('click', () => {
   exitAllModes();
   const active = yearUnknownToggle.getAttribute('aria-pressed') !== 'true';
+  if (active) deactivateYoungTree(); // both own the year window — only one at a time
   filterState.yearUnknown = active;
   yearUnknownToggle.classList.toggle('is-active', active);
   yearUnknownToggle.setAttribute('aria-pressed', String(active));
+  yearMinInput.disabled = active;
+  yearMaxInput.disabled = active;
+  if (active) {
+    filterState.yearMin = null;
+    filterState.yearMax = null;
+  }
+  applyFilters({ fit: true });
+});
+
+// "Nur Jungbäume (bis 5. Standjahr)" — the group Grün Stadt Zürich still waters
+// (see YOUNG_TREE_MIN_YEAR). Like the "unknown year" toggle it owns the year
+// window (fixed to the young range, so the manual year inputs are disabled),
+// combines freely with a genus/species/collection filter, and the two toggles
+// are mutually exclusive.
+function deactivateYoungTree() {
+  filterState.youngTree = false;
+  youngTreeToggle.classList.remove('is-active');
+  youngTreeToggle.setAttribute('aria-pressed', 'false');
+}
+
+youngTreeToggle.addEventListener('click', () => {
+  exitAllModes();
+  const active = youngTreeToggle.getAttribute('aria-pressed') !== 'true';
+  if (active) {
+    // mutual exclusivity with the "unknown year" toggle
+    filterState.yearUnknown = false;
+    yearUnknownToggle.classList.remove('is-active');
+    yearUnknownToggle.setAttribute('aria-pressed', 'false');
+  }
+  filterState.youngTree = active;
+  youngTreeToggle.classList.toggle('is-active', active);
+  youngTreeToggle.setAttribute('aria-pressed', String(active));
   yearMinInput.disabled = active;
   yearMaxInput.disabled = active;
   if (active) {
@@ -823,6 +872,7 @@ function resetFilterSelection() {
   filterState.blutbuche = false;
   yearUnknownToggle.classList.remove('is-active');
   yearUnknownToggle.setAttribute('aria-pressed', 'false');
+  deactivateYoungTree();
   yearMinInput.disabled = false;
   yearMaxInput.disabled = false;
 }
