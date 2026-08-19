@@ -196,8 +196,10 @@ anderen beenden. Suchmuster:
   generischem „Rotbuche") und einen Popup-Fakt (Blattfarbe + Herkunft).
 - **Öffentliche Brunnen (Wasserstellen)**: dunkelblaue Tropfen-Pins, erscheinen
   zusammen mit dem „Durstige Jungbäume"-Filter (kein eigener Button, s. §7).
-  Klick-Popup zeigt Name + Wasserart („Trinkwasser (Züriwasser)" bzw. „Kein
-  Trinkwasser – zum Giessen geeignet"). Datenherkunft/Filter s. §9.
+  Klick-Popup zeigt Name + einen allgemeinen Hinweis (der Datensatz hat **kein**
+  verlässliches Trinkwasser-Kennzeichen; in Zürich sind fast alle Brunnen
+  trinkbar, „Kein Trinkwasser" steht nur als Schild vor Ort). Datenherkunft/
+  Filter s. §9.
 - **Zahlen & Trends** („💡 Wussten Sie schon …?"): Modal, live aus `allFeatures`
   berechnet (Jahrzehnt-Balken, häufigste Bäume, Auf-/Absteiger mit Begründung,
   Kurioses & Rekorde, Wussten-Sie-Fakten). Alle Einträge sind klickbar: Balken/

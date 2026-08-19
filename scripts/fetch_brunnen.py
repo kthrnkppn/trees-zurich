@@ -64,8 +64,11 @@ def process(raw):
             "properties": {
                 "nummer": p.get("brunnennummer"),
                 "name": p.get("ortsbezeichnung"),
-                # "Züriwasser" = tap/drinking water; "Quellwasser" etc. is fine
-                # for watering but not certified drinking water.
+                # Raw water-type classification (Züriwasser / Quellwasser / …).
+                # NOT a drinking-water indicator — in Zürich almost all fountains,
+                # spring water included, are drinkable; the "Kein Trinkwasser"
+                # exceptions only exist as signs on site. Kept as raw data; the
+                # app no longer surfaces it.
                 "wasserart": p.get("wasserart"),
             },
         })
