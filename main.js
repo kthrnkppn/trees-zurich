@@ -383,18 +383,18 @@ function openTreePopup(lngLat, properties) {
   return popup;
 }
 
-// Fountain popup — name plus a general note. The dataset has no reliable
-// drinking-water flag (the "Kein Trinkwasser" warning only exists as a sign on
-// site), and in Zürich almost all fountains — spring water included — are
-// drinkable, so we don't try to label individual fountains; we just state the
-// on-site rule.
+// Fountain popup — name plus the raw water type (Quellwasser / Züriwasser). No
+// drinking-water judgement: the dataset has no reliable flag, and locals know
+// the rule anyway (in Zürich almost everything is drinkable; only fountains
+// signed "Kein Trinkwasser" on site are not).
 function openFountainPopup(lngLat, p) {
   const esc = (s) =>
     String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const name = p.name || t('fountains.fallbackName');
+  const type = p.wasserart ? `<div class="tp-meta">${esc(p.wasserart)}</div>` : '';
   const html = `<div class="tree-popup fountain-popup">
     <div class="tp-title">💧 ${esc(name)}</div>
-    <div class="tp-meta">${esc(t('fountains.note'))}</div>
+    ${type}
   </div>`;
   return new maplibregl.Popup().setLngLat(lngLat).setHTML(html).addTo(map);
 }
