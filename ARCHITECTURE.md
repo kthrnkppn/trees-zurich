@@ -26,7 +26,7 @@ worauf muss man beim Weiterentwickeln achten.
 | Ortssuche | @maplibre/maplibre-gl-geocoder + Nominatim (Zürich-biased) |
 | Baumdaten | Baumkataster Stadt Zürich (WFS, Open Data) |
 | Brunnendaten | Wasserversorgung Zürich (WVZ), Brunnen-WFS (Open Data) |
-| Niederschlag | MeteoSchweiz-Station Zürich/Fluntern (Tages-mm, Open Data, CORS-offen, client-seitig) |
+| Niederschlag | MeteoSchweiz, Mittel aus 4 Stationen (Fluntern, Affoltern, Kloten, Waldegg; Tages-mm, Open Data, CORS-offen, client-seitig) |
 
 ## 3. Datenfluss
 
@@ -294,13 +294,26 @@ wirklich. Darum der Fokus auf die ersten Standjahre.
 - „Durstige Jungbäume"-Filter (bis 5. Standjahr) + Wasserbedarf-Richtwert (§8).
 - Öffentliche Brunnen als Wasserstellen, gekoppelt an den Jungbaum-Filter (§7/§8).
 - **Niederschlag der letzten 30 Tage** in der Jungbaum-Ansicht (`#rain-info`).
-  Quelle: MeteoSchweiz-Station **Zürich/Fluntern** (`ogd-smn_sma_d_recent.csv`,
-  Spalte `rre150d0` = Tages-mm; CORS-offen). `fetchRain()` in `main.js` holt die
-  CSV **lazy beim ersten Öffnen** der Ansicht (ein neuer externer Aufruf, darum
-  nur bei tatsächlicher Nutzung), summiert die letzten 30 Tage und zeigt sie als
-  Liter/m² (1 mm = 1 l/m²). Bei Fehler bleibt die Zeile still verborgen.
-  Einordnung im Text: **~120** = die aus den historischen Fluntern-Daten
-  berechnete August-Norm 1991–2020 (119 mm; gerundet, in `filter.rainInfo`).
+  Quelle: **Mittel aus vier MeteoSchweiz-Stationen** rund um Zürich —
+  **Fluntern** (SMA, Zürichberg/Ost), **Affoltern** (REH, Talboden/Nord),
+  **Kloten** (KLO, Flughafen/NNW, Richtung Glattal/Wallisellen) und **Waldegg**
+  (WAG, Uetliberg-/Albishang/SW). Je Station `<net>_<abbr>_d_recent.csv`, Spalte
+  `rre150d0` = Tages-mm; CORS-offen. **Zwei Netze:** SMA/REH/KLO im automatischen
+  Messnetz `ogd-smn`, Waldegg im reinen Niederschlagsnetz `ogd-smn-precip` —
+  gleiche Spalte, daher gemeinsamer Parser (`rainCsvUrl({abbr,net})`). Das
+  Mitteln glättet lokale Sommergewitter, die nur einen Hang treffen — Fluntern
+  allein sass zu exponiert auf dem Zürichberg. **Warum Waldegg statt Uetliberg:**
+  Uetliberg (UEB) ist eine reine Wind-/Temperaturstation **ohne Regenmesser** —
+  die `rre150d0`-Spalte ist über die ganze Reihe leer (0/5107 Tage), taugt also
+  nicht; Waldegg deckt dieselbe West-Seite ab und liefert echte mm. `fetchRain()`
+  in `main.js` holt die vier CSVs **lazy beim ersten Öffnen** der Ansicht
+  (externe Aufrufe, darum nur bei tatsächlicher Nutzung), bildet pro Station die
+  30-Tage-Summe (`station30DaySum()`, eigenes Fenster-Ende je Station) und
+  **mittelt über die erreichbaren** — fällt eine Station aus, zählt der Rest;
+  sind alle unerreichbar, bleibt die Zeile still verborgen. Anzeige als Liter/m²
+  (1 mm = 1 l/m²). Einordnung im Text: **~115** = die aus den Tageswerten
+  berechnete Sommermonat-Norm 1991–2020 dieser vier Stationen (in
+  `filter.rainInfo`).
 - Achtung Datenfalle: Die Stadt-Stationen (UGZ Stampfenbach/Schimmel/Rosengarten)
   liefern nur `RainDur` (Regen*dauer*), **nicht** die Menge in mm — dafür ist
   MeteoSchweiz die richtige Quelle.

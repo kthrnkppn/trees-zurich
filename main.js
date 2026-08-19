@@ -760,12 +760,28 @@ youngTreeToggle.addEventListener('click', () => {
   applyFilters({ fit: true });
 });
 
-// 30-day rainfall at the MeteoSwiss station Zürich/Fluntern (SMA). Fetched
-// lazily the first time the watering view opens — a new external call, so only
-// made when the feature is actually used — and cached. Degrades silently: if
-// the source is unreachable, the line just stays hidden.
-const RAIN_CSV_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sma/ogd-smn_sma_d_recent.csv';
-let rainMm = null; // rounded sum of the last 30 days in mm, or null if unavailable
+// 30-day rainfall averaged over four MeteoSwiss stations around Zürich:
+// Fluntern (SMA, Zürichberg / east flank), Affoltern (REH, valley floor /
+// north), Kloten (KLO, airport / NNW, toward the Glatt valley & Wallisellen)
+// and Waldegg (WAG, the Uetliberg / Albis flank / SW). Averaging evens out
+// localised summer storms that soak one hillside while the other stays dry.
+// (Uetliberg itself has no rain gauge — its OGD column is empty — so the west
+// side is covered by Waldegg instead.) Waldegg lives in the precipitation-only
+// network `ogd-smn-precip`, the others in the automatic network `ogd-smn`; both
+// expose the same `rre150d0` daily total, so the parser is shared. Fetched
+// lazily the first time the watering view opens — external calls, so only made
+// when the feature is actually used — and cached. Degrades gracefully: each
+// station is fetched independently and the average uses whichever ones respond;
+// if none do, the line just stays hidden.
+const RAIN_STATIONS = [
+  { abbr: 'sma', net: 'ogd-smn' }, // Fluntern — Zürichberg / east
+  { abbr: 'reh', net: 'ogd-smn' }, // Affoltern — valley floor / north
+  { abbr: 'klo', net: 'ogd-smn' }, // Kloten — airport / NNW (Glatt valley)
+  { abbr: 'wag', net: 'ogd-smn-precip' }, // Waldegg — Uetliberg / Albis flank / SW
+];
+const rainCsvUrl = ({ abbr, net }) =>
+  `https://data.geo.admin.ch/ch.meteoschweiz.${net}/${abbr}/${net}_${abbr}_d_recent.csv`;
+let rainMm = null; // rounded mean of the stations' 30-day sums in mm, or null if unavailable
 let rainFetchStarted = false;
 
 function ensureRainInfo() {
@@ -777,34 +793,48 @@ function ensureRainInfo() {
   fetchRain().then(updateRainInfo);
 }
 
-async function fetchRain() {
-  try {
-    const res = await fetch(RAIN_CSV_URL);
-    if (!res.ok) return;
-    const lines = (await res.text()).trim().split('\n');
-    const header = lines[0].split(';');
-    const iDate = header.indexOf('reference_timestamp');
-    const iRain = header.indexOf('rre150d0'); // daily precipitation total, mm
-    if (iDate < 0 || iRain < 0) return;
-    const rows = [];
-    for (let k = 1; k < lines.length; k++) {
-      const c = lines[k].split(';');
-      if (c.length <= iRain) continue;
-      const [dd, mm, yyyy] = (c[iDate].split(' ')[0] || '').split('.');
-      const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-      const v = c[iRain].trim();
-      if (isNaN(d.getTime()) || v === '' || v === '-') continue; // skip missing values
-      rows.push({ t: d.getTime(), val: Number(v) });
-    }
-    if (!rows.length) return;
-    const last = Math.max(...rows.map((r) => r.t));
-    const cutoff = last - 29 * 86400000; // 30 days inclusive of the last
-    let sum = 0;
-    for (const r of rows) if (r.t >= cutoff && r.t <= last) sum += r.val;
-    rainMm = Math.round(sum);
-  } catch (e) {
-    /* external source unreachable — leave rainMm null, line stays hidden */
+// Sum of the last 30 days (mm) from one station's daily-recent CSV, or null if
+// the file can't be parsed / has no usable rows. Each station uses its own last
+// available day as the window's end, since they don't all publish in lockstep.
+function station30DaySum(text) {
+  const lines = text.trim().split('\n');
+  const header = lines[0].split(';');
+  const iDate = header.indexOf('reference_timestamp');
+  const iRain = header.indexOf('rre150d0'); // daily precipitation total, mm
+  if (iDate < 0 || iRain < 0) return null;
+  const rows = [];
+  for (let k = 1; k < lines.length; k++) {
+    const c = lines[k].split(';');
+    if (c.length <= iRain) continue;
+    const [dd, mm, yyyy] = (c[iDate].split(' ')[0] || '').split('.');
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    const v = c[iRain].trim();
+    if (isNaN(d.getTime()) || v === '' || v === '-') continue; // skip missing values
+    rows.push({ t: d.getTime(), val: Number(v) });
   }
+  if (!rows.length) return null;
+  const last = Math.max(...rows.map((r) => r.t));
+  const cutoff = last - 29 * 86400000; // 30 days inclusive of the last
+  let sum = 0;
+  for (const r of rows) if (r.t >= cutoff && r.t <= last) sum += r.val;
+  return sum;
+}
+
+async function fetchStationSum(station) {
+  try {
+    const res = await fetch(rainCsvUrl(station));
+    if (!res.ok) return null;
+    return station30DaySum(await res.text());
+  } catch (e) {
+    return null; // this station unreachable — the others still count
+  }
+}
+
+async function fetchRain() {
+  const sums = await Promise.all(RAIN_STATIONS.map(fetchStationSum));
+  const valid = sums.filter((s) => s != null);
+  if (!valid.length) return; // all sources unreachable — leave rainMm null, line stays hidden
+  rainMm = Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
 }
 
 function updateRainInfo() {
