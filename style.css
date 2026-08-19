@@ -56,7 +56,7 @@
   --sprout: #22c55e; /* new trees */
   --ash: #8a938c; /* gone trees */
   --water: #7ec8e3; /* watering filter drop — the one non-green accent, on theme */
-  --water-deep: #14507a; /* fountains map pin — dark blue, hard-coded in makeDropImage() */
+  --water-deep: #51E3EB; /* fountains map pin — cyan, hard-coded in makeDropImage() */
   --trend-up: #3c7a46; /* "im Kommen" arrows/headings in Zahlen & Trends */
   --trend-down: #a04b3c; /* "auf dem Rückzug" arrows/headings */
 
