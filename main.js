@@ -144,10 +144,9 @@ let newTreesFeatures = [];
 let goneTreesFeatures = []; // the features of the currently revealed year
 let goneRevealYear = null; // the year those features belong to (or null = teaser)
 
-// Public fountains overlay (see fountainsLayerId). Independent of the tree
-// filters — a plain show/hide layer to help locate water for watering.
+// Public fountains overlay (see fountainsLayerId). Shown only alongside the
+// "Durstige Jungbäume" filter — no control of its own.
 let fountainsCount = 0;
-let fountainsVisible = false;
 
 // Active filter values (null/false = inactive). `collection` holds the active
 // collection object (or null); it's mutually exclusive with genus/species.
@@ -550,7 +549,6 @@ map.on('load', async () => {
       visibility: 'none',
     },
   });
-  setupFountainsButton();
 
   const showPopup = (e) => {
     openTreePopup(e.lngLat, e.features[0].properties);
@@ -728,6 +726,7 @@ function deactivateYoungTree() {
   youngTreeToggle.classList.remove('is-active');
   youngTreeToggle.setAttribute('aria-pressed', 'false');
   if (youngTreeHint) youngTreeHint.hidden = true;
+  setFountainsVisible(false); // fountains ride along with this filter only
 }
 
 youngTreeToggle.addEventListener('click', () => {
@@ -748,11 +747,11 @@ youngTreeToggle.addEventListener('click', () => {
     filterState.yearMin = null;
     filterState.yearMax = null;
   }
-  // Show the watering guideline, and bring in the fountains overlay so the
-  // nearest water is visible right next to the thirsty trees. Turning the
-  // filter back off hides the hint but leaves fountains as the user left them.
+  // Show the watering guideline and the fountains overlay so the nearest water
+  // is visible right next to the thirsty trees — both ride along with the
+  // filter, appearing when it's on and disappearing when it's off.
   if (youngTreeHint) youngTreeHint.hidden = !active;
-  if (active) setFountainsVisible(true);
+  setFountainsVisible(active);
   applyFilters({ fit: true });
 });
 
@@ -826,31 +825,16 @@ treasureModes.genbank.btn.addEventListener('click', () => toggleTreasure('genban
 treasureModes.loner.btn.addEventListener('click', () => toggleTreasure('loner'));
 
 /* ------------------------------------------------------------------ *
- * Public fountains — an additive overlay, independent of the tree filters
- * and exclusive modes (unlike new/gone trees, it can sit on top of any view).
+ * Public fountains — a watering aid with no control of its own: shown/hidden
+ * purely by the "Durstige Jungbäume" filter (see its toggle handler). Fountains
+ * only make sense next to thirsty young trees, so they ride along with that
+ * view instead of adding a separate button. Still an independent overlay layer
+ * — it does NOT touch filterState or the exclusive-mode exit…() dance.
  * ------------------------------------------------------------------ */
-const fountainsBtn = document.querySelector('#fountains-toggle');
-
-// Only offer the toggle if the fountains file actually loaded some.
-function setupFountainsButton() {
-  if (!fountainsBtn) return;
-  if (!fountainsCount) {
-    fountainsBtn.hidden = true;
-    return;
-  }
-  fountainsBtn.hidden = false;
-  fountainsBtn.textContent = t('fountains.label', { n: numberFormat.format(fountainsCount) });
-}
-
 function setFountainsVisible(visible) {
-  if (!fountainsBtn || !fountainsCount || !map.getLayer(fountainsLayerId)) return;
-  fountainsVisible = visible;
+  if (!fountainsCount || !map.getLayer(fountainsLayerId)) return;
   map.setLayoutProperty(fountainsLayerId, 'visibility', visible ? 'visible' : 'none');
-  fountainsBtn.classList.toggle('is-active', visible);
-  fountainsBtn.setAttribute('aria-pressed', String(visible));
 }
-
-fountainsBtn?.addEventListener('click', () => setFountainsVisible(!fountainsVisible));
 
 /* ------------------------------------------------------------------ *
  * New trees — highlight what was added since the last data update

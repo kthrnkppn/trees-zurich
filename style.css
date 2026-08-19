@@ -56,7 +56,7 @@
   --sprout: #22c55e; /* new trees */
   --ash: #8a938c; /* gone trees */
   --water: #7ec8e3; /* watering filter drop — the one non-green accent, on theme */
-  --water-deep: #14507a; /* fountains: dark blue, matches the map pin */
+  --water-deep: #14507a; /* fountains map pin — dark blue, hard-coded in makeDropImage() */
   --trend-up: #3c7a46; /* "im Kommen" arrows/headings in Zahlen & Trends */
   --trend-down: #a04b3c; /* "auf dem Rückzug" arrows/headings */
 
@@ -482,19 +482,6 @@ body {
   background: var(--water);
   border-radius: 0 50% 50% 50%;
   transform: rotate(45deg);
-}
-/* Fountains overlay: a dark-blue teardrop marker echoing the fountain pins on
-   the map. Same CSS drop trick as the young-tree filter, rotated to point down
-   like the map pin, and in the deeper --water-deep blue. */
-.fountains-btn::before {
-  width: 11px;
-  height: 11px;
-  background: var(--water-deep);
-  border-radius: 50% 50% 0 50%;
-  transform: rotate(45deg);
-}
-.fountains-btn[hidden] {
-  display: none;
 }
 /* Watering guideline shown under the "Durstige Jungbäume" toggle when active. */
 .filter-hint {

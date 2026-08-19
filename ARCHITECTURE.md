@@ -115,7 +115,7 @@ verschwundenen Bäumen (je eigene, kleine Source):
 | `treasure-stars-layer` | symbol | goldene Sterne (Genbank / Einzelgänger) | `none`, Filter je Modus gesetzt |
 | `new-trees-layer` | circle | grüne Punkte, eigene Source `new-trees` | `none`, per Button |
 | `gone-trees-layer` | circle | graue „Geister", eigene Source `gone-trees` | `none`, per Button (nur wenn Jahr enthüllt) |
-| `fountains-layer` | symbol | dunkelblaue Tropfen-Pins (öffentliche Brunnen), eigene Source `zurich-fountains` | `none`, per Button (**additiver Overlay**, s. §7) |
+| `fountains-layer` | symbol | dunkelblaue Tropfen-Pins (öffentliche Brunnen), eigene Source `zurich-fountains` | `none`, **an den „Durstige Jungbäume"-Filter gekoppelt** (s. §7) |
 
 Der goldene Stern (`makeStarImage()`) und der dunkelblaue Brunnen-Tropfen
 (`makeDropImage()`, Bulb oben, Spitze markiert den Ort) sind zur Laufzeit auf
@@ -148,13 +148,15 @@ frei mit Gattung/Art/Sammlung kombinieren):
   `yearUnknown` und `youngTree` besetzen beide das Jahr-Fenster und sind daher
   **gegenseitig ausschliessend** (das Aktivieren des einen deaktiviert das andere).
 
-**Öffentliche Brunnen** (`fountains-layer`) sind bewusst ein **additiver
-Overlay, KEIN exklusiver Modus**: Sie nehmen **nicht** am `exit…()`-Reigen teil,
-sondern liegen über jeder beliebigen Ansicht (Filter, Sammlung, Gold-Stern …).
-Umgeschaltet über den Footer-Button; `setFountainsVisible()` blendet nur den
-Layer ein/aus, ohne `filterState` anzufassen. „Durstige Jungbäume" blendet die
-Brunnen zusätzlich mit ein (Kopplung, s. Abschnitt 8). **Nicht** in die
-`exit…()`-Logik einbauen.
+**Öffentliche Brunnen** (`fountains-layer`) haben **kein eigenes Bedienelement**:
+Sie werden allein vom **„Durstige Jungbäume"-Filter** ein-/ausgeblendet (Filter
+an → Brunnen an, Filter aus → Brunnen aus). Brunnen ergeben nur neben durstigen
+Jungbäumen Sinn, darum fahren sie mit dieser Ansicht mit, statt einen separaten
+Button zu bekommen. Technisch bleibt es ein **eigenständiger Overlay-Layer**:
+`setFountainsVisible(visible)` schaltet nur die Layer-Sichtbarkeit, **ohne**
+`filterState` oder den `exit…()`-Reigen zu berühren. Gerufen aus dem
+`youngTreeToggle`-Handler (`setFountainsVisible(active)`) und aus
+`deactivateYoungTree()` (→ `false`). **Nicht** in die `exit…()`-Logik einbauen.
 
 **Wichtig beim Erweitern:** Jeder neue Modus muss in den bestehenden
 Umschalt-Punkten `exit…()` aufrufen (Genus-Dropdown-Change, Filtern, Zurücksetzen,
@@ -190,10 +192,10 @@ anderen beenden. Suchmuster:
   (gleiche Gattung/Art wie jede Rotbuche). `isBlutbuche()` in `helpers.js` treibt
   zusätzlich den Wikipedia-Link (dedizierter de-Artikel „Blutbuche" statt
   generischem „Rotbuche") und einen Popup-Fakt (Blattfarbe + Herkunft).
-- **Öffentliche Brunnen (Wasserstellen)**: additiver Overlay (s. §7),
-  dunkelblaue Tropfen-Pins, Footer-Toggle „Brunnen (n)". Klick-Popup zeigt Name +
-  Wasserart („Trinkwasser (Züriwasser)" bzw. „Kein Trinkwasser – zum Giessen
-  geeignet"). Datenherkunft/Filter s. §9.
+- **Öffentliche Brunnen (Wasserstellen)**: dunkelblaue Tropfen-Pins, erscheinen
+  zusammen mit dem „Durstige Jungbäume"-Filter (kein eigener Button, s. §7).
+  Klick-Popup zeigt Name + Wasserart („Trinkwasser (Züriwasser)" bzw. „Kein
+  Trinkwasser – zum Giessen geeignet"). Datenherkunft/Filter s. §9.
 - **Zahlen & Trends** („💡 Wussten Sie schon …?"): Modal, live aus `allFeatures`
   berechnet (Jahrzehnt-Balken, häufigste Bäume, Auf-/Absteiger mit Begründung,
   Kurioses & Rekorde, Wussten-Sie-Fakten). Alle Einträge sind klickbar: Balken/
