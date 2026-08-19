@@ -17,11 +17,12 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 | Geocoder | [Nominatim](https://nominatim.org/) (OpenStreetMap, fair use) |
 | Baumdaten | [Baumkataster Stadt Zürich](https://www.ogd.stadt-zuerich.ch/) – Open Data, wöchentlich aktualisiert |
 | Brunnendaten | [Wasserversorgung Zürich](https://www.ogd.stadt-zuerich.ch/) (WVZ) – Open Data |
+| Niederschlag | [MeteoSchweiz](https://www.meteoschweiz.admin.ch/) Station Zürich/Fluntern – Open Data (client-seitig) |
 
 ## Funktionen
 
 - Filter nach **Gattung, Art, Pflanzjahr** + Freitext-**Baum-Suche** mit Auto-Suggest
-- **Durstige Jungbäume**: Filter auf Bäume bis zum 5. Standjahr (die, die Wasser brauchen) – mit Wasserbedarf-Richtwert; blendet zugleich die Brunnen ein
+- **Durstige Jungbäume**: Filter auf Bäume bis zum 5. Standjahr (die, die Wasser brauchen) – mit Wasserbedarf-Richtwert und dem Regen der letzten 30 Tage (live von MeteoSchweiz); blendet zugleich die Brunnen ein
 - **Öffentliche Brunnen** als Wasserstellen zum Giessen (dunkelblaue Tropfen-Pins, erscheinen mit dem „Durstige Jungbäume"-Filter)
 - **Blutbuche** findbar (eigener Sucheintrag) und mit eigenem Wikipedia-Artikel im Popup
 - **Ortssuche** (Auto-Suggest) auf der Karte

@@ -623,6 +623,7 @@ const yearMaxInput = document.querySelector('#year_max');
 const yearUnknownToggle = document.querySelector('#year-unknown-toggle');
 const youngTreeToggle = document.querySelector('#young-tree-toggle');
 const youngTreeHint = document.querySelector('#young-tree-hint');
+const rainInfoEl = document.querySelector('#rain-info');
 
 const MIN_YEAR = 1665;
 const MAX_YEAR = new Date().getFullYear();
@@ -726,6 +727,7 @@ function deactivateYoungTree() {
   youngTreeToggle.classList.remove('is-active');
   youngTreeToggle.setAttribute('aria-pressed', 'false');
   if (youngTreeHint) youngTreeHint.hidden = true;
+  if (rainInfoEl) rainInfoEl.hidden = true;
   setFountainsVisible(false); // fountains ride along with this filter only
 }
 
@@ -749,11 +751,71 @@ youngTreeToggle.addEventListener('click', () => {
   }
   // Show the watering guideline and the fountains overlay so the nearest water
   // is visible right next to the thirsty trees — both ride along with the
-  // filter, appearing when it's on and disappearing when it's off.
+  // filter, appearing when it's on and disappearing when it's off. The live
+  // rainfall line loads lazily the first time this view is opened.
   if (youngTreeHint) youngTreeHint.hidden = !active;
   setFountainsVisible(active);
+  if (active) ensureRainInfo();
+  else if (rainInfoEl) rainInfoEl.hidden = true;
   applyFilters({ fit: true });
 });
+
+// 30-day rainfall at the MeteoSwiss station Zürich/Fluntern (SMA). Fetched
+// lazily the first time the watering view opens — a new external call, so only
+// made when the feature is actually used — and cached. Degrades silently: if
+// the source is unreachable, the line just stays hidden.
+const RAIN_CSV_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sma/ogd-smn_sma_d_recent.csv';
+let rainMm = null; // rounded sum of the last 30 days in mm, or null if unavailable
+let rainFetchStarted = false;
+
+function ensureRainInfo() {
+  if (rainFetchStarted) {
+    updateRainInfo();
+    return;
+  }
+  rainFetchStarted = true;
+  fetchRain().then(updateRainInfo);
+}
+
+async function fetchRain() {
+  try {
+    const res = await fetch(RAIN_CSV_URL);
+    if (!res.ok) return;
+    const lines = (await res.text()).trim().split('\n');
+    const header = lines[0].split(';');
+    const iDate = header.indexOf('reference_timestamp');
+    const iRain = header.indexOf('rre150d0'); // daily precipitation total, mm
+    if (iDate < 0 || iRain < 0) return;
+    const rows = [];
+    for (let k = 1; k < lines.length; k++) {
+      const c = lines[k].split(';');
+      if (c.length <= iRain) continue;
+      const [dd, mm, yyyy] = (c[iDate].split(' ')[0] || '').split('.');
+      const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      const v = c[iRain].trim();
+      if (isNaN(d.getTime()) || v === '' || v === '-') continue; // skip missing values
+      rows.push({ t: d.getTime(), val: Number(v) });
+    }
+    if (!rows.length) return;
+    const last = Math.max(...rows.map((r) => r.t));
+    const cutoff = last - 29 * 86400000; // 30 days inclusive of the last
+    let sum = 0;
+    for (const r of rows) if (r.t >= cutoff && r.t <= last) sum += r.val;
+    rainMm = Math.round(sum);
+  } catch (e) {
+    /* external source unreachable — leave rainMm null, line stays hidden */
+  }
+}
+
+function updateRainInfo() {
+  if (!rainInfoEl) return;
+  if (rainMm == null || !filterState.youngTree) {
+    rainInfoEl.hidden = true;
+    return;
+  }
+  rainInfoEl.innerHTML = t('filter.rainInfo', { mm: `<strong>${rainMm}</strong>` });
+  rainInfoEl.hidden = false;
+}
 
 document.querySelector('#reset_filters').addEventListener('click', () => {
   exitAllModes();

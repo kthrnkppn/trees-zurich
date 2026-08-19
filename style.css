@@ -493,6 +493,13 @@ body {
 .filter-hint[hidden] {
   display: none;
 }
+/* Live rainfall line — a touch brighter than the static guideline, with a
+   water-blue accent bar to mark it as the current situation. */
+.filter-hint-rain {
+  color: var(--paper);
+  border-left: 2px solid var(--water-deep);
+  padding-left: 8px;
+}
 .treasure-btn:focus-visible,
 .new-trees-btn:focus-visible,
 .gone-trees-btn:focus-visible {

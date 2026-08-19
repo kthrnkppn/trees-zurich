@@ -12,8 +12,9 @@ worauf muss man beim Weiterentwickeln achten.
   Nur HTML + CSS + ES-Module + statische Daten. Gehostet auf **GitHub Pages**
   (Repo `kthrnkppn/trees-zurich`, Domain via `CNAME` → `trees.watch`).
 - **Privacy-first.** Alles läuft im Browser. Keine Accounts, keine Tokens, keine
-  eigenen Server, kein Tracking. Externe Aufrufe nur an OpenFreeMap (Kacheln) und
-  Nominatim (Ortssuche).
+  eigenen Server, kein Tracking. Externe Aufrufe nur an OpenFreeMap (Kacheln),
+  Nominatim (Ortssuche) und — **nur wenn der „Durstige Jungbäume"-Filter benutzt
+  wird** — MeteoSchweiz (Niederschlag, s. §13). Keine Nutzerdaten dabei.
 - **Keine Abhängigkeit von Mapbox** (früher genutzt, komplett ersetzt).
 
 ## 2. Technologie
@@ -25,7 +26,7 @@ worauf muss man beim Weiterentwickeln achten.
 | Ortssuche | @maplibre/maplibre-gl-geocoder + Nominatim (Zürich-biased) |
 | Baumdaten | Baumkataster Stadt Zürich (WFS, Open Data) |
 | Brunnendaten | Wasserversorgung Zürich (WVZ), Brunnen-WFS (Open Data) |
-| Niederschlag *(geplant)* | MeteoSchweiz-Station Zürich/Fluntern (Tages-mm, Open Data, CORS-offen) |
+| Niederschlag | MeteoSchweiz-Station Zürich/Fluntern (Tages-mm, Open Data, CORS-offen, client-seitig) |
 
 ## 3. Datenfluss
 
@@ -185,8 +186,9 @@ anderen beenden. Suchmuster:
   giesst bis zum 5. Standjahr). Blauer CSS-Tropfen-Marker; Tooltip zu
   Durst-Anzeichen (hängende/braune Blätter); bei Aktivierung erscheint ein
   **Wasserbedarf-Hinweis** (~50–70 L je Gabe, bei Trockenheit bis 3×/Woche,
-  **langsam** giessen, damit es tief einsickert statt abzulaufen) **und** die
-  Brunnen werden mit eingeblendet.
+  **langsam** giessen, damit es tief einsickert statt abzulaufen), der
+  **Niederschlag der letzten 30 Tage** (live von MeteoSchweiz, s. §13) **und**
+  die Brunnen werden mit eingeblendet.
 - **Blutbuche**: eigener Such-Eintrag + Filter (`filterState.blutbuche`,
   `BLUTBUCHE_DE_NAMES`), da die Sorten in den Dropdowns nicht auffindbar sind
   (gleiche Gattung/Art wie jede Rotbuche). `isBlutbuche()` in `helpers.js` treibt
@@ -286,15 +288,17 @@ kaum etwas (das Wasser erreicht die tiefen Wurzeln nicht) — bei **Jungbäumen*
 (flache, noch nicht etablierte Wurzeln nach dem Verpflanzen) hilft es dagegen
 wirklich. Darum der Fokus auf die ersten Standjahre.
 
-**Schon gebaut:**
+**Gebaut:**
 - „Durstige Jungbäume"-Filter (bis 5. Standjahr) + Wasserbedarf-Richtwert (§8).
 - Öffentliche Brunnen als Wasserstellen, gekoppelt an den Jungbaum-Filter (§7/§8).
-
-**Geplant (recherchiert, noch nicht gebaut):**
-- **Niederschlag** einbinden, um „wie trocken war es zuletzt?" zu zeigen. Quelle:
-  MeteoSchweiz-Station **Zürich/Fluntern** (`ogd-smn_sma_d_recent.csv`, Spalte
-  `rre150d0` = Tages-mm; CORS-offen). Entschieden: **client-seitiger Live-Abruf**
-  (letzte 30 Tage summieren), bei Fehler still degradieren — kein Backend.
+- **Niederschlag der letzten 30 Tage** in der Jungbaum-Ansicht (`#rain-info`).
+  Quelle: MeteoSchweiz-Station **Zürich/Fluntern** (`ogd-smn_sma_d_recent.csv`,
+  Spalte `rre150d0` = Tages-mm; CORS-offen). `fetchRain()` in `main.js` holt die
+  CSV **lazy beim ersten Öffnen** der Ansicht (ein neuer externer Aufruf, darum
+  nur bei tatsächlicher Nutzung), summiert die letzten 30 Tage und zeigt sie als
+  Liter/m² (1 mm = 1 l/m²). Bei Fehler bleibt die Zeile still verborgen.
+  Einordnung im Text: **~120** = die aus den historischen Fluntern-Daten
+  berechnete August-Norm 1991–2020 (119 mm; gerundet, in `filter.rainInfo`).
 - Achtung Datenfalle: Die Stadt-Stationen (UGZ Stampfenbach/Schimmel/Rosengarten)
   liefern nur `RainDur` (Regen*dauer*), **nicht** die Menge in mm — dafür ist
   MeteoSchweiz die richtige Quelle.
