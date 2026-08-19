@@ -545,7 +545,7 @@ map.on('load', async () => {
       'icon-image': 'fountain-drop',
       'icon-allow-overlap': true,
       'icon-anchor': 'bottom', // the tip marks the exact fountain location
-      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.4, 13, 0.6, 16, 0.85, 20, 1.1],
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.28, 13, 0.42, 16, 0.6, 20, 0.78],
       visibility: 'none',
     },
   });
