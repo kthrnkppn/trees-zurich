@@ -121,7 +121,7 @@ function makeDropImage(size = 30) {
   ctx.lineWidth = s * 0.09;
   ctx.lineJoin = 'round';
   ctx.stroke();
-  ctx.fillStyle = '#51E3EB'; // cyan (matches --water-deep in style.css)
+  ctx.fillStyle = '#59D0FC'; // sky blue (matches --water-deep in style.css)
   ctx.fill();
   return { image: ctx.getImageData(0, 0, s, s), pixelRatio };
 }
