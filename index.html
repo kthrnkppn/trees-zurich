@@ -172,6 +172,9 @@
               data-i18n-title="filter.youngTreeTitle"
               title="Frisch gepflanzte Bäume (bis zum 5. Standjahr) haben noch flache Wurzeln und freuen sich in Hitze- und Trockenphasen über Wasser – besonders, wenn sie die Blätter hängen lassen oder braune Ränder zeigen."
             >Durstige Jungbäume</button>
+            <p id="young-tree-hint" class="filter-hint" hidden data-i18n="filter.youngTreeHint">
+              Richtwert (Grün Stadt Zürich): ~50–70 Liter je Gabe, bei Trockenheit bis zu 3× pro Woche. Wichtig: langsam giessen, damit das Wasser tief einsickert statt oberflächlich abzulaufen. Blaue Tropfen zeigen Brunnen zum Wasserholen.
+            </p>
             <button
               id="year-unknown-toggle"
               type="button"
@@ -230,6 +233,14 @@
             id="gone-trees-toggle"
             class="gone-trees-btn"
             aria-pressed="false"
+          ></button>
+          <button
+            id="fountains-toggle"
+            class="treasure-btn fountains-btn"
+            aria-pressed="false"
+            title="Öffentliche Brunnen als Wasserstellen zum Giessen einblenden."
+            data-i18n-title="fountains.title"
+            hidden
           ></button>
           <output id="tree-count" class="tree-count" aria-live="polite"></output>
           <p id="gone-note" class="gone-note" hidden></p>

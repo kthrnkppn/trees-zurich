@@ -26,6 +26,8 @@ const newTreesLayerId = 'new-trees-layer';
 const newTreesSourceId = 'new-trees';
 const goneTreesLayerId = 'gone-trees-layer';
 const goneTreesSourceId = 'gone-trees';
+const fountainsLayerId = 'fountains-layer';
+const fountainsSourceId = 'zurich-fountains';
 const sourceId = 'zurich-trees';
 
 // Single source of truth for genus colouring — drives both the map paint
@@ -88,6 +90,42 @@ function makeStarImage(size = 34) {
   return { image: ctx.getImageData(0, 0, s, s), pixelRatio };
 }
 
+// A dark-blue teardrop "pin" for fountains — drawn on canvas (like the treasure
+// star) so it doesn't depend on a font glyph. The point at the bottom marks the
+// exact spot; the round bulb + colour make it read as water, clearly not a
+// (round) tree dot even where markers pile up on each other.
+function makeDropImage(size = 30) {
+  const pixelRatio = 2;
+  const s = size * pixelRatio;
+  const canvas = document.createElement('canvas');
+  canvas.width = s;
+  canvas.height = s;
+  const ctx = canvas.getContext('2d');
+  const cx = s / 2;
+  const r = s * 0.27; // bulb radius
+  const by = s * 0.33; // bulb centre y
+  const py = s * 0.95; // bottom tip y
+  // Straight sides run from the tip up to the bulb's lower "shoulders" (the
+  // tangent points), then an arc closes over the top — a clean pin outline.
+  const beta = Math.acos(r / (py - by));
+  const aR = Math.PI / 2 - beta;
+  const aL = Math.PI / 2 + beta;
+  ctx.beginPath();
+  ctx.moveTo(cx, py);
+  ctx.lineTo(cx + r * Math.cos(aR), by + r * Math.sin(aR));
+  ctx.arc(cx, by, r, aR, aL, true); // over the top, right shoulder → left
+  ctx.lineTo(cx, py);
+  ctx.closePath();
+  // Stroke first, then fill on top, so the white shows only as an outer halo.
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = s * 0.09;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.fillStyle = '#14507a'; // dark blue (matches --water-deep in style.css)
+  ctx.fill();
+  return { image: ctx.getImageData(0, 0, s, s), pixelRatio };
+}
+
 // All tree features, kept in memory so we can count and zoom to matches across
 // the whole city — not just what's currently on screen.
 let allFeatures = [];
@@ -105,6 +143,11 @@ let newTreesFeatures = [];
 // a year is revealed from 1 December of that year.
 let goneTreesFeatures = []; // the features of the currently revealed year
 let goneRevealYear = null; // the year those features belong to (or null = teaser)
+
+// Public fountains overlay (see fountainsLayerId). Independent of the tree
+// filters — a plain show/hide layer to help locate water for watering.
+let fountainsCount = 0;
+let fountainsVisible = false;
 
 // Active filter values (null/false = inactive). `collection` holds the active
 // collection object (or null); it's mutually exclusive with genus/species.
@@ -341,6 +384,22 @@ function openTreePopup(lngLat, properties) {
   return popup;
 }
 
+// Fountain popup — deliberately minimal: name and water type. "Züriwasser" is
+// the tap/drinking-water network; anything else (Quellwasser, …) is fine for
+// watering but not certified drinking water, so we say so.
+function openFountainPopup(lngLat, p) {
+  const esc = (s) =>
+    String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const name = p.name || t('fountains.fallbackName');
+  const isDrinking = p.wasserart === 'Züriwasser';
+  const waterLine = isDrinking ? t('fountains.drinking') : t('fountains.nonDrinking');
+  const html = `<div class="tree-popup fountain-popup">
+    <div class="tp-title">💧 ${esc(name)}</div>
+    <div class="tp-meta">${esc(waterLine)}</div>
+  </div>`;
+  return new maplibregl.Popup().setLngLat(lngLat).setHTML(html).addTo(map);
+}
+
 map.on('load', async () => {
   let treesData;
   try {
@@ -460,6 +519,39 @@ map.on('load', async () => {
     layout: { visibility: 'none' },
   });
 
+  // Public fountains overlay — an independent layer (not a tree filter), so it
+  // can be shown on top of any tree view to help spot water nearby. Optional
+  // file; missing/empty just leaves the toggle a no-op. Loaded upfront (only
+  // ~150 KB) but the layer stays hidden until toggled.
+  let fountainsData = { type: 'FeatureCollection', features: [] };
+  try {
+    const r = await fetch('./brunnen.geojson');
+    if (r.ok) fountainsData = await r.json();
+  } catch (e) {
+    /* optional — silently skip */
+  }
+  fountainsCount = fountainsData.features?.length || 0;
+  map.addSource(fountainsSourceId, { type: 'geojson', data: fountainsData });
+  if (!map.hasImage('fountain-drop')) {
+    const drop = makeDropImage();
+    map.addImage('fountain-drop', drop.image, { pixelRatio: drop.pixelRatio });
+  }
+  // Teardrop pins (not round dots) in dark blue, so fountains stay clearly
+  // distinct from the round genus-coloured tree dots even where they overlap.
+  map.addLayer({
+    id: fountainsLayerId,
+    type: 'symbol',
+    source: fountainsSourceId,
+    layout: {
+      'icon-image': 'fountain-drop',
+      'icon-allow-overlap': true,
+      'icon-anchor': 'bottom', // the tip marks the exact fountain location
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.4, 13, 0.6, 16, 0.85, 20, 1.1],
+      visibility: 'none',
+    },
+  });
+  setupFountainsButton();
+
   const showPopup = (e) => {
     openTreePopup(e.lngLat, e.features[0].properties);
   };
@@ -472,6 +564,11 @@ map.on('load', async () => {
     });
     map.on('click', id, showPopup);
   }
+
+  // Fountains get their own popup (name + water type), not the tree popup.
+  map.on('mouseenter', fountainsLayerId, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', fountainsLayerId, () => { map.getCanvas().style.cursor = ''; });
+  map.on('click', fountainsLayerId, (e) => openFountainPopup(e.lngLat, e.features[0].properties));
 
   applyFilters(); // initial count (whole city, no zoom)
 });
@@ -527,6 +624,7 @@ const yearMinInput = document.querySelector('#year_min');
 const yearMaxInput = document.querySelector('#year_max');
 const yearUnknownToggle = document.querySelector('#year-unknown-toggle');
 const youngTreeToggle = document.querySelector('#young-tree-toggle');
+const youngTreeHint = document.querySelector('#young-tree-hint');
 
 const MIN_YEAR = 1665;
 const MAX_YEAR = new Date().getFullYear();
@@ -629,6 +727,7 @@ function deactivateYoungTree() {
   filterState.youngTree = false;
   youngTreeToggle.classList.remove('is-active');
   youngTreeToggle.setAttribute('aria-pressed', 'false');
+  if (youngTreeHint) youngTreeHint.hidden = true;
 }
 
 youngTreeToggle.addEventListener('click', () => {
@@ -649,6 +748,11 @@ youngTreeToggle.addEventListener('click', () => {
     filterState.yearMin = null;
     filterState.yearMax = null;
   }
+  // Show the watering guideline, and bring in the fountains overlay so the
+  // nearest water is visible right next to the thirsty trees. Turning the
+  // filter back off hides the hint but leaves fountains as the user left them.
+  if (youngTreeHint) youngTreeHint.hidden = !active;
+  if (active) setFountainsVisible(true);
   applyFilters({ fit: true });
 });
 
@@ -720,6 +824,33 @@ function toggleTreasure(modeKey) {
 
 treasureModes.genbank.btn.addEventListener('click', () => toggleTreasure('genbank'));
 treasureModes.loner.btn.addEventListener('click', () => toggleTreasure('loner'));
+
+/* ------------------------------------------------------------------ *
+ * Public fountains — an additive overlay, independent of the tree filters
+ * and exclusive modes (unlike new/gone trees, it can sit on top of any view).
+ * ------------------------------------------------------------------ */
+const fountainsBtn = document.querySelector('#fountains-toggle');
+
+// Only offer the toggle if the fountains file actually loaded some.
+function setupFountainsButton() {
+  if (!fountainsBtn) return;
+  if (!fountainsCount) {
+    fountainsBtn.hidden = true;
+    return;
+  }
+  fountainsBtn.hidden = false;
+  fountainsBtn.textContent = t('fountains.label', { n: numberFormat.format(fountainsCount) });
+}
+
+function setFountainsVisible(visible) {
+  if (!fountainsBtn || !fountainsCount || !map.getLayer(fountainsLayerId)) return;
+  fountainsVisible = visible;
+  map.setLayoutProperty(fountainsLayerId, 'visibility', visible ? 'visible' : 'none');
+  fountainsBtn.classList.toggle('is-active', visible);
+  fountainsBtn.setAttribute('aria-pressed', String(visible));
+}
+
+fountainsBtn?.addEventListener('click', () => setFountainsVisible(!fountainsVisible));
 
 /* ------------------------------------------------------------------ *
  * New trees — highlight what was added since the last data update
