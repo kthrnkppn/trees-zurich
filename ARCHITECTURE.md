@@ -24,6 +24,8 @@ worauf muss man beim Weiterentwickeln achten.
 | Kartenstil | OpenFreeMap „bright" (`https://tiles.openfreemap.org/styles/bright`, keyless) |
 | Ortssuche | @maplibre/maplibre-gl-geocoder + Nominatim (Zürich-biased) |
 | Baumdaten | Baumkataster Stadt Zürich (WFS, Open Data) |
+| Brunnendaten | Wasserversorgung Zürich (WVZ), Brunnen-WFS (Open Data) |
+| Niederschlag *(geplant)* | MeteoSchweiz-Station Zürich/Fluntern (Tages-mm, Open Data, CORS-offen) |
 
 ## 3. Datenfluss
 
@@ -48,6 +50,7 @@ Daten-Update stimmen daher alle Zahlen automatisch, ohne Code-Änderung.
 | `data-version.json` | `{ pulled: "YYYY-MM-DD", count }` → „Datenstand" im Footer | Update-Script |
 | `new-trees.json` | FeatureCollection der seit letztem Update neu hinzugekommenen Bäume | Update-Script |
 | `gone-trees.json` | Akkumulierter „Friedhof": verschwundene Bäume, je mit `verschwunden`-Datum | Update-Script |
+| `brunnen.geojson` | 783 gieß-taugliche öffentliche Brunnen, Felder `nummer`/`name`/`wasserart`, ~121 KB | `scripts/fetch_brunnen.py` (**manuell**, nicht auf dem Cron) |
 
 **Felder pro Baum** (getrimmt aus dem WFS, `KEEP_FIELDS` im Script):
 `baumgattunglat` (lat. Gattung, z. B. `Acer`), `baumartlat` (lat. Artepitheton,
@@ -112,9 +115,11 @@ verschwundenen Bäumen (je eigene, kleine Source):
 | `treasure-stars-layer` | symbol | goldene Sterne (Genbank / Einzelgänger) | `none`, Filter je Modus gesetzt |
 | `new-trees-layer` | circle | grüne Punkte, eigene Source `new-trees` | `none`, per Button |
 | `gone-trees-layer` | circle | graue „Geister", eigene Source `gone-trees` | `none`, per Button (nur wenn Jahr enthüllt) |
+| `fountains-layer` | symbol | dunkelblaue Tropfen-Pins (öffentliche Brunnen), eigene Source `zurich-fountains` | `none`, per Button (**additiver Overlay**, s. §7) |
 
-Der goldene Stern ist ein zur Laufzeit auf Canvas gezeichnetes Icon
-(`makeStarImage()`) — unabhängig von Font-Glyphen.
+Der goldene Stern (`makeStarImage()`) und der dunkelblaue Brunnen-Tropfen
+(`makeDropImage()`, Bulb oben, Spitze markiert den Ort) sind zur Laufzeit auf
+Canvas gezeichnete Icons — unabhängig von Font-Glyphen.
 
 ## 7. Modi & Exklusivität
 
@@ -132,6 +137,24 @@ Beim Aktivieren einer wird die jeweils andere sauber beendet.
   **enthüllten** Jahres (s. Abschnitt 8). Der Footer-Button ist immer sichtbar —
   entweder aktiv (enthülltes Jahr mit Daten) oder als ausgegrauter **Teaser**
   (`aria-disabled`, Tooltip „Verfügbar ab Dezember …") vor der Enthüllung.
+
+**Boolean-Filter-Toggles** (kein eigener Modus — Gates in `filterState`, die
+frei mit Gattung/Art/Sammlung kombinieren):
+- `yearUnknown` — „Nur Bäume mit unbekanntem Pflanzjahr".
+- `youngTree` — „Durstige Jungbäume" (bis 5. Standjahr, s. Abschnitt 8).
+- `blutbuche` — isoliert die Blutbuchen-Sorten über `BLUTBUCHE_DE_NAMES` (Genus
+  + Art sind wie bei jeder Buche `Fagus sylvatica`, nur der deutsche Name trennt).
+
+  `yearUnknown` und `youngTree` besetzen beide das Jahr-Fenster und sind daher
+  **gegenseitig ausschliessend** (das Aktivieren des einen deaktiviert das andere).
+
+**Öffentliche Brunnen** (`fountains-layer`) sind bewusst ein **additiver
+Overlay, KEIN exklusiver Modus**: Sie nehmen **nicht** am `exit…()`-Reigen teil,
+sondern liegen über jeder beliebigen Ansicht (Filter, Sammlung, Gold-Stern …).
+Umgeschaltet über den Footer-Button; `setFountainsVisible()` blendet nur den
+Layer ein/aus, ohne `filterState` anzufassen. „Durstige Jungbäume" blendet die
+Brunnen zusätzlich mit ein (Kopplung, s. Abschnitt 8). **Nicht** in die
+`exit…()`-Logik einbauen.
 
 **Wichtig beim Erweitern:** Jeder neue Modus muss in den bestehenden
 Umschalt-Punkten `exit…()` aufrufen (Genus-Dropdown-Change, Filtern, Zurücksetzen,
@@ -154,6 +177,23 @@ anderen beenden. Suchmuster:
   einmalige Nicht-Obst-Arten) — Aufteilung nach `GENE_BANK_GENERA` in `main.js`.
 - **Kuriositäten**: ausklappbare, anklickbare Liste seltener Exoten; `art` grenzt
   auf eine Art ein, wenn die Gattung mehrere hat (z. B. Zanthoxylum piperitum).
+- **„Durstige Jungbäume"** (`youngTree`-Toggle bei den Pflanzjahr-Feldern):
+  isoliert Bäume **bis zum 5. Standjahr** = `pflanzjahr ≥ aktuelles Jahr − 4`
+  (`YOUNG_TREE_MIN_YEAR`, das Pflanzjahr zählt als 1. Standjahr; Grün Stadt Zürich
+  giesst bis zum 5. Standjahr). Blauer CSS-Tropfen-Marker; Tooltip zu
+  Durst-Anzeichen (hängende/braune Blätter); bei Aktivierung erscheint ein
+  **Wasserbedarf-Hinweis** (~50–70 L je Gabe, bei Trockenheit bis 3×/Woche,
+  **langsam** giessen, damit es tief einsickert statt abzulaufen) **und** die
+  Brunnen werden mit eingeblendet.
+- **Blutbuche**: eigener Such-Eintrag + Filter (`filterState.blutbuche`,
+  `BLUTBUCHE_DE_NAMES`), da die Sorten in den Dropdowns nicht auffindbar sind
+  (gleiche Gattung/Art wie jede Rotbuche). `isBlutbuche()` in `helpers.js` treibt
+  zusätzlich den Wikipedia-Link (dedizierter de-Artikel „Blutbuche" statt
+  generischem „Rotbuche") und einen Popup-Fakt (Blattfarbe + Herkunft).
+- **Öffentliche Brunnen (Wasserstellen)**: additiver Overlay (s. §7),
+  dunkelblaue Tropfen-Pins, Footer-Toggle „Brunnen (n)". Klick-Popup zeigt Name +
+  Wasserart („Trinkwasser (Züriwasser)" bzw. „Kein Trinkwasser – zum Giessen
+  geeignet"). Datenherkunft/Filter s. §9.
 - **Zahlen & Trends** („💡 Wussten Sie schon …?"): Modal, live aus `allFeatures`
   berechnet (Jahrzehnt-Balken, häufigste Bäume, Auf-/Absteiger mit Begründung,
   Kurioses & Rekorde, Wussten-Sie-Fakten). Alle Einträge sind klickbar: Balken/
@@ -205,6 +245,14 @@ cd /home/pi/trees-zurich && git pull --ff-only origin main && python3 scripts/up
 ```
 Details & Einrichtung: [scripts/README.md](scripts/README.md).
 
+### Brunnen: `scripts/fetch_brunnen.py` (separat, manuell)
+Brunnen ändern sich selten, daher **kein Cron** — das Script wird bei Bedarf von
+Hand ausgeführt und schreibt `brunnen.geojson`. Es zieht den WVZ-Brunnen-WFS und
+behält nur die **gieß-tauglichen**: `abgestellt=nein` **und** `art=öffentlich`
+**und** ein `material_trog` (Becken zum Schöpfen) **und** kein
+`brunnenart=Notwasserbrunnen` (Grundwasser-Notfallquelle) → von ~1288 bleiben
+**~783**. Behaltene Felder: `nummer`, `name`, `wasserart`.
+
 ## 10. Lokale Entwicklung & Verifikation
 
 - Dev-Server: `node server.mjs` → `http://localhost:4178` (oder `npx serve .`).
@@ -227,3 +275,28 @@ weil der Browser altes `style.css`/`main.js` cachen kann.
 - Git-Identität: Name `Kath`, E-Mail `270940034+kthrnkppn@users.noreply.github.com`.
 - Der Raspi pusht eigenständig → **vor jedem Push lokal `git pull --rebase`**
   (der Auto-Updater kann zwischendurch committet haben).
+
+## 13. Giess-Projekt / Bewässerung (Kontext & Ausblick)
+
+Ein zusammenhängender Strang, der Bürger:innen beim **Giessen von Jungbäumen**
+unterstützen soll. Fachlicher Kern: Bei **alten** Bäumen bringt privates Giessen
+kaum etwas (das Wasser erreicht die tiefen Wurzeln nicht) — bei **Jungbäumen**
+(flache, noch nicht etablierte Wurzeln nach dem Verpflanzen) hilft es dagegen
+wirklich. Darum der Fokus auf die ersten Standjahre.
+
+**Schon gebaut:**
+- „Durstige Jungbäume"-Filter (bis 5. Standjahr) + Wasserbedarf-Richtwert (§8).
+- Öffentliche Brunnen als Wasserstellen, gekoppelt an den Jungbaum-Filter (§7/§8).
+
+**Geplant (recherchiert, noch nicht gebaut):**
+- **Niederschlag** einbinden, um „wie trocken war es zuletzt?" zu zeigen. Quelle:
+  MeteoSchweiz-Station **Zürich/Fluntern** (`ogd-smn_sma_d_recent.csv`, Spalte
+  `rre150d0` = Tages-mm; CORS-offen). Entschieden: **client-seitiger Live-Abruf**
+  (letzte 30 Tage summieren), bei Fehler still degradieren — kein Backend.
+- Achtung Datenfalle: Die Stadt-Stationen (UGZ Stampfenbach/Schimmel/Rosengarten)
+  liefern nur `RainDur` (Regen*dauer*), **nicht** die Menge in mm — dafür ist
+  MeteoSchweiz die richtige Quelle.
+
+**Vorbild:** „Gieß den Kiez" (Berlin). Bewusster Unterschied hier: **kein
+Backend, rein informativ** — keine Nutzer-Accounts, keine Gieß-Protokolle
+(passt zum Privacy-first-Prinzip, §1).

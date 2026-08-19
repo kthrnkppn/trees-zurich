@@ -16,10 +16,14 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 | Kartenstil | [OpenFreeMap](https://openfreemap.org/) "bright" (MIT, kein Token) |
 | Geocoder | [Nominatim](https://nominatim.org/) (OpenStreetMap, fair use) |
 | Baumdaten | [Baumkataster Stadt Zürich](https://www.ogd.stadt-zuerich.ch/) – Open Data, wöchentlich aktualisiert |
+| Brunnendaten | [Wasserversorgung Zürich](https://www.ogd.stadt-zuerich.ch/) (WVZ) – Open Data |
 
 ## Funktionen
 
 - Filter nach **Gattung, Art, Pflanzjahr** + Freitext-**Baum-Suche** mit Auto-Suggest
+- **Durstige Jungbäume**: Filter auf Bäume bis zum 5. Standjahr (die, die Wasser brauchen) – mit Wasserbedarf-Richtwert; blendet zugleich die Brunnen ein
+- **Öffentliche Brunnen** als Wasserstellen zum Giessen (dunkelblaue Tropfen-Pins, ein-/ausblendbar)
+- **Blutbuche** findbar (eigener Sucheintrag) und mit eigenem Wikipedia-Artikel im Popup
 - **Ortssuche** (Auto-Suggest) auf der Karte
 - **Klickbare Legende**: Gattung antippen filtert die Karte, nochmal antippen hebt die Auswahl wieder auf
 - **Sammlungen** (Obstbäume, Nadelbäume, Herbstfärbung, Frühlingsblüher)
@@ -53,6 +57,8 @@ trees.geojson      Baumdaten (~19 MB, ~81'000 Punkte)
 data-version.json  Datenstand (Datum + Anzahl)
 new-trees.json     Seit letztem Update neu dazugekommene Bäume
 gone-trees.json    Akkumulierter „Friedhof" verschwundener Bäume (In-Memoriam-Layer)
+brunnen.geojson    Öffentliche Brunnen (Wasserstellen zum Giessen)
+scripts/fetch_brunnen.py  Zieht die Brunnendaten (manuell, nicht auf dem Cron)
 server.mjs         Lokaler Entwicklungsserver (nur zum Testen)
 ```
 
@@ -89,6 +95,7 @@ Für automatische Updates gibt es ein Python-Script für den Raspberry Pi (oder 
 - **OpenFreeMap** – MIT (Kacheln und Stil)
 - **OpenStreetMap** – ODbL (Namensnennung im Kartenattribut vorhanden)
 - **Baumkataster Stadt Zürich** – Open Government Data (freie Nutzung mit Quellenangabe)
+- **Brunnen Wasserversorgung Zürich** – Open Government Data (freie Nutzung mit Quellenangabe)
 - **Bricolage Grotesque** (Titel & Panel-Überschriften, selbst gehostet in `fonts/`) – SIL Open Font License ([fonts/OFL-Bricolage.txt](fonts/OFL-Bricolage.txt))
 - **Iosevka Charon** (übriger UI-/Fliesstext, selbst gehostet in `fonts/`) – MIT License ([fonts/LICENSE-IosevkaCharon.txt](fonts/LICENSE-IosevkaCharon.txt))
 - **yearEvents.js, genusInfo.js** – eigene Texte, keine Drittlizenz
