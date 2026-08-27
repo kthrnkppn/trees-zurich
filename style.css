@@ -241,6 +241,22 @@ body {
   color: var(--paper-dim);
 }
 
+/* Live match count, mirrored up by the filter controls so a rare-tree
+   selection shows how many points to look for without scrolling to the footer
+   count. Hidden unless a filter is active. */
+.filter-count {
+  margin: -4px 0 16px;
+  font-size: 14px;
+  color: var(--paper-dim);
+}
+.filter-count strong {
+  color: var(--lime);
+  font-weight: 600;
+}
+.filter-count[hidden] {
+  display: none;
+}
+
 /* ---- Form fields (on forest) ---- */
 .field {
   display: block;

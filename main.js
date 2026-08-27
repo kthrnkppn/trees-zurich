@@ -575,6 +575,7 @@ map.on('load', async () => {
  * Live count of distinct visible trees
  * ------------------------------------------------------------------ */
 const treeCountElem = document.querySelector('#tree-count');
+const filterCountElem = document.querySelector('#filter-count');
 
 // Show when the tree data was last pulled from the city's WFS (written by the
 // update script into data-version.json), plus the next scheduled check — the
@@ -606,11 +607,26 @@ fetch('./data-version.json')
 // Stable total across all of Zurich (not just the viewport): how many trees
 // match the active filter. With no filter it's simply the grand total.
 function updateTreeCount(matchCount) {
-  if (!treeCountElem) return;
   const total = allFeatures.length;
-  treeCountElem.textContent = hasActiveFilter()
-    ? t('count.filtered', { n: numberFormat.format(matchCount), total: numberFormat.format(total) })
-    : t('count.total', { total: numberFormat.format(total) });
+  const active = hasActiveFilter();
+  if (treeCountElem) {
+    treeCountElem.textContent = active
+      ? t('count.filtered', { n: numberFormat.format(matchCount), total: numberFormat.format(total) })
+      : t('count.total', { total: numberFormat.format(total) });
+  }
+  // Mirror the match count up by the filter controls, so picking a rare tree
+  // shows how many points to look for without scrolling to the footer count.
+  // Only while a genus/species/year/collection filter is active — the exclusive
+  // gold-star / new / gone modes drive the footer count themselves and clear
+  // this badge via resetFilterSelection().
+  if (filterCountElem) {
+    filterCountElem.hidden = !active;
+    if (active) {
+      filterCountElem.innerHTML = t('filter.matchCount', {
+        n: `<strong>${numberFormat.format(matchCount)}</strong>`,
+      });
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -1082,6 +1098,7 @@ function resetFilterSelection() {
   deactivateYoungTree();
   yearMinInput.disabled = false;
   yearMaxInput.disabled = false;
+  if (filterCountElem) filterCountElem.hidden = true; // gold-star / new / gone modes own the footer count
 }
 
 function toggleGoneMode() {
