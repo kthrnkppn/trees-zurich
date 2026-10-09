@@ -1,3 +1,41 @@
+// ─── TABLE OF CONTENTS ──────────────────────────────────────────────────────
+// L9    Imports & i18n bootstrap (applyStaticI18n, lang buttons)
+// L23   Layer & source ID constants
+// L36   GENUS_COLORS — colour palette, drives map paint + legend
+// L63   makeStarImage() — gold star canvas icon for treasure/rarity layers
+// L93   makeDropImage() — blue water-drop canvas icon for fountain layer
+// L129  Module-level state: allFeatures, genusCounts, newTrees, goneTrees, fountainsCount
+// L157  filterState — single source of truth for all active filters
+// L178  computeSpeciesCounts() — fills genbankNames / loanerNames on load
+// L202  matchesCollection / hasActiveFilter / matchesFilter / buildMapFilter
+// L244  fitToMatches() / applyFilters() — the central filter engine
+// L271  Nominatim geocoder setup
+// L318  Map initialisation (new maplibregl.Map + controls)
+// L354  keepPopupOnScreen() / openTreePopup() / openFountainPopup()
+// L402  map.on('load') — data fetch, source + layer setup (runs once)
+// L580  nextScheduledUpdate() / updateTreeCount() — footer / count display
+// L647  YOUNG_TREE_MIN_YEAR — Jungbaum threshold constant
+// L661  genus + species dropdowns / fillSpecies()
+// L741  deactivateYoungTree() — clears young-tree state + hides rain section
+// L780  Rain feature: fetchRain(), station30DaySum(), updateRainInfo()
+// L893  exitTreasureMode() / toggleTreasure() — gold-star rarity modes
+// L942  setFountainsVisible() — fountain overlay visibility (no own button!)
+// L953  setupNewTreesButton() / exitNewTreesMode() / toggleNewTreesMode()
+// L1009 pickRevealedGoneYear() / setupGoneTreesButton() / exitGoneMode() / toggleGoneMode()
+// L1077 exitAllModes() / resetFilterSelection()
+// L1143 jumpToGenus() / renderCuriosities() / toggleCollection()
+// L1239 Tree search index + searchTrees() / renderSuggestions() / selectSuggestion()
+// L1384 Legend: renderDefaultLegend() / renderCollectionLegend() / refreshLegend()
+// L1511 Stats modal: openStats() / closeStats()
+// L1539 Intro/onboarding modal
+// L1585 flyToTree() / applyYearRange() / handleStatsAction()
+// L1635 Mobile sidebar toggle
+//
+// Key invariants (see also DECISIONS.md):
+//   - Fountains are ONLY toggled by the youngTree handler / deactivateYoungTree()
+//   - Every new exclusive mode must call exit…() for all *other* modes
+//   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
+// ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
 import { getPopupContent } from './helpers.js';
 import { collections } from './collections.js';
