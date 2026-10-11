@@ -31,7 +31,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:4178/
 
 ### Step 2: Start the background server if not running
 If port `4178` is available:
-- Run `python3 -m http.server 4178` using `run_command` with:
+- Run `python3 serve.py` using `run_command` with:
   - `IsDaemon: true`
   - `Cwd: /Users/katharina/Desktop/trees.watch`
   - `WaitMsBeforeAsync: 1000`

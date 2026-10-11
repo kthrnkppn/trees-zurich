@@ -5,19 +5,57 @@ import { lang, t, tTag, wikiLang, localized } from './i18n.js';
 const CURRENT_YEAR = new Date().getFullYear();
 
 // Manual overrides for the naive latin-binomial guess below, keyed by
-// "genus art" exactly as it appears in the Baumkataster fields. Only needed
-// per-language where the naive guess doesn't resolve on Wikipedia; a language
-// missing from the override just falls through to the naive guess, since that
-// edition may already have its own correct article.
-//   Ziziphus jujube: the cadastre has a typo, "jujube" for "jujuba" — the
-//     correct species is Ziziphus jujuba, so the naive guess has no article.
-//   Diospyros virginiana, Cephalotaxus harringtonii: no German article/redirect
-//     exists at all; the genus article covers each reasonably. English has its
-//     own correct article at the naive title in both cases, so no EN override.
+// "genus art" or by genus exactly as it appears in the Baumkataster fields.
+// Only needed per-language where the naive guess doesn't resolve or hits a disambiguation page.
+const WIKI_GENUS_OVERRIDES = {
+  Acer: { de: 'Acer_(Gattung)' },
+  Platanus: { de: 'Platanus_(Pflanzengattung)' },
+  Abies: { de: 'Tannen' },
+  Aralia: { de: 'Aralia_(Gattung)' },
+  Buxus: { de: 'Buchsbäume' },
+  Castanea: { de: 'Kastanien' },
+  Catalpa: { de: 'Trompetenbäume' },
+  Celtis: { de: 'Zürgelbäume' },
+  Cercidiphyllum: { de: 'Kuchenbäume' },
+  Cornus: { de: 'Hartriegel' },
+  Cydonia: { de: 'Quitte' },
+  Elaeagnus: { de: 'Ölweiden' },
+  Eucommia: { de: 'Eucommia_ulmoides' },
+  Fagus: { de: 'Buchen' },
+  Ficus: { de: 'Feigen' },
+  Ilex: { de: 'Stechpalmen' },
+  Juglans: { de: 'Walnüsse' },
+  Larix: { de: 'Lärchen' },
+  Magnolia: { de: 'Magnolien' },
+  Malus: { de: 'Äpfel' },
+  Morus: { de: 'Maulbeeren' },
+  Nyssa: { de: 'Tupelobäume' },
+  Populus: { de: 'Pappeln' },
+  Ptelea: { de: 'Kleeulmen' },
+  Pyrus: { de: 'Birnen' },
+  Rhamnus: { de: 'Kreuzdorn' },
+  Salix: { de: 'Weiden_(Gattung)' },
+  Sambucus: { de: 'Holunder' },
+  Taxus: { de: 'Eiben' },
+  Broussonetia: { de: 'Papiermaulbeerbaum' },
+  Cladrastis: { de: 'Gelbholz' },
+  Firmiana: { de: 'Chinesischer_Sonnenschirmbaum' },
+  Parrotia: { de: 'Parrotia_persica' },
+};
+
 const WIKI_TITLE_OVERRIDES = {
   'Ziziphus jujube': { de: 'Chinesische Jujube', en: 'Jujube' },
   'Diospyros virginiana': { de: 'Ebenholzbäume' },
   'Cephalotaxus harringtonii': { de: 'Kopfeiben' },
+  'Acer x freemanii': { de: 'Zucker-Ahorn', en: 'Acer saccharum' },
+  'Aesculus x carnea': { de: 'Fleischrote_Rosskastanie', en: 'Aesculus × carnea' },
+  'Magnolia x soulangeana': { de: 'Tulpen-Magnolie', en: 'Magnolia × soulangeana' },
+  'Platanus x hispanica': { de: 'Ahornblättrige_Platane', en: 'Platanus × hispanica' },
+  'Populus x canadensis': { de: 'Kanadische_Schwarz-Pappel', en: 'Populus × canadensis' },
+  'Populus x canescens': { de: 'Grau-Pappel', en: 'Populus × canescens' },
+  'Quercus x turneri': { de: 'Immergrüne_Eiche', en: 'Quercus × turneri' },
+  'Tilia x europaea': { de: 'Holländische_Linde', en: 'Tilia × europaea' },
+  'Ulmus x hollandica': { de: 'Holländische_Ulme', en: 'Ulmus × hollandica' },
 };
 
 // Best-effort Wikipedia article for the tree, in the UI language's edition. The
@@ -47,15 +85,28 @@ function wikipediaUrl(p) {
   // "fortunei", "floribunda", which the old bare-letter alternative used to
   // eat whole).
   art = art.replace(/\(.*?\)/g, '').replace(/\s(?:subsp|var|f|cv)\.\s+.*/i, '').trim();
-  const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
+
+  // Explicit title override (including hybrids like Acer x freemanii)
+  const fullSpeciesKey = genus && art ? `${genus} ${art}` : '';
   const override = isBlutbuche(p)
     ? BLUTBUCHE_OVERRIDE
-    : usableArt && WIKI_TITLE_OVERRIDES[`${genus} ${art}`];
+    : fullSpeciesKey && WIKI_TITLE_OVERRIDES[fullSpeciesKey];
+
+  const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
+  const genusOverride = genus && WIKI_GENUS_OVERRIDES[genus];
+
   let title;
-  if (override?.[wikiLang]) title = override[wikiLang];
-  else if (genus && usableArt) title = `${genus} ${art}`;
-  else if (genus) title = genus;
-  else title = p.baumnamelat || p.baumnamedeu || '';
+  if (override?.[wikiLang]) {
+    title = override[wikiLang];
+  } else if (genus && usableArt) {
+    title = `${genus} ${art}`;
+  } else if (genusOverride?.[wikiLang]) {
+    title = genusOverride[wikiLang];
+  } else if (genus) {
+    title = genus;
+  } else {
+    title = p.baumnamelat || p.baumnamedeu || '';
+  }
   return `https://${wikiLang}.wikipedia.org/wiki/` + encodeURIComponent(title.replace(/\s+/g, '_'));
 }
 

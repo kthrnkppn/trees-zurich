@@ -82,10 +82,55 @@ const { yearEvents } = await import(yearEventsPath);
 // will still catch the *behaviour* we care about — the contract, not the impl.
 // For a more sophisticated setup, switch to a loader with import-map support.
 
+const WIKI_GENUS_OVERRIDES = {
+  Acer: { de: 'Acer_(Gattung)' },
+  Platanus: { de: 'Platanus_(Pflanzengattung)' },
+  Abies: { de: 'Tannen' },
+  Aralia: { de: 'Aralia_(Gattung)' },
+  Buxus: { de: 'Buchsbäume' },
+  Castanea: { de: 'Kastanien' },
+  Catalpa: { de: 'Trompetenbäume' },
+  Celtis: { de: 'Zürgelbäume' },
+  Cercidiphyllum: { de: 'Kuchenbäume' },
+  Cornus: { de: 'Hartriegel' },
+  Cydonia: { de: 'Quitte' },
+  Elaeagnus: { de: 'Ölweiden' },
+  Eucommia: { de: 'Eucommia_ulmoides' },
+  Fagus: { de: 'Buchen' },
+  Ficus: { de: 'Feigen' },
+  Ilex: { de: 'Stechpalmen' },
+  Juglans: { de: 'Walnüsse' },
+  Larix: { de: 'Lärchen' },
+  Magnolia: { de: 'Magnolien' },
+  Malus: { de: 'Äpfel' },
+  Morus: { de: 'Maulbeeren' },
+  Nyssa: { de: 'Tupelobäume' },
+  Populus: { de: 'Pappeln' },
+  Ptelea: { de: 'Kleeulmen' },
+  Pyrus: { de: 'Birnen' },
+  Rhamnus: { de: 'Kreuzdorn' },
+  Salix: { de: 'Weiden_(Gattung)' },
+  Sambucus: { de: 'Holunder' },
+  Taxus: { de: 'Eiben' },
+  Broussonetia: { de: 'Papiermaulbeerbaum' },
+  Cladrastis: { de: 'Gelbholz' },
+  Firmiana: { de: 'Chinesischer_Sonnenschirmbaum' },
+  Parrotia: { de: 'Parrotia_persica' },
+};
+
 const WIKI_TITLE_OVERRIDES = {
   'Ziziphus jujube': { de: 'Chinesische Jujube', en: 'Jujube' },
   'Diospyros virginiana': { de: 'Ebenholzbäume' },
   'Cephalotaxus harringtonii': { de: 'Kopfeiben' },
+  'Acer x freemanii': { de: 'Zucker-Ahorn', en: 'Acer saccharum' },
+  'Aesculus x carnea': { de: 'Fleischrote_Rosskastanie', en: 'Aesculus × carnea' },
+  'Magnolia x soulangeana': { de: 'Tulpen-Magnolie', en: 'Magnolia × soulangeana' },
+  'Platanus x hispanica': { de: 'Ahornblättrige_Platane', en: 'Platanus × hispanica' },
+  'Populus x canadensis': { de: 'Kanadische_Schwarz-Pappel', en: 'Populus × canadensis' },
+  'Populus x canescens': { de: 'Grau-Pappel', en: 'Populus × canescens' },
+  'Quercus x turneri': { de: 'Immergrüne_Eiche', en: 'Quercus × turneri' },
+  'Tilia x europaea': { de: 'Holländische_Linde', en: 'Tilia × europaea' },
+  'Ulmus x hollandica': { de: 'Holländische_Ulme', en: 'Ulmus × hollandica' },
 };
 
 function isBlutbuche(p) {
@@ -99,15 +144,27 @@ function wikipediaUrl(p, lang = 'de') {
   const genus = (p.baumgattunglat || '').trim();
   let art = (p.baumartlat || '').trim();
   art = art.replace(/\(.*?\)/g, '').replace(/\s(?:subsp|var|f|cv)\.\s+.*/i, '').trim();
-  const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
+
+  const fullSpeciesKey = genus && art ? `${genus} ${art}` : '';
   const override = isBlutbuche(p)
     ? BLUTBUCHE_OVERRIDE
-    : usableArt && WIKI_TITLE_OVERRIDES[`${genus} ${art}`];
+    : fullSpeciesKey && WIKI_TITLE_OVERRIDES[fullSpeciesKey];
+
+  const usableArt = art && !/^spec\.?$/i.test(art) && !art.startsWith('x ');
+  const genusOverride = genus && WIKI_GENUS_OVERRIDES[genus];
+
   let title;
-  if (override?.[wikiLang]) title = override[wikiLang];
-  else if (genus && usableArt) title = `${genus} ${art}`;
-  else if (genus) title = genus;
-  else title = p.baumnamelat || p.baumnamedeu || '';
+  if (override?.[wikiLang]) {
+    title = override[wikiLang];
+  } else if (genus && usableArt) {
+    title = `${genus} ${art}`;
+  } else if (genusOverride?.[wikiLang]) {
+    title = genusOverride[wikiLang];
+  } else if (genus) {
+    title = genus;
+  } else {
+    title = p.baumnamelat || p.baumnamedeu || '';
+  }
   return `https://${wikiLang}.wikipedia.org/wiki/` + encodeURIComponent(title.replace(/\s+/g, '_'));
 }
 
@@ -185,11 +242,28 @@ test('Diospyros virginiana → DE genus fallback (no DE article for species)', (
   assertIncludes(wikipediaUrl(tree, 'de'), 'Ebenholzb%C3%A4ume');
 });
 
-test('No species (spec.) → falls back to genus', () => {
+test('No species (spec.) → falls back to genus (with disambiguation override for Acer)', () => {
   const tree = makeTree({ baumartlat: 'spec.', baumnamelat: null, baumnamedeu: 'Ahorn' });
   const url = wikipediaUrl(tree, 'de');
-  assertIncludes(url, 'wiki/Acer');
+  assertIncludes(url, 'wiki/Acer_(Gattung)');
   assert(!url.includes('spec'));
+});
+
+test('No species (spec.) → genus fallback for Platanus', () => {
+  const tree = makeTree({ baumgattunglat: 'Platanus', baumartlat: 'spec.', baumnamelat: null, baumnamedeu: 'Platane' });
+  const url = wikipediaUrl(tree, 'de');
+  assertIncludes(url, 'wiki/Platanus_(Pflanzengattung)');
+});
+
+test('Roter Zuckerahorn (Acer x freemanii) → Zucker-Ahorn override', () => {
+  const tree = makeTree({ baumgattunglat: 'Acer', baumartlat: 'x freemanii', baumnamedeu: 'Roter Zuckerahorn' });
+  assertIncludes(wikipediaUrl(tree, 'de'), 'wiki/Zucker-Ahorn');
+  assertIncludes(wikipediaUrl(tree, 'en'), 'wiki/Acer_saccharum');
+});
+
+test('Platanus x hispanica → dedicated hybrid article', () => {
+  const tree = makeTree({ baumgattunglat: 'Platanus', baumartlat: 'x hispanica', baumnamedeu: 'Platane' });
+  assertIncludes(wikipediaUrl(tree, 'de'), 'wiki/Ahornbl%C3%A4ttrige_Platane');
 });
 
 test('Subspecies qualifier stripped', () => {
@@ -203,7 +277,7 @@ test('var. qualifier stripped', () => {
   assert(!wikipediaUrl(tree, 'de').includes('var'));
 });
 
-test('Hybrid (x-prefix) → falls back to genus only', () => {
+test('Hybrid (x-prefix) without dedicated override → falls back to genus', () => {
   const tree = makeTree({ baumgattunglat: 'Cupressocyparis', baumartlat: 'x leylandii' });
   const url = wikipediaUrl(tree, 'de');
   assertIncludes(url, 'wiki/Cupressocyparis');

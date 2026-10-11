@@ -4,7 +4,7 @@
 - **Port:** `4178`
 - **URL:** [http://localhost:4178](http://localhost:4178)
 - Always verify if port `4178` is already in use (`lsof -ti :4178` or `curl -s -o /dev/null -w "%{http_code}" http://localhost:4178/`) before starting a new server.
-- Run the server in the background via `python3 -m http.server 4178` with `IsDaemon: true`.
+- Run the server in the background via `python3 serve.py` with `IsDaemon: true` (disables browser caching automatically).
 - Always provide the user with the clickable link: http://localhost:4178
 
 ## Collaboration Style & Role
@@ -64,10 +64,16 @@ node tests/run-all.js
 
 If either fails, fix the issue before committing. Do not bypass these checks.
 
+## Session Start Workflow
+At the start of any new session (feature implementation or debugging task):
+1. **Pull latest changes:** Run `git pull origin main` to ensure local code is up to date before making edits.
+2. **Review architectural context:** Check `DECISIONS.md` before making design or implementation changes.
+
 ## Design Decisions Reference
 
 Key architectural decisions and their reasoning live in `DECISIONS.md`.
 **Always read it at the start of a new session** before making changes — it records
 why things are the way they are and what not to change accidentally.
+
 
 
