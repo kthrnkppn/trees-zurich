@@ -122,6 +122,15 @@ const WIKI_TITLE_OVERRIDES = {
   'Ziziphus jujube': { de: 'Chinesische Jujube', en: 'Jujube' },
   'Diospyros virginiana': { de: 'Ebenholzbäume' },
   'Cephalotaxus harringtonii': { de: 'Kopfeiben' },
+  'Salix appenticulata': { de: 'Großblättrige_Weide', en: 'Salix_appendiculata' },
+  'Picea polita': { de: 'Tigerschwanz-Fichte', en: 'Picea_torano' },
+  'Poncirus trifoliata': { de: 'Dreiblättrige_Orange', en: 'Trifoliate_orange' },
+  'Cupressocyparis leylandii': { de: 'Leyland-Zypresse', en: 'Leyland_cypress' },
+  'Amelanchier arborea': { de: 'Felsenbirnen' },
+  'Castanea pumila': { de: 'Kastanien' },
+  'Lonicera maackii': { de: 'Heckenkirschen' },
+  'Pterocarya rhoifolia': { de: 'Flügelnüsse' },
+  'Tilia amurensis': { de: 'Linden_(Gattung)' },
   'Acer x freemanii': { de: 'Zucker-Ahorn', en: 'Acer saccharum' },
   'Aesculus x carnea': { de: 'Fleischrote_Rosskastanie', en: 'Aesculus × carnea' },
   'Magnolia x soulangeana': { de: 'Tulpen-Magnolie', en: 'Magnolia × soulangeana' },
@@ -259,6 +268,18 @@ test('Roter Zuckerahorn (Acer x freemanii) → Zucker-Ahorn override', () => {
   const tree = makeTree({ baumgattunglat: 'Acer', baumartlat: 'x freemanii', baumnamedeu: 'Roter Zuckerahorn' });
   assertIncludes(wikipediaUrl(tree, 'de'), 'wiki/Zucker-Ahorn');
   assertIncludes(wikipediaUrl(tree, 'en'), 'wiki/Acer_saccharum');
+});
+
+test('Castanea pumila → falls back to DE genus Kastanien, EN retains species', () => {
+  const tree = makeTree({ baumgattunglat: 'Castanea', baumartlat: 'pumila', baumnamedeu: 'Zwergkastanie' });
+  assertIncludes(wikipediaUrl(tree, 'de'), 'wiki/Kastanien');
+  assertIncludes(wikipediaUrl(tree, 'en'), 'wiki/Castanea_pumila');
+});
+
+test('Typo in cadastre: Salix appenticulata → Großblättrige Weide', () => {
+  const tree = makeTree({ baumgattunglat: 'Salix', baumartlat: 'appenticulata', baumnamedeu: 'Gebirgs-Weide' });
+  assertIncludes(wikipediaUrl(tree, 'de'), 'wiki/Gro%C3%9Fbl%C3%A4ttrige_Weide');
+  assertIncludes(wikipediaUrl(tree, 'en'), 'wiki/Salix_appendiculata');
 });
 
 test('Platanus x hispanica → dedicated hybrid article', () => {
