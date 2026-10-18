@@ -7,6 +7,44 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · Geolocate control: manual error handling + silent accuracy fallback
+The stock `GeolocateControl` (maplibre-gl 4.7.1) fails silently on iOS when the
+phone refuses a location: it fires an `error` event nobody handled, greys out
+the button with the red-slash icon, and (with `trackUserLocation: true`)
+hard-disables it until reload. iOS often refuses *without showing a prompt*
+(Location Services off, browser app not allowed, site previously denied), so
+mobile users saw a dead button with no explanation.
+
+`main.js` now listens to the control's `error` event and shows a `.geo-toast`
+banner with case-specific messages (DE/EN in `i18n.js`, key mapping +
+browser-name detection as pure functions in `helpers.js`, tested in
+`tests/geolocate.test.js`). After a permission denial the button is re-enabled
+so a later tap retries without a reload.
+
+**Why this design:**
+- `positionOptions` includes `timeout: 20000` — without it the browser default
+  is "wait forever" and the timeout message could never fire.
+- One silent retry with `enableHighAccuracy: false` on the first
+  "position unavailable" (GPS often fails indoors; wifi/cell fixes don't).
+  The control reads `options.positionOptions` fresh on every `trigger()`, so
+  mutating it between triggers is supported; a second failed attempt shows the
+  "move a few steps" message instead of looping.
+- `detectBrowserName()` checks Edge (`Edg/`) **before** Chrome — Edge desktop
+  UAs contain the Chrome token too.
+- On insecure origins (`!window.isSecureContext`, e.g. the dev server via a
+  LAN IP over http) browsers block location outright and report it as a
+  denial — there, *every* failure gets the `geo.insecure` "open via https://"
+  message instead of misleading settings instructions. Production is HTTPS
+  (GitHub Pages), so real users never see this.
+- `trigger()` from the `ACTIVE_ERROR` state needs two calls: one exits the
+  error state, the second restarts the watch.
+
+**Do not:** remove the `error` listener or re-add an un-`timeout`-ed
+positionOptions; **do not** show technical error text — messages stay
+plain-language and action-oriented.
+
+---
+
 ## 2026-10-xx · Fountain layer: no standalone button
 Fountains are wired exclusively to the "Durstige Jungbäume" filter.
 Adding a separate fountain button was considered and rejected — fountains only make

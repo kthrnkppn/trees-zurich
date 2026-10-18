@@ -147,6 +147,16 @@ const strings = {
     'footer.nextUpdate': 'Nächste Prüfung der Daten am {date}',
     'map.aria': 'Interaktive Karte der Bäume in Zürich',
     'geo.placeholder': 'Ort suchen',
+    'geo.unsupported': 'Dein Gerät unterstützt keine Standortbestimmung.',
+    'geo.insecure':
+      'Standortbestimmung ist über diese unsichere Verbindung (http) nicht möglich. Öffne die Seite über https://.',
+    'geo.denied':
+      'Kein Standortzugriff: Erlaube {browser} den Standort in den Systemeinstellungen (Einstellungen → Apps → {browser} → Standort) und tippe danach erneut auf den Standort-Knopf.',
+    'geo.deniedDesktop':
+      'Kein Standortzugriff: Erlaube dieser Seite den Standortzugriff über das Symbol in der Adressleiste ({browser}) und klicke dann erneut auf den Standort-Knopf.',
+    'geo.unavailable':
+      'Standort konnte nicht ermittelt werden. Bewege dich ein paar Schritte und tippe dann erneut auf den Standort-Knopf.',
+    'geo.timeout': 'Die Standortbestimmung hat zu lange gedauert. Probiere es später nochmals.',
     'map.attribution':
       'Baumdaten: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">Stadt Zürich (Baumkataster)</a>',
     'search.genus': 'Gattung',
@@ -266,6 +276,15 @@ const strings = {
     'footer.nextUpdate': 'Next data check on {date}',
     'map.aria': "Interactive map of Zurich's trees",
     'geo.placeholder': 'Search a place',
+    'geo.unsupported': "Your device doesn't support location services.",
+    'geo.insecure': 'Location is not available over this insecure (http) connection. Open the page via https://.',
+    'geo.denied':
+      'No location access: allow location for {browser} in your system settings (Settings → Apps → {browser} → Location), then tap the location button again.',
+    'geo.deniedDesktop':
+      'No location access: allow this page to use your location via the icon in the address bar ({browser}), then click the location button again.',
+    'geo.unavailable':
+      "Couldn't determine your location. Move a few steps and tap the location button again.",
+    'geo.timeout': 'Locating took too long. Please try again later.',
     'map.attribution':
       'Tree data: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">City of Zurich (tree cadastre)</a>',
     'search.genus': 'Genus',

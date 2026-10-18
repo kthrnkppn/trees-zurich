@@ -200,3 +200,45 @@ export const getPopupContent = (p) => {
     ${moreBlock}
   </div>`;
 };
+
+// ─── Geolocation error messaging ─────────────────────────────────────────────
+// The map library's location button fails silently on iOS when the phone
+// refuses a location (it only greys out the icon). These pure helpers turn
+// the failure into the right plain-language message, so the tests can cover
+// the mapping without a browser.
+
+// Best-effort browser name for the "allow location" instructions. iOS browsers
+// report their app name via the *iOS tokens (FxiOS = Firefox on iPhone etc.),
+// desktop browsers via the usual tokens. The name is interpolated into the
+// i18n strings ({browser} placeholder).
+export function detectBrowserName(ua) {
+  if (/FxiOS|Firefox\//.test(ua)) return 'Firefox';
+  if (/EdgiOS|Edg\//.test(ua)) return 'Edge';
+  if (/CriOS|Chrome\//.test(ua)) return 'Chrome';
+  if (/OPiOS|OPR\//.test(ua)) return 'Opera';
+  return 'Safari';
+}
+
+// True on iPhone / iPad / iPod — including iPads running iPadOS 13+ in
+// "desktop mode", which report a Macintosh UA but still have a touchscreen.
+// Decides between the touch-OS settings wording and the desktop address-bar
+// wording for the permission-denied message.
+export function isIOSDevice(ua, hasTouch) {
+  if (/iPhone|iPad|iPod/.test(ua)) return true;
+  return /Macintosh/.test(ua) && !!hasTouch;
+}
+
+// Maps a GeolocationPositionError code (1 = permission denied, 2 = position
+// unavailable, 3 = timeout) to its i18n string key. Anything unexpected is
+// treated as a timeout — the least alarming of the three messages.
+// `insecure` covers plain-http origins: there browsers block location outright
+// and report it as a denial, so the real cause gets its own message.
+// `isIOS` picks between the touch-OS settings wording and the desktop
+// address-bar wording for the permission-denied message.
+export function geolocateErrorKey(code, { unsupported = false, insecure = false, isIOS = true } = {}) {
+  if (unsupported) return 'geo.unsupported';
+  if (insecure) return 'geo.insecure';
+  if (code === 1) return isIOS ? 'geo.denied' : 'geo.deniedDesktop';
+  if (code === 2) return 'geo.unavailable';
+  return 'geo.timeout';
+}

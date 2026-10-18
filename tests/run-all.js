@@ -15,6 +15,7 @@ const testFiles = [
   'helpers.test.js',
   'stats.test.js',
   'data-integrity.test.js',
+  'geolocate.test.js',
 ];
 
 let anyFailed = false;

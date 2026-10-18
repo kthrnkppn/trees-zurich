@@ -12,7 +12,8 @@
 // L271  Nominatim geocoder setup
 // L318  Map initialisation (new maplibregl.Map + controls)
 // L354  keepPopupOnScreen() / openTreePopup() / openFountainPopup()
-// L402  map.on('load') — data fetch, source + layer setup (runs once)
+// L401  Geolocation error handling: showGeoToast() + geolocate 'error' listener
+// L495  map.on('load') — data fetch, source + layer setup (runs once)
 // L580  nextScheduledUpdate() / updateTreeCount() — footer / count display
 // L647  YOUNG_TREE_MIN_YEAR — Jungbaum threshold constant
 // L661  genus + species dropdowns / fillSpecies()
@@ -37,7 +38,7 @@
 //   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
-import { getPopupContent } from './helpers.js';
+import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
@@ -353,6 +354,15 @@ const geocoderApi = {
   },
 };
 
+// Location control. `timeout: 20000` matters beyond speed: without it the
+// browser default is "wait forever", so a stalled fix would spin the button
+// indefinitely and the "took too long" message below could never trigger.
+const geolocateControl = new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+  trackUserLocation: true,
+  showUserHeading: true,
+});
+
 const map = new maplibregl.Map({
   container: 'map',
   // Keyless, account-free street map from OpenFreeMap (OpenStreetMap data).
@@ -367,13 +377,7 @@ const map = new maplibregl.Map({
     })
   )
   .addControl(new maplibregl.FullscreenControl())
-  .addControl(
-    new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
-      trackUserLocation: true,
-      showUserHeading: true,
-    })
-  )
+  .addControl(geolocateControl)
   .addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
   .addControl(
     new MaplibreGeocoder(geocoderApi, {
@@ -388,6 +392,98 @@ const map = new maplibregl.Map({
     }),
     'top-left'
   );
+
+// ─── Geolocation error handling ──────────────────────────────────────────────
+// When the phone refuses a location, the stock control only greys out its
+// icon (red slash) and fires an 'error' event nobody listened to — on iOS the
+// refusal happens without any browser prompt, so users saw a dead button with
+// zero explanation. These listeners turn each failure into a plain-language
+// toast and keep the button usable, so a retry works once access has been
+// granted in the settings — no reload needed.
+
+let geoToastEl = null;
+let geoToastTimer = null;
+let lastGeoToastKey = null;
+let lastGeoToastAt = 0;
+
+function showGeoToast(key, params, duration = 9000) {
+  const now = Date.now();
+  // A failing watchPosition can fire the same error repeatedly — suppress
+  // repeats of the same message within a few seconds.
+  if (key === lastGeoToastKey && now - lastGeoToastAt < 8000) return;
+  lastGeoToastKey = key;
+  lastGeoToastAt = now;
+  if (!geoToastEl) {
+    geoToastEl = document.createElement('div');
+    geoToastEl.className = 'geo-toast';
+    geoToastEl.setAttribute('role', 'status');
+    geoToastEl.addEventListener('click', hideGeoToast);
+    document.body.appendChild(geoToastEl);
+  }
+  geoToastEl.textContent = t(key, params);
+  geoToastEl.classList.add('is-visible');
+  clearTimeout(geoToastTimer);
+  geoToastTimer = setTimeout(hideGeoToast, duration);
+}
+
+function hideGeoToast() {
+  clearTimeout(geoToastTimer);
+  if (geoToastEl) geoToastEl.classList.remove('is-visible');
+}
+
+// One silent fallback: strong GPS (high accuracy) often fails outright
+// indoors, so on the first "position unavailable" we retry once in normal
+// accuracy mode, which accepts wifi/cell fixes. If that also fails, the user
+// gets the "move a few steps" message instead of a loop.
+let geolocateFallbackUsed = false;
+
+geolocateControl.on('error', (event) => {
+  // The payload is the raw GeolocationPositionError spread onto the event
+  // (`event.code`), but read defensively so either shape works.
+  const err = event?.error ?? event;
+  const code = err?.code;
+
+  if (code === 1) {
+    // Permission refused — the library hard-disables the button until
+    // reload; undo that so a tap retries once access has been granted.
+    const btn = map.getContainer().querySelector('.maplibregl-ctrl-geolocate');
+    if (btn) btn.disabled = false;
+  }
+
+  // On plain-http origins (like the dev server via a LAN IP) browsers block
+  // location outright and report it as a denial — every failure gets the
+  // "needs https" message instead of misleading settings instructions.
+  const insecure = !window.isSecureContext;
+
+  if (code === 2 && !geolocateFallbackUsed && !insecure) {
+    geolocateFallbackUsed = true;
+    geolocateControl.options.positionOptions = {
+      ...geolocateControl.options.positionOptions,
+      enableHighAccuracy: false,
+    };
+    // The control reads its options fresh on every trigger; one trigger
+    // exits the error state, a second restarts the watch.
+    setTimeout(() => {
+      geolocateControl.trigger();
+      setTimeout(() => geolocateControl.trigger(), 100);
+    }, 100);
+    return;
+  }
+
+  showGeoToast(
+    geolocateErrorKey(code, {
+      insecure,
+      isIOS: isIOSDevice(navigator.userAgent, 'ontouchend' in document),
+    }),
+    { browser: detectBrowserName(navigator.userAgent) }
+  );
+});
+
+// Rare (insecure context, odd embedded browsers): no location support at all.
+// The control then renders as a permanently dead grey icon — say so once.
+if (!navigator.geolocation) {
+  showGeoToast('geo.unsupported', undefined, 12000);
+}
 
 // MapLibre picks a popup's anchor once, purely from which third of the map
 // container the anchor point falls in — it has no idea how tall the popup's
