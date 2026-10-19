@@ -459,8 +459,8 @@ def main():
         write_new_trees(added)
         accumulate_gone_trees(removed, features, datetime.now().strftime("%Y-%m-%d"))
         maybe_update_tree_meta(features)
-        save_hash(new_hash)
         commit_and_push(len(features))
+        save_hash(new_hash)  # only remember the fingerprint once it's live
 
     except Exception as e:
         log.error(f"Update failed: {e}", exc_info=True)
