@@ -90,8 +90,14 @@ export function computeStats(features) {
     .map((f) => f.properties[YEAR_FIELD])
     .filter((y) => typeof y === 'number');
   const dated = years.length;
-  const oldest = Math.min(...years);
-  const newest = Math.max(...years);
+  // Loop instead of Math.min(...years): spreads of >65,536 args throw on some
+  // WebKit versions (older iOS Safari); the dataset is ~73k trees.
+  let oldest = Infinity;
+  let newest = -Infinity;
+  for (const y of years) {
+    if (y < oldest) oldest = y;
+    if (y > newest) newest = y;
+  }
 
   // Pflanzungen pro Jahrzehnt ab 1900.
   const decadeCounts = new Map();

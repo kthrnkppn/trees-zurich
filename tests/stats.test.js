@@ -266,6 +266,32 @@ test('diversity in empty range is 0', () => {
   assertEquals(genusDiversityInRange(features, 1000, 1100), 0);
 });
 
-// ─── Summary ─────────────────────────────────────────────────────────────────
-console.log(`\n${passed} passed, ${failed} failed\n`);
-process.exit(failed > 0 ? 1 : 0);
+// ─── Real module: computeStats vs. the Safari spread limit ───────────────────
+// Some WebKit versions throw "Maximum call stack size exceeded" when a spread
+// hands more than 65,536 arguments to a function — the real dataset is ~73k
+// trees. Import the real stats.js and run it on 70,000 features.
+(async () => {
+  console.log('\ncomputeStats() — real module (Safari spread limit)');
+  const { computeStats } = await import('../stats.js');
+  test('handles 70,000 dated trees without throwing', () => {
+    const big = [];
+    for (let i = 0; i < 70000; i++) big.push(makeFeature({ year: 1900 + (i % 200) }));
+    const out = computeStats(big);
+    assertEquals(out.total, 70000);
+    assertEquals(out.dated, 70000);
+  });
+  test('oldest/newest correct on a large dataset', () => {
+    const big = [
+      makeFeature({ year: 1750 }),
+      ...Array.from({ length: 70000 }, (_, i) => makeFeature({ year: 1900 + (i % 200) })),
+      makeFeature({ year: 2025 }),
+    ];
+    const out = computeStats(big);
+    assertEquals(out.oldest, 1750);
+    assertEquals(out.newest, 2099);
+  });
+
+  // ─── Summary ──────────────────────────────────────────────────────────────
+  console.log(`\n${passed} passed, ${failed} failed\n`);
+  process.exit(failed > 0 ? 1 : 0);
+})();
