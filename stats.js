@@ -6,6 +6,7 @@
 import { trendReasons } from './trendReasons.js';
 import { lang, t, genusName, numberFormat, localized } from './i18n.js';
 import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD, DE_NAME_FIELD } from './fields.js';
+import { esc } from './helpers.js';
 
 // Fruit genera — for the "living gene bank of old fruit varieties" story.
 const FRUIT_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
@@ -288,9 +289,9 @@ function trendList(rows, kind) {
   const arrow = kind === 'up' ? '▲' : '▼';
   return rows
     .map(
-      (r) => `<li class="stat-trend-item is-clickable ${kind}" data-genus="${r.genus}" role="button" tabindex="0">
+      (r) => `<li class="stat-trend-item is-clickable ${kind}" data-genus="${esc(r.genus)}" role="button" tabindex="0">
         <span class="stat-trend-arrow">${arrow}</span>
-        <span class="stat-trend-name">${r.name}</span>
+        <span class="stat-trend-name">${esc(r.name)}</span>
         <span class="stat-trend-change">${r.oldPct.toFixed(1)}% → ${r.newPct.toFixed(1)}%</span>
         ${r.why ? `<span class="stat-trend-why">${r.why}</span>` : ''}
       </li>`
@@ -304,23 +305,23 @@ function renderCuriosities(c) {
   if (c.oldestTree) {
     const age = new Date().getFullYear() - c.oldestTree.year;
     cards.push(`<li class="is-clickable" data-lng="${c.oldestTree.lng}" data-lat="${c.oldestTree.lat}" role="button" tabindex="0">
-      <span><strong>${t('stats.oldestLabel')}</strong> ${t('stats.oldest', { name: c.oldestTree.name, year: c.oldestTree.year, age })}</span></li>`);
+      <span><strong>${t('stats.oldestLabel')}</strong> ${t('stats.oldest', { name: esc(c.oldestTree.name), year: c.oldestTree.year, age })}</span></li>`);
   }
   if (c.uniqueFruit > 0) {
     const ex = c.fruitExamples.length
-      ? t('stats.genbankEx', { list: c.fruitExamples.map((n) => `«${n}»`).join(lang === 'en' ? ' or ' : ' oder ') })
+      ? t('stats.genbankEx', { list: c.fruitExamples.map((n) => `«${esc(n)}»`).join(lang === 'en' ? ' or ' : ' oder ') })
       : '';
     cards.push(`<li>
       <span><strong>${t('stats.genbankLabel')}</strong> ${t('stats.genbank', { n: fmt.format(c.uniqueFruit), ex })}</span></li>`);
   }
   if (c.loners.length) {
-    const list = c.loners.slice(0, 7).join(', ');
+    const list = c.loners.slice(0, 7).map(esc).join(', ');
     cards.push(`<li>
       <span><strong>${t('stats.lonersLabel')}</strong> ${t('stats.loners', { list })}</span></li>`);
   }
   if (c.mostDiverse) {
-    cards.push(`<li class="is-clickable" data-genus="${c.mostDiverse.genus}" role="button" tabindex="0">
-      <span><strong>${t('stats.diverseLabel')}</strong> ${t('stats.diverse', { name: c.mostDiverse.name, count: c.mostDiverse.count })}</span></li>`);
+    cards.push(`<li class="is-clickable" data-genus="${esc(c.mostDiverse.genus)}" role="button" tabindex="0">
+      <span><strong>${t('stats.diverseLabel')}</strong> ${t('stats.diverse', { name: esc(c.mostDiverse.name), count: c.mostDiverse.count })}</span></li>`);
   }
   if (c.uniqueSpecies) {
     const others = c.uniqueSpecies - c.uniqueFruit;
@@ -346,10 +347,10 @@ export function renderStatsHTML(s) {
   const generaBars = bars(
     s.topGenera,
     (g) => g.count,
-    (g) => g.name,
+    (g) => esc(g.name),
     (g) => fmt.format(g.count),
     '',
-    (g) => `data-genus="${g.genus}"`
+    (g) => `data-genus="${esc(g.genus)}"`
   );
 
   return `
@@ -388,7 +389,7 @@ export function renderStatsHTML(s) {
     <section class="stats-section stats-facts">
       <h3>${t('stats.didYouKnow')}</h3>
       <ul>
-        <li><strong class="stat-fact-link" data-genus="${s.facts.topName.genus}" role="button" tabindex="0">${s.facts.topName.name}</strong> ${t('stats.factTop', { pct: s.facts.topName.pct.toFixed(1) })}</li>
+        <li><strong class="stat-fact-link" data-genus="${esc(s.facts.topName.genus)}" role="button" tabindex="0">${esc(s.facts.topName.name)}</strong> ${t('stats.factTop', { pct: s.facts.topName.pct.toFixed(1) })}</li>
         <li>${t('stats.factC18', { n: s.facts.c18 })}</li>
         <li>${t('stats.factUlmeArticle')}<strong class="stat-fact-link" data-genus="Ulmus" role="button" tabindex="0">${genusName('Ulmus')}</strong> ${t('stats.factUlme', { pre: fmt.format(s.facts.ulmePre), post: fmt.format(s.facts.ulmePost) })}</li>
         <li>${t('stats.factGoetterArticle')}<strong class="stat-fact-link" data-genus="Ailanthus" role="button" tabindex="0">${genusName('Ailanthus')}</strong> ${t('stats.factGoetter', { pre: fmt.format(s.facts.goetterPre), post: fmt.format(s.facts.goetterPost) })}</li>

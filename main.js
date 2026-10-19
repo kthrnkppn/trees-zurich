@@ -38,7 +38,7 @@
 //   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
-import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey } from './helpers.js';
+import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
@@ -1445,7 +1445,7 @@ function renderSuggestions() {
     const li = document.createElement('li');
     li.className = 'tree-suggestion' + (idx === activeSuggestion ? ' is-active' : '');
     li.setAttribute('role', 'option');
-    li.innerHTML = `<span class="ts-label">${e.label}</span><span class="ts-sub">${e.sub}</span>`;
+    li.innerHTML = `<span class="ts-label">${esc(e.label)}</span><span class="ts-sub">${esc(e.sub)}</span>`;
     li.addEventListener('mousedown', (ev) => {
       ev.preventDefault(); // keep focus so blur doesn't fire first
       selectSuggestion(idx);

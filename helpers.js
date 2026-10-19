@@ -119,7 +119,7 @@ function wikipediaUrl(p) {
   return `https://${wikiLang}.wikipedia.org/wiki/` + encodeURIComponent(title.replace(/\s+/g, '_'));
 }
 
-const esc = (s) =>
+export const esc = (s) =>
   String(s).replace(
     /[&<>"]/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
