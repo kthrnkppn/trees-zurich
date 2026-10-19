@@ -16,6 +16,7 @@ const testFiles = [
   'stats.test.js',
   'data-integrity.test.js',
   'geolocate.test.js',
+  'rain.test.js',
 ];
 
 let anyFailed = false;

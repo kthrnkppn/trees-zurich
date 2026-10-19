@@ -242,3 +242,31 @@ export function geolocateErrorKey(code, { unsupported = false, insecure = false,
   if (code === 2) return 'geo.unavailable';
   return 'geo.timeout';
 }
+
+// Sum of the last 30 days (mm) from one station's daily-recent CSV, or null if
+// the file can't be parsed / has no usable rows. Each station uses its own last
+// available day as the window's end, since they don't all publish in lockstep.
+export function station30DaySum(text) {
+  const lines = text.trim().split('\n');
+  const header = lines[0].split(';');
+  const iDate = header.indexOf('reference_timestamp');
+  const iRain = header.indexOf('rre150d0'); // daily precipitation total, mm
+  if (iDate < 0 || iRain < 0) return null;
+  const rows = [];
+  for (let k = 1; k < lines.length; k++) {
+    const c = lines[k].split(';');
+    if (c.length <= iRain) continue;
+    const [dd, mm, yyyy] = (c[iDate].split(' ')[0] || '').split('.');
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    const v = c[iRain].trim();
+    if (isNaN(d.getTime()) || v === '' || v === '-') continue; // skip missing values
+    rows.push({ t: d.getTime(), val: Number(v) });
+  }
+  if (!rows.length) return null;
+  let last = 0;
+  for (const r of rows) if (r.t > last) last = r.t;
+  const cutoff = last - 29 * 86400000; // 30 days inclusive of the last
+  let sum = 0;
+  for (const r of rows) if (r.t >= cutoff && r.t <= last) sum += r.val;
+  return sum;
+}
