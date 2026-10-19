@@ -522,8 +522,6 @@ function openTreePopup(lngLat, properties) {
 // the rule anyway (in Zürich almost everything is drinkable; only fountains
 // signed "Kein Trinkwasser" on site are not).
 function openFountainPopup(lngLat, p) {
-  const esc = (s) =>
-    String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const name = p.name || t('fountains.fallbackName');
   const type = p.wasserart ? `<div class="tp-meta">${esc(p.wasserart)}</div>` : '';
   const html = `<div class="tree-popup fountain-popup">
