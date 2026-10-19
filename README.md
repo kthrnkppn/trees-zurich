@@ -60,7 +60,7 @@ new-trees.json     Seit letztem Update neu dazugekommene Bäume
 gone-trees.json    Akkumulierter „Friedhof" verschwundener Bäume (In-Memoriam-Layer)
 brunnen.geojson    Öffentliche Brunnen (Wasserstellen zum Giessen)
 scripts/fetch_brunnen.py  Zieht die Brunnendaten (manuell, nicht auf dem Cron)
-server.mjs         Lokaler Entwicklungsserver (nur zum Testen)
+serve.py           Lokaler Entwicklungsserver (nur zum Testen)
 ```
 
 **Technische Gesamtübersicht:** → [ARCHITECTURE.md](ARCHITECTURE.md)
@@ -75,7 +75,7 @@ git clone https://github.com/kthrnkppn/trees-zurich.git
 cd trees-zurich
 
 # Server starten
-node server.mjs
+python3 serve.py
 ```
 
 Dann im Browser öffnen: [http://localhost:4178](http://localhost:4178)

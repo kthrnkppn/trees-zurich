@@ -87,7 +87,7 @@ Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
 | `yearEvents.js` | Welt-Event pro Pflanzjahr 1665–2026 ({de,en}) fürs Popup |
 | `icon.svg` | Favicon (grüner Baum) |
 | `fonts/` | Bricolage Grotesque (Titel/Panel-Header, variable WOFF2, SIL OFL) + Iosevka Charon (übriger UI-Text, Light/Regular WOFF2, MIT) — beide selbst gehostet, Lizenzen liegen daneben |
-| `server.mjs` | lokaler Dev-Server (Port 4178), **nicht** fürs Deploy nötig |
+| `serve.py` | lokaler Dev-Server (Port 4178), **nicht** fürs Deploy nötig |
 
 ### Zweisprachigkeit (DE/EN)
 
@@ -261,7 +261,7 @@ behält nur die **gieß-tauglichen**: `abgestellt=nein` **und** `art=öffentlich
 
 ## 10. Lokale Entwicklung & Verifikation
 
-- Dev-Server: `node server.mjs` → `http://localhost:4178` (oder `npx serve .`).
+- Dev-Server: `python3 serve.py` → `http://localhost:4178` (oder `npx serve .`).
 - Modul-Check: `node --check main.js` etc.
 - Daten-/Statistiklogik ohne Browser testbar via `node --input-type=module`
   (importiert `stats.js`/`curiosities.js` und lädt `trees.geojson` mit `fs`).
