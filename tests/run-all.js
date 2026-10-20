@@ -17,6 +17,8 @@ const testFiles = [
   'data-integrity.test.js',
   'geolocate.test.js',
   'rain.test.js',
+  'share.test.js',
+  'dim.test.js',
 ];
 
 let anyFailed = false;

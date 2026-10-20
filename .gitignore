@@ -1,6 +1,7 @@
 node_modules/
 .DS_Store
 .claude/
+__pycache__/
 scripts/.env
 scripts/.last_hash
 scripts/update.log

@@ -125,6 +125,14 @@ export const esc = (s) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
   );
 
+// Share icon as an inline SVG (thin strokes, currentColor) so it takes on the
+// popup's muted text colour and matches the page's minimal look — an emoji
+// glyph renders in the OS's own style and clashes with the rest of the UI.
+const SHARE_ICON =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M12 3v12" /><path d="M8 7l4-4 4 4" />' +
+  '<path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" /></svg>';
+
 export const getPopupContent = (p) => {
   const { pflanzjahr, baumnamelat, baumnamedeu, baumgattunglat } = p;
   const info = genusInfo[baumgattunglat];
@@ -191,13 +199,17 @@ export const getPopupContent = (p) => {
     : '';
 
   return `<div class="tree-popup">
-    <a class="tp-title" href="${wikiUrl}" target="_blank" rel="noopener">${esc(title)}</a>
-    ${baumnamelat ? `<div class="tp-lat"><em>${esc(baumnamelat)}</em></div>` : ''}
-    ${goneBlock}
-    <div class="tp-meta">${metaParts.map(esc).join(' · ')}</div>
-    ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
-    <a class="tp-wiki" href="${wikiUrl}" target="_blank" rel="noopener">${esc(t('popup.wiki'))}</a>
-    ${moreBlock}
+    <header class="tp-head">
+      <a class="tp-title" href="${wikiUrl}" target="_blank" rel="noopener">${esc(title)}</a>${p.baumnummer ? `<button class="tp-share" type="button" title="${esc(t('popup.share'))}" aria-label="${esc(t('popup.share'))}">${SHARE_ICON}</button>` : ''}
+      ${baumnamelat ? `<div class="tp-lat"><em>${esc(baumnamelat)}</em></div>` : ''}
+      ${goneBlock}
+      <div class="tp-meta">${metaParts.map(esc).join(' · ')}</div>
+    </header>
+    <div class="tp-body">
+      ${tags ? `<div class="tp-tags">${tags}</div>` : ''}
+      <a class="tp-wiki" href="${wikiUrl}" target="_blank" rel="noopener">${esc(t('popup.wiki'))}</a>
+      ${moreBlock}
+    </div>
   </div>`;
 };
 
@@ -269,4 +281,28 @@ export function station30DaySum(text) {
   let sum = 0;
   for (const r of rows) if (r.t >= cutoff && r.t <= last) sum += r.val;
   return sum;
+}
+
+// ─── Selection dimming ──────────────────────────────────────────────────────
+// While a tree popup is open, every other tree on the map fades so the selected
+// one reads as the clear focus (share links auto-select their tree, so they get
+// the same spotlight for free). This builds the MapLibre paint expression used
+// for that: features whose id matches keep their normal opacity, all others
+// drop to the dimmed one.
+export const selectionDimExpr = (idField, selectedId, bright, dim) => [
+  'case',
+  ['==', ['get', idField], ['literal', selectedId]],
+  bright,
+  dim,
+];
+
+// ─── Share links ────────────────────────────────────────────────────────────
+// Tree sharing only for this release (filter sharing is deliberately deferred,
+// see DECISIONS.md): a shared URL is trees.watch/?baum=<baumnummer>.
+
+// One pass over a location.search string → the shared tree id, or null.
+// Unknown params (including a stale `f=` from an old build) are ignored.
+export function parseSharedLink(search) {
+  const baum = new URLSearchParams(search).get('baum');
+  return baum ? String(baum) : null;
 }

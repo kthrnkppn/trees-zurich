@@ -52,7 +52,6 @@
       type="font/woff2"
       crossorigin
     />
-    <link href="./style.css" rel="stylesheet" />
     <!-- MapLibre GL JS (open-source, no Mapbox account / token needed) -->
     <link
       href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
@@ -63,6 +62,10 @@
       href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.5.0/dist/maplibre-gl-geocoder.css"
       type="text/css"
     />
+    <!-- Our styles load AFTER the library stylesheets so our overrides of
+         MapLibre defaults (popup padding, tip colour, …) actually win — they
+         silently lost when this link sat above the library CSS. -->
+    <link href="./style.css" rel="stylesheet" />
     <!-- defer so these libraries no longer block the initial render. Deferred
          scripts run in document order, so maplibregl is ready before main.js. -->
     <script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>

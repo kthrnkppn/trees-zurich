@@ -187,6 +187,11 @@ const strings = {
     'popup.eventLabel': 'Gepflanzt {year} – damals in der Welt',
     'popup.eventMore': 'Mehr aus {year} →',
     'popup.wiki': 'Auf Wikipedia lesen →',
+    'popup.share': 'Diesen Baum teilen',
+    'share.copied': 'Link kopiert.',
+    'share.failed': 'Link konnte nicht kopiert werden.',
+    'share.gone': 'Dieser Baum steht nicht mehr im Kataster – gezeigt ist sein letzter bekannter Standort.',
+    'share.notFound': 'Dieser Baum wurde nicht gefunden.',
     'popup.more': 'Mehr anzeigen',
     'popup.factBlutbuche': 'Die Blätter sind ganzjährig rotbraun bis violett gefärbt statt grün. Rund 99% aller heutigen Blutbuchen stammen von einem einzigen Mutterbaum ab, der um 1690 im Possenwald bei Sondershausen (Thüringen) entdeckt wurde.',
     // stats.js
@@ -315,6 +320,11 @@ const strings = {
     'popup.eventLabel': 'Planted {year} – meanwhile in the world',
     'popup.eventMore': 'More from {year} →',
     'popup.wiki': 'Read on Wikipedia →',
+    'popup.share': 'Share this tree',
+    'share.copied': 'Link copied.',
+    'share.failed': 'Could not copy the link.',
+    'share.gone': 'This tree is no longer in the cadastre – showing its last known location.',
+    'share.notFound': 'This tree could not be found.',
     'popup.more': 'Show more',
     'popup.factBlutbuche': 'The leaves stay reddish-brown to purple year-round instead of green. About 99% of all copper beeches alive today trace back to a single mother tree discovered around 1690 in the Possenwald forest near Sondershausen, Thuringia.',
     // stats.js

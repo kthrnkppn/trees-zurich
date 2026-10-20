@@ -7,6 +7,102 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · style.css loads AFTER the MapLibre stylesheets
+
+For weeks our `.maplibregl-popup-content` overrides (padding, tip colour,
+radius) silently lost to the library's `padding: 15px 10px` — style.css was
+linked before the unpkg MapLibre CSS in index.html, and equal-specificity
+rules resolve by order. Nothing visibly broke until the tinted header band
+relied on the padding values, when the mismatch became grossly visible
+(band overhanging the card). The link now sits after both library CSS files.
+
+**Do not:** move the style.css link back above the library CSS (e.g. to keep
+"our styles first") — every MapLibre default we restyle depends on winning
+the order. When overriding a third-party stylesheet, always load ours last.
+
+## 2026-10 · Tree popups: focus the card, not its first link
+
+MapLibre's `focusAfterOpen` (default true) focuses the popup's first focusable
+element on open — the tree-name Wikipedia link — which paints the browser's
+default blue focus ring over the name, one box per wrapped line, on every
+programmatic open (share links, but also normal taps). Fix: `focusAfterOpen:
+false` in `openTreePopup()`, then focus `.maplibregl-popup-content` manually
+(`tabindex="-1"`). Screen readers still announce the popup and Tab still
+reaches its links, but nothing visibly lights up; the card's own focus ring is
+suppressed in CSS because it would read as a glitch, while links keep their
+rings when genuinely keyboard-tabbed. The fountain popup has no focusable
+elements, so MapLibre's default never focused anything there — left untouched.
+
+**Do not:** revert to `focusAfterOpen: true`, and don't remove the manual
+focus call "because nothing seems to use it" — it is the screen-reader
+announcement path.
+
+---
+
+## 2026-10 · Selection dimming: tied to popup open/close, not to share links
+
+Opening a tree popup dims every other tree dot to 25% opacity (paint
+expressions per layer, built by `selectionDimExpr()` in helpers.js); closing
+the popup restores full opacity. This is deliberately a *selection* behavior,
+not a share-link special case: a shared link simply auto-opens the popup, so
+the recipient gets the same spotlight with no extra state, no extra URL
+params, and no exit chip needed — closing the card IS the exit.
+
+Details that matter:
+- Several popups can coexist (MapLibre never removes old ones). `openTreePopups`
+  (main.js) tracks them; the dim spotlight follows the most recently opened
+  tree and falls back to the previous one when the top popup closes.
+- Popups for trees without a `baumnummer` (pre-ID graveyard ghosts) never dim
+  anything — the spotlight expression would match nothing and dim even the
+  selected ghost.
+- Per-layer base opacities are preserved on restore: gone-ghosts are 0.85,
+  everything else 1. The treasure layer is a symbol layer, so it dims
+  `icon-opacity`, not circle paint properties.
+
+**Do not:** add a separate "share mode" state machine or URL flag for shared
+trees, and don't dim on hover — dimming means "a card is open".
+
+---
+
+## 2026-10 · Share links: parsed once on load; tree sharing only
+
+One link type for this release: `?baum=<baumnummer>` (a single tree — flies
+there, opens the popup, clears any filter that would hide the tree). Links
+never carry language or any other state. Filter sharing (`?f=…`) was built and
+then deliberately removed before release: the sidebar "Ansicht teilen" button,
+its `encodeShareFilter`/`decodeShareFilter` helpers, and `applySharedFilter`
+are gone. A stale `?f=` param from an old link is simply ignored — parse
+falls through to the plain map. Filter sharing may return in a future release;
+if so, re-add it with the same encode-once shape (`f` = compact JSON).
+
+`flyToTreeByNummer()` looks trees up by `baumnummer`, not coordinates —
+coordinates drift when the city data updates, IDs don't. Vanished trees are
+resolved from the full graveyard (`graveyardFeatures`), not the revealed-year
+subset.
+
+**Do not:** resolve share-link trees by coordinates.
+
+---
+
+## 2026-10 · Share-link URL: released when the visitor takes over
+
+A shared tree link is consumed once on load, but the URL keeps pointing at the
+shared tree until the visitor takes ownership of the map: closing the tree
+card, or driving any filter themselves (any later `applyFilters` call). At
+that moment the address bar quietly switches to the plain URL (`replaceState`,
+no history entry), so a reload no longer re-applies the share — while the card
+is still open, a reload restores the shared tree. This amends (not reverts)
+the copy-only principle above: the share button still builds its URL fresh on
+demand; the takeover release is the single scoped exception. `sharedLinkActive`
+is set only AFTER the load-time consume calls so their internal
+applyFilters/reset calls don't count as takeover.
+
+**Do not:** strip the URL earlier (reload while the card is open should
+restore the shared tree), or use `pushState` (it would pollute the back
+button).
+
+---
+
 ## 2026-10 · Geolocate control: manual error handling + silent accuracy fallback
 The stock `GeolocateControl` (maplibre-gl 4.7.1) fails silently on iOS when the
 phone refuses a location: it fires an `error` event nobody handled, greys out

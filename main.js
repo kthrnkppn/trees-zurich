@@ -29,7 +29,7 @@
 // L1384 Legend: renderDefaultLegend() / renderCollectionLegend() / refreshLegend()
 // L1511 Stats modal: openStats() / closeStats()
 // L1539 Intro/onboarding modal
-// L1585 flyToTree() / applyYearRange() / handleStatsAction()
+// L1585 flyToTree() / applyYearRange() / handleStatsAction() + share links (shareUrl, flyToTreeByNummer, releaseSharedLink)
 // L1635 Mobile sidebar toggle
 //
 // Key invariants (see also DECISIONS.md):
@@ -38,12 +38,12 @@
 //   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
-import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum } from './helpers.js';
+import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, selectionDimExpr } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
 import { lang, t, genusName, numberFormat, setLang, applyStaticI18n, localized } from './i18n.js';
-import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD, DE_NAME_FIELD } from './fields.js';
+import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD, DE_NAME_FIELD, ID_FIELD } from './fields.js';
 
 // Rewrite the static German markup for the active language and wire the DE|EN
 // switch. Runs first so every dynamically built string below matches.
@@ -182,6 +182,9 @@ let newTreesFeatures = [];
 // a year is revealed from 1 December of that year.
 let goneTreesFeatures = []; // the features of the currently revealed year
 let goneRevealYear = null; // the year those features belong to (or null = teaser)
+// Every graveyard entry, across all years — share links to vanished trees
+// look the tree up here by baumnummer (the revealed-year subset may not contain it).
+let graveyardFeatures = [];
 
 // Public fountains overlay (see fountainsLayerId). Shown only alongside the
 // "Durstige Jungbäume" filter — no control of its own.
@@ -300,6 +303,7 @@ function fitToMatches(matches) {
 }
 
 function applyFilters({ fit = false } = {}) {
+  releaseSharedLink(); // a user-driven filter change ends any shared-link takeover
   if (map.getLayer(layerId)) map.setFilter(layerId, buildMapFilter());
   const matches = hasActiveFilter() ? allFeatures.filter(matchesFilter) : allFeatures;
   updateTreeCount(matches.length);
@@ -504,15 +508,70 @@ function keepPopupOnScreen(popup) {
   });
 }
 
+// ─── Selection dimming ───────────────────────────────────────────────────────
+// While a tree popup is open, all other tree dots fade to DIM_OPACITY so the
+// selected tree reads as the clear (and only colourful) focus; closing the
+// popup restores the map. Share links open their popup automatically, so a
+// shared tree gets the same spotlight for free. Several popups can coexist
+// (MapLibre leaves old ones open), so the spotlight follows the most recently
+// opened one and falls back to the previous when that closes.
+const openTreePopups = [];
+const DIM_OPACITY = 0.25;
+
+// Re-derives the dimming paint from the open-popup stack. Popups whose tree
+// has no baumnummer (pre-ID graveyard ghosts) never enter the stack and are
+// simply exempt from spotlighting.
+function updateTreeDimming() {
+  const top = openTreePopups[openTreePopups.length - 1];
+  for (const id of [layerId, treasureLayerId, newTreesLayerId, goneTreesLayerId]) {
+    if (!map.getLayer(id)) continue;
+    if (id === treasureLayerId) {
+      // The treasure layer draws stars (symbols), not circles.
+      map.setPaintProperty(id, 'icon-opacity',
+        top ? selectionDimExpr(ID_FIELD, top.id, 1, DIM_OPACITY) : 1);
+    } else {
+      const bright = id === goneTreesLayerId ? 0.85 : 1; // the layer's base opacity
+      const expr = top ? selectionDimExpr(ID_FIELD, top.id, bright, DIM_OPACITY) : bright;
+      map.setPaintProperty(id, 'circle-opacity', expr);
+      // The white halo's base opacity is 1 on every circle layer.
+      map.setPaintProperty(id, 'circle-stroke-opacity', top ? selectionDimExpr(ID_FIELD, top.id, 1, DIM_OPACITY) : 1);
+    }
+  }
+}
+
 // Opens a tree's popup and keeps it on-screen as its content resizes (see
 // keepPopupOnScreen above).
 function openTreePopup(lngLat, properties) {
-  const popup = new maplibregl.Popup()
+  // focusAfterOpen: false — MapLibre's default focuses the first link inside
+  // the popup (the tree name), which paints the browser's default blue focus
+  // ring over it, one box per wrapped line. We focus the card as a whole
+  // instead (below): screen readers still announce the popup, Tab still
+  // reaches its links, but nothing visibly lights up.
+  const popup = new maplibregl.Popup({ focusAfterOpen: false })
     .setLngLat(lngLat)
     .setHTML(getPopupContent(properties))
     .addTo(map);
+  const content = popup.getElement().querySelector('.maplibregl-popup-content');
+  if (content) {
+    content.setAttribute('tabindex', '-1');
+    content.focus({ preventScroll: true });
+  }
+  const treeId = properties[ID_FIELD];
+  if (treeId) {
+    openTreePopups.push({ popup, id: treeId });
+    popup.on('close', () => {
+      const i = openTreePopups.findIndex((e) => e.popup === popup);
+      if (i !== -1) openTreePopups.splice(i, 1);
+      updateTreeDimming();
+      releaseSharedLink(); // closing the shared card hands the map to the visitor
+    });
+    updateTreeDimming();
+  }
   popup.getElement().querySelector('.tp-more')?.addEventListener('toggle', () => {
     keepPopupOnScreen(popup);
+  });
+  popup.getElement().querySelector('.tp-share')?.addEventListener('click', () => {
+    shareUrl(shareableUrl(`baum=${encodeURIComponent(properties[ID_FIELD])}`));
   });
   return popup;
 }
@@ -570,6 +629,7 @@ map.on('load', async () => {
     /* optional — silently skip */
   }
   const revealed = pickRevealedGoneYear(goneTreesData.features || []);
+  graveyardFeatures = goneTreesData.features || [];
   goneRevealYear = revealed.year;
   goneTreesFeatures = revealed.features;
   setupGoneTreesButton();
@@ -701,6 +761,15 @@ map.on('load', async () => {
   map.on('click', fountainsLayerId, (e) => openFountainPopup(e.lngLat, e.features[0].properties));
 
   applyFilters(); // initial count (whole city, no zoom)
+
+  // A shared link beats the default view: jump to the shared tree. The URL
+  // keeps the share until the visitor takes over (see releaseSharedLink). The
+  // latch is set AFTER the consume call — it runs its own
+  // applyFilters/resetFilterSelection synchronously, and those must not count
+  // as user takeover.
+  const baum = parseSharedLink(location.search);
+  if (baum) flyToTreeByNummer(baum);
+  sharedLinkActive = Boolean(baum);
 });
 
 /* ------------------------------------------------------------------ *
@@ -977,6 +1046,8 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
   filterState.yearMax = null;
   applyFilters(); // no auto-zoom on reset
 });
+
+// Share the current filter was deferred to a later release (see DECISIONS.md).
 
 /* ------------------------------------------------------------------ *
  * Rarities — gold-star map modes (gene bank & Einzelgänger)
@@ -1687,16 +1758,129 @@ try {
 }
 if (!introSeen && matchMedia('(max-width: 760px)').matches) openIntro();
 
+// flyTo with two safeguards:
+// 1. MapLibre's resize() cancels a running flyTo — the layout can settle once
+//    more shortly after page load, so re-issue the flight when that happens.
+// 2. onArrive (opening the popup) must wait for the flight to land: opening
+//    it any earlier lets keepPopupOnScreen's fit-check panBy kill the flight.
+function flyToStable(lng, lat, onArrive) {
+  const opts = { center: [lng, lat], zoom: 17, duration: 1200 };
+  let interrupted = false;
+  const onResize = () => { interrupted = true; };
+  const onMoveEnd = () => {
+    if (!interrupted) {
+      map.off('resize', onResize);
+      onArrive?.();
+      return;
+    }
+    interrupted = false;
+    map.flyTo(opts);
+    map.once('moveend', onMoveEnd);
+  };
+  map.on('resize', onResize);
+  map.once('moveend', onMoveEnd);
+  map.flyTo(opts);
+}
+
 // Fly to a specific tree (by coordinates) and open its popup.
 function flyToTree(lng, lat) {
-  map.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
   const f = allFeatures.find((ft) => {
     const [x, y] = ft.geometry.coordinates;
     return Math.abs(x - lng) < 1e-6 && Math.abs(y - lat) < 1e-6;
   });
-  if (f) {
-    openTreePopup([lng, lat], f.properties);
+  flyToStable(lng, lat, f ? () => openTreePopup([lng, lat], f.properties) : null);
+}
+
+// ─── Share links ────────────────────────────────────────────────────────────
+// A shared tree link is consumed once on load, but the URL keeps pointing at
+// the shared tree until the visitor takes ownership of the map: closing the
+// tree card, or driving any filter themselves (any later applyFilters call).
+// At that moment the address bar quietly switches to the plain URL, so a
+// reload no longer re-applies the share. replaceState, not pushState — no
+// history entry, the back button stays untouched. The share button always
+// builds the full URL fresh, so sharing itself is unaffected.
+let sharedLinkActive = false;
+
+function releaseSharedLink() {
+  if (!sharedLinkActive) return;
+  sharedLinkActive = false;
+  try {
+    history.replaceState(null, '', location.pathname);
+  } catch (e) {
+    /* e.g. sandboxed embeds — the shared URL simply survives a reload */
   }
+}
+
+// Opening a shared tree link: native share sheet on mobile, clipboard copy +
+// toast everywhere else. A dismissed share sheet (AbortError) is not an error.
+// Both navigator.share and navigator.clipboard need a secure context (HTTPS),
+// so on the http:// LAN dev server neither exists — there the legacy
+// execCommand copy below is the only way the button still does something.
+async function shareUrl(url) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ url });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // user closed the sheet
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showGeoToast('share.copied', undefined, 4000);
+  } catch (e) {
+    showGeoToast(copyViaExecCommand(url) ? 'share.copied' : 'share.failed', undefined, 4000);
+  }
+}
+
+// Legacy clipboard copy for insecure contexts (http:// LAN dev server, old
+// browsers): a hidden textarea gets selected and the deprecated-but-universal
+// execCommand does the copy. Must run inside the tap's user gesture. Returns
+// whether the browser reported success.
+function copyViaExecCommand(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', ''); // keeps iOS from scrolling to / zooming into the helper
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (e) {
+    /* unsupported — report failure */
+  }
+  ta.remove();
+  return ok;
+}
+
+// Query string (without the leading "?") → an absolute, shareable URL.
+const shareableUrl = (params) => `${location.origin}${location.pathname}?${params}`;
+
+// A share link to a tree ID: make sure the tree is actually visible (a filter
+// would hide it otherwise), then reuse the plain coordinate flight + popup.
+function flyToTreeByNummer(nummer) {
+  const f = allFeatures.find((ft) => ft.properties[ID_FIELD] === nummer);
+  if (!f) return flyToGoneTree(nummer);
+  if (hasActiveFilter() && !matchesFilter(f)) {
+    exitAllModes();
+    resetFilterSelection();
+    applyFilters();
+  }
+  const [lng, lat] = f.geometry.coordinates;
+  flyToTree(lng, lat);
+}
+
+// The shared tree has vanished since the link was made — fly to its last
+// known spot and say so. Entries older than the update script's baumnummer
+// era have no ID; they get the generic "not found" message.
+// shortcut: pre-ID graveyard entries can't be linked to, until they age out of the data pipeline
+function flyToGoneTree(nummer) {
+  const f = graveyardFeatures.find((ft) => ft.properties?.[ID_FIELD] === nummer);
+  if (!f) return showGeoToast('share.notFound', undefined, 4000);
+  const [lng, lat] = f.geometry.coordinates;
+  flyToStable(lng, lat);
+  showGeoToast('share.gone', undefined, 12000);
 }
 
 // Filter to a planting-year range (used by the decade bars in the stats modal).

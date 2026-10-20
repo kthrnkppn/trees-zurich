@@ -76,7 +76,7 @@ Koordinaten auf 5 Dezimalstellen (~1 m) gerundet.
 | `style.css` | Gesamtes Styling (Sidebar, Buttons, Popup, Modal, Chips) |
 | `main.js` | Kern: Karte, Layer, Filter, alle Modi, Verdrahtung |
 | `i18n.js` | Sprachschicht DE/EN: `lang`, `t(key, params)`, `setLang()` (Reload), `applyStaticI18n()`, `numberFormat`, `genusName()`, `tTag()`, `wikiLang` |
-| `helpers.js` | `getPopupContent(props)` → HTML fürs Klick-Popup |
+| `helpers.js` | `getPopupContent(props)` → HTML fürs Klick-Popup; Share-Link-Helfer (`parseSharedLink`, `selectionDimExpr`) |
 | `stats.js` | `computeStats(features)` + `renderStatsHTML(stats)` fürs „Wussten Sie?"-Modal |
 | `GenusDeNames.js` | lat. Gattung → deutscher Name |
 | `GenusEnNames.js` | lat. Gattung → englischer Name |
@@ -209,6 +209,15 @@ anderen beenden. Suchmuster:
   (`handleStatsAction()` in `main.js`, delegierter Listener auf `#stats-body`).
 - **Neue Bäume**: s. Abschnitt 6/7.
 - **Verschwundene Bäume** („In Memoriam"): jährlicher Gedenk-Layer, s. Abschnitt 9.
+- **Teilen** (Share-Links): 🔗 im Baum-Popup erzeugt Links, die alles rein
+  client-seitig abbilden — kein Server, kein Tracking. Baum-Links
+  (`?baum=<baumnummer>`) fliegen zum Baum und öffnen das Popup (liegende
+  Filter werden gecleart). Der Query-String wird einmal beim Laden gelesen
+  und bleibt bestehen, bis der Besucher die Karte selbst übernimmt
+  (Popup schliessen oder Filter ändern) — dann wird er still ersetzt.
+  Filter-Links (`?f=…`) waren gebaut und wurden vor dem Release entfernt;
+  veraltete `?f=`-Links werden ignoriert. Details und Randfälle:
+  `DECISIONS.md` und `shortcut:`-Kommentare in `main.js`.
 - **Popup-Zusatz**: Link zum Wikipedia-Artikel in der aktiven Sprache
   (`wikipediaUrl()` in `helpers.js`, lat. Binomial → Redirect auf den de- bzw.
   en-Artikelnamen); bei Bäumen aus dem Gedenk-Layer zusätzlich „† Verschwunden {Jahr}".
