@@ -777,8 +777,12 @@ body {
    Right padding reserves the × close button's column (24px box at the corner)
    plus a visible gap, so the name always wraps before entering the × zone. */
 .tp-head {
-  padding: 12px 36px 12px 14px;
-  background: var(--band);
+  /* PREVIEW: a full-width white strip above the name (the ×'s row) — the tint
+     starts below it, so the close button sits on plain paper, not the band. */
+  padding: 34px 36px 12px 14px;
+  background:
+    linear-gradient(var(--paper), var(--paper)) left top / 100% 26px no-repeat,
+    var(--band);
   border-bottom: 1px solid var(--line-light);
 }
 .tp-body {
