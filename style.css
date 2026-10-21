@@ -485,10 +485,52 @@ body {
   font-size: 12px;
   color: var(--paper-dim);
 }
-/* Not a distinct map layer color like the others — a data-quality filter on
-   the existing (genus-colored) trees, not a themed view, so no marker. */
-.year-unknown-btn::before {
-  display: none;
+/* "Unknown planting year" — a checkbox, not a mode button: it stacks on top of
+   genus/species/collection instead of replacing them, and a checkbox is the
+   natural shape for a boolean condition. Custom square check to match the
+   design system (no rounded corners, lime when checked). */
+.year-unknown-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--paper);
+  cursor: pointer;
+}
+.year-unknown-field input[type='checkbox'] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0; /* the shared input padding would stretch the box */
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--border-dark);
+  cursor: pointer;
+}
+.year-unknown-field:hover input[type='checkbox'] {
+  border-color: var(--paper-dim);
+}
+.year-unknown-field input[type='checkbox']:checked {
+  background: var(--lime);
+  border-color: var(--lime);
+}
+/* Checkmark: a small rotated square outline (pure CSS, no image). */
+.year-unknown-field input[type='checkbox']:checked::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 8px;
+  margin: 2px 0 0 5px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: rotate(40deg);
+}
+.year-unknown-field input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
 }
 /* Watering filter: a filled water-drop marker instead of the square — a
    rotated rounded square (pure CSS, no emoji), sharp corner up + round bottom

@@ -930,19 +930,18 @@ document.querySelector('#apply_filters').addEventListener('click', () => {
   applyFilters({ fit: true });
 });
 
-// "Nur Bäume mit unbekanntem Pflanzjahr" — a toggle next to the year fields
+// "Nur Bäume mit unbekanntem Pflanzjahr" — a checkbox next to the year fields
 // rather than a themed collection, since it's a data-quality filter (helps
-// spot gaps in the city's archive), not a kind of tree. Combines freely with
-// genus/species/collection, but is mutually exclusive with a year range —
-// a tree can't both have no recorded year and fall within one.
-yearUnknownToggle.addEventListener('click', () => {
+// spot gaps in the city's archive), not a kind of tree. A checkbox (not a
+// chip/button) because it stacks on top of genus/species/collection instead
+// of replacing them. Combines freely, but is mutually exclusive with a year
+// range — a tree can't both have no recorded year and fall within one.
+yearUnknownToggle.addEventListener('change', () => {
   exitAllModes();
-  const active = yearUnknownToggle.getAttribute('aria-pressed') !== 'true';
+  const active = yearUnknownToggle.checked;
   if (active) deactivateYoungTree(); // both own the year window — only one at a time
   filterState.yearUnknown = active;
-  yearUnknownToggle.classList.toggle('is-active', active);
-  yearUnknownToggle.setAttribute('aria-pressed', String(active));
-  if (active && yearAutoHintEl) yearAutoHintEl.hidden = true; // the toggle owns the year window now
+  if (active && yearAutoHintEl) yearAutoHintEl.hidden = true; // the checkbox owns the year window now
   yearMinInput.disabled = active;
   yearMaxInput.disabled = active;
   if (active) {
@@ -970,10 +969,9 @@ youngTreeToggle.addEventListener('click', () => {
   exitAllModes();
   const active = youngTreeToggle.getAttribute('aria-pressed') !== 'true';
   if (active) {
-    // mutual exclusivity with the "unknown year" toggle
+    // mutual exclusivity with the "unknown year" checkbox
     filterState.yearUnknown = false;
-    yearUnknownToggle.classList.remove('is-active');
-    yearUnknownToggle.setAttribute('aria-pressed', 'false');
+    yearUnknownToggle.checked = false;
   }
   filterState.youngTree = active;
   youngTreeToggle.classList.toggle('is-active', active);
@@ -1343,8 +1341,7 @@ function resetFilterSelection() {
   filterState.species = null;
   filterState.yearUnknown = false;
   filterState.blutbuche = false;
-  yearUnknownToggle.classList.remove('is-active');
-  yearUnknownToggle.setAttribute('aria-pressed', 'false');
+  yearUnknownToggle.checked = false;
   deactivateYoungTree();
   yearMinInput.disabled = false;
   yearMaxInput.disabled = false;

@@ -309,6 +309,22 @@ Raspi's automated commits.
 
 ---
 
+## 2026-10-21 · "Unbekanntes Pflanzjahr" is a checkbox, not a chip/button
+The year-unknown control sits in the Pflanzjahr fieldset as a real
+`<input type="checkbox">` (label `.year-unknown-field`, custom square/lime
+styling). Deliberate choice after discussing a move into "Sammlungen": it is a
+data-quality condition that *stacks* on top of genus/species/collection
+(Hainbuche + unknown year → only undated Hainbuchen), while collection chips
+*replace* each other and the genus selection. A checkbox telegraphs that
+combining behavior; a chip would promise chip semantics. Needs `padding: 0` —
+the shared input padding stretches the custom box otherwise.
+
+**Do not:** restyle it as a `.collection-chip`, move it into the Sammlungen
+panel as a chip, or "unify" it with the young-tree treasure-btn — and keep the
+mutual exclusion with the young-tree toggle (both own the year window).
+
+---
+
 ## 2026-10-21 · Year fields auto-span the current selection
 On every genus/species/collection change (not year-driven changes), the two year
 fields refill with the real planting-year span of that selection
