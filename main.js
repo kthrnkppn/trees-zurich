@@ -38,7 +38,7 @@
 //   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
-import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, selectionDimExpr } from './helpers.js';
+import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, selectionDimExpr, plantingYearSpan } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
@@ -849,6 +849,7 @@ const genusSelect = document.querySelector('#baumgattung_id');
 const artSelect = document.querySelector('#baumart_lat_id');
 const yearMinInput = document.querySelector('#year_min');
 const yearMaxInput = document.querySelector('#year_max');
+const yearAutoHintEl = document.querySelector('#year-auto-hint');
 const yearUnknownToggle = document.querySelector('#year-unknown-toggle');
 const youngTreeToggle = document.querySelector('#young-tree-toggle');
 const youngTreeHint = document.querySelector('#young-tree-hint');
@@ -905,12 +906,14 @@ genusSelect.addEventListener('change', (e) => {
     filterState.genus = genus;
     fillSpecies(genus);
   }
+  syncYearRange(); // year fields re-span the newly selected trees
   applyFilters({ fit: true });
 });
 
 artSelect.addEventListener('change', (e) => {
   const name = e.target.value;
   filterState.species = name === '0' ? null : name;
+  syncYearRange(); // narrowing to a species narrows the shown span too
   applyFilters({ fit: true });
 });
 
@@ -922,6 +925,8 @@ document.querySelector('#apply_filters').addEventListener('click', () => {
     filterState.yearMin = Number(yearMinInput.value) || MIN_YEAR;
     filterState.yearMax = Number(yearMaxInput.value) || MAX_YEAR;
   }
+  yearFieldsDirty = false; // whatever is in the fields is now the applied range
+  if (yearAutoHintEl) yearAutoHintEl.hidden = true; // the values are no longer just informational
   applyFilters({ fit: true });
 });
 
@@ -937,6 +942,7 @@ yearUnknownToggle.addEventListener('click', () => {
   filterState.yearUnknown = active;
   yearUnknownToggle.classList.toggle('is-active', active);
   yearUnknownToggle.setAttribute('aria-pressed', String(active));
+  if (active && yearAutoHintEl) yearAutoHintEl.hidden = true; // the toggle owns the year window now
   yearMinInput.disabled = active;
   yearMaxInput.disabled = active;
   if (active) {
@@ -974,6 +980,7 @@ youngTreeToggle.addEventListener('click', () => {
   youngTreeToggle.setAttribute('aria-pressed', String(active));
   yearMinInput.disabled = active;
   yearMaxInput.disabled = active;
+  if (active && yearAutoHintEl) yearAutoHintEl.hidden = true; // the toggle owns the year window now
   if (active) {
     filterState.yearMin = null;
     filterState.yearMax = null;
@@ -1056,8 +1063,63 @@ document.querySelector('#reset_filters').addEventListener('click', () => {
   yearMaxInput.value = MAX_YEAR;
   filterState.yearMin = null;
   filterState.yearMax = null;
+  yearFieldsDirty = false;
+  if (yearAutoHintEl) yearAutoHintEl.hidden = true;
   applyFilters(); // no auto-zoom on reset
 });
+
+// ─── Auto-spanning year fields ────────────────────────────────────────────────
+// Whenever the selection changes through genus/species/collection (not through
+// the year controls themselves), the two year fields refill with the real
+// planting-year span of that selection — picking "Eiche" shows the oldest
+// oak's year right in the "from" field. This is informational until "Filtern"
+// is pressed; the map itself doesn't narrow any further.
+//
+// The fields keep their values (and their role as a real user constraint)
+// once the user edits them or applies a non-default range: an explicit year
+// window survives selection changes until reset. The one exception is a range
+// equal to the untouched full defaults (1665–current year) — applying that
+// wasn't a real year choice, so it yields to the next auto-span. The two
+// year-owning toggles (unknown year, young trees) always win over auto-fill.
+let yearFieldsDirty = false;
+for (const input of [yearMinInput, yearMaxInput]) {
+  input.addEventListener('input', () => {
+    yearFieldsDirty = true;
+    if (yearAutoHintEl) yearAutoHintEl.hidden = true;
+  });
+}
+
+// Matches the collection/genus/species part of the filter only — the year
+// window is deliberately excluded so the span describes the selection's full
+// date range regardless of any applied year constraint.
+function matchesNonYearFilter(f) {
+  const p = f.properties;
+  if (filterState.collection && !matchesCollection(p, filterState.collection)) return false;
+  if (filterState.genus && p[GENUS_FIELD] !== filterState.genus) return false;
+  if (filterState.species && p[SPECIES_FIELD] !== filterState.species) return false;
+  if (filterState.blutbuche && !BLUTBUCHE_DE_NAMES.includes(p[DE_NAME_FIELD])) return false;
+  return true;
+}
+
+function syncYearRange() {
+  if (filterState.yearUnknown || filterState.youngTree) return;
+  if (yearFieldsDirty) return;
+  // An applied range identical to the untouched full defaults wasn't a real
+  // year choice — drop it so the auto-span below can take over.
+  if (filterState.yearMin === MIN_YEAR && filterState.yearMax === MAX_YEAR) {
+    filterState.yearMin = null;
+    filterState.yearMax = null;
+  } else if (filterState.yearMin != null || filterState.yearMax != null) {
+    return; // a deliberate year window stays until reset
+  }
+  const span = plantingYearSpan(allFeatures, matchesNonYearFilter);
+  if (!span) return; // no dated tree in the selection — leave the fields alone
+  yearMinInput.value = span.min;
+  yearMaxInput.value = span.max;
+  // Only explain the auto-fill when it actually differs from the full range —
+  // otherwise the hint would be noise on every unfiltered view.
+  if (yearAutoHintEl) yearAutoHintEl.hidden = !(span.min > MIN_YEAR || span.max < MAX_YEAR);
+}
 
 // Share the current filter was deferred to a later release (see DECISIONS.md).
 
@@ -1393,6 +1455,7 @@ function toggleCollection(c, btn) {
     filterState.collection = null;
     filterState.genus = null;
     filterState.species = null;
+    syncYearRange(); // back to the whole city — fields re-span everything
     applyFilters(); // no auto-zoom, back to full city
     return;
   }
@@ -1404,6 +1467,7 @@ function toggleCollection(c, btn) {
   filterState.species = null;
   genusSelect.value = '0';
   artSelect.innerHTML = allSpeciesOption();
+  syncYearRange(); // year fields re-span the collection's trees
   applyFilters({ fit: true });
 }
 
@@ -1631,6 +1695,7 @@ function jumpToBlutbuche() {
   exitAllModes();
   resetFilterSelection();
   filterState.blutbuche = true;
+  syncYearRange(); // year fields span the blood beeches
   applyFilters({ fit: true });
 }
 
@@ -1657,6 +1722,7 @@ function jumpToGenusGroup(entry) {
     label: { de: entry.label, en: entry.label },
     genera: entry.genera,
   };
+  syncYearRange(); // year fields span the found genera
   applyFilters({ fit: true });
 }
 

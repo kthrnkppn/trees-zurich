@@ -309,6 +309,26 @@ Raspi's automated commits.
 
 ---
 
+## 2026-10-21 · Year fields auto-span the current selection
+On every genus/species/collection change (not year-driven changes), the two year
+fields refill with the real planting-year span of that selection
+(`plantingYearSpan()` in `helpers.js` + `syncYearRange()` in `main.js`), so
+selecting "Eiche" instantly shows "oldest oak: 1850". Until "Filtern" is
+pressed this is informational only — the map does not narrow further.
+
+**Rules (do not break):**
+- A range the user typed or applied deliberately survives selection changes
+  (`yearFieldsDirty` / non-default applied range). Only a range identical to
+  the untouched full defaults (1665–current year) yields to the next auto-span.
+- The "unknown year" and "young tree" toggles own the year window — never
+  auto-fill while either is active.
+- A selection with no dated trees leaves the fields untouched (`span === null`).
+- Auto-fill never sets `filterState.yearMin/Max` itself; only the "Filtern"
+  button turns the displayed span into a real filter (pre-existing semantics:
+  any applied range excludes undated trees).
+
+---
+
 ## 2026-xx-xx · Geocoder uses Nominatim, not MapLibre's built-in
 Nominatim is free, keyless, and account-free. MapLibre's built-in geocoder requires
 Maptiler/MapBox keys. Privacy principle: no third-party keys, no accounts.

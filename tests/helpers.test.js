@@ -177,6 +177,20 @@ function wikipediaUrl(p, lang = 'de') {
   return `https://${wikiLang}.wikipedia.org/wiki/` + encodeURIComponent(title.replace(/\s+/g, '_'));
 }
 
+// ─── plantingYearSpan() (mirrored from helpers.js — see note above) ──────────
+function plantingYearSpan(features, keep = () => true) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const f of features) {
+    if (!keep(f)) continue;
+    const y = f.properties.pflanzjahr;
+    if (y == null) continue;
+    if (y < min) min = y;
+    if (y > max) max = y;
+  }
+  return min === Infinity ? null : { min, max };
+}
+
 // ─── Synthetic tree fixtures ──────────────────────────────────────────────────
 const makeTree = (overrides = {}) => ({
   baumgattunglat: 'Acer',
@@ -309,6 +323,39 @@ test('No genus at all → empty-ish URL (no crash)', () => {
   const tree = makeTree({ baumgattunglat: '', baumartlat: '', baumnamelat: '', baumnamedeu: '' });
   const url = wikipediaUrl(tree, 'de');
   assert(url.startsWith('https://de.wikipedia.org/wiki/'));
+});
+
+// ─── plantingYearSpan() tests ─────────────────────────────────────────────────
+console.log('\nplantingYearSpan()');
+
+const yearTree = (pflanzjahr) => ({ properties: { pflanzjahr } });
+
+test('Min/max across dated trees, undated ones ignored', () => {
+  const feats = [yearTree(1990), yearTree(1921), yearTree(null), yearTree(2005)];
+  const span = plantingYearSpan(feats);
+  assertEquals(span.min, 1921);
+  assertEquals(span.max, 2005);
+});
+
+test('keep() predicate narrows the span', () => {
+  const feats = [yearTree(1990), yearTree(1921), yearTree(2005)];
+  const span = plantingYearSpan(feats, (f) => f.properties.pflanzjahr !== 1921);
+  assertEquals(span.min, 1990);
+  assertEquals(span.max, 2005);
+});
+
+test('All undated → null (no dated tree)', () => {
+  assertEquals(plantingYearSpan([yearTree(null), yearTree(null)]), null);
+});
+
+test('Empty selection → null', () => {
+  assertEquals(plantingYearSpan([]), null);
+});
+
+test('Single dated tree → min equals max', () => {
+  const span = plantingYearSpan([yearTree(1974)]);
+  assertEquals(span.min, 1974);
+  assertEquals(span.max, 1974);
 });
 
 // ─── Summary ─────────────────────────────────────────────────────────────────

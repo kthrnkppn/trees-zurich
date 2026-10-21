@@ -80,6 +80,23 @@ function isBlutbuche(p) {
   return p.baumgattunglat === 'Fagus' && /blut/i.test(p.baumnamedeu || '');
 }
 
+// Earliest and latest planting year among the features passing `keep`
+// (undated trees — pflanzjahr null — never count). Returns { min, max }, or
+// null when no dated tree passes. Used to auto-fill the year filter fields
+// with the real span of the current selection ("oldest oak: 1900").
+export function plantingYearSpan(features, keep = () => true) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const f of features) {
+    if (!keep(f)) continue;
+    const y = f.properties.pflanzjahr;
+    if (y == null) continue;
+    if (y < min) min = y;
+    if (y > max) max = y;
+  }
+  return min === Infinity ? null : { min, max };
+}
+
 // de.wikipedia has its own dedicated "Blutbuche" article (unlike English,
 // which only disambiguates/mentions it in passing) — route those trees
 // specifically to it instead of the generic "Rotbuche" naive guess.
