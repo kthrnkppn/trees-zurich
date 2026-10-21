@@ -309,6 +309,24 @@ Raspi's automated commits.
 
 ---
 
+## 2026-10-21 · Fountains: show ALL of them, no usability pre-filter
+The fountain layer shows every fountain in the WVZ dataset except the ones
+currently shut off (`abgestellt != "nein"` — a factual status, the only rule
+kept in `scripts/fetch_brunnen.py`). The old first-instance usability filter
+(art=öffentlich, material_trog required, no Notwasserbrunnen, ~783 of ~1288)
+was removed deliberately: it kept excluding usable fountains — street-facing
+ones classified "privat" for sitting on private ground (Katharina's own
+neighbourhood fountain), trough-less columns that still fill a can, drinking
+fountains with scooping basins. Visitors judge accessibility better than the
+dataset does. The young-tree hint wording reflects this: "Blaue Tropfen
+zeigen Brunnen — nicht jeder ist frei zugänglich."
+
+**Do not:** reintroduce an art/trough/brunnenart pre-filter in
+fetch_brunnen.py, and do not add a "private fountain" styling distinction —
+the whole point is to show pins without judging them.
+
+---
+
 ## 2026-10-21 · "Im Sommer" section: seasonal sidebar position
 The young-tree/watering control lives in its own "Im Sommer" panel between
 Filter and Sammlungen in the HTML. From October through April,
