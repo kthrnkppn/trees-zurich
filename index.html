@@ -174,19 +174,6 @@
               <input id="year-unknown-toggle" type="checkbox" />
               <span data-i18n="filter.yearUnknown">Nur Bäume mit unbekanntem Pflanzjahr</span>
             </label>
-            <button
-              id="young-tree-toggle"
-              type="button"
-              class="treasure-btn young-tree-btn"
-              aria-pressed="false"
-              data-i18n="filter.youngTree"
-              data-i18n-title="filter.youngTreeTitle"
-              title="Frisch gepflanzte Bäume (bis zum 5. Standjahr) haben noch flache Wurzeln und freuen sich in Hitze- und Trockenphasen über Wasser – besonders, wenn sie die Blätter hängen lassen oder braune Ränder zeigen."
-            >Durstige Jungbäume</button>
-            <p id="rain-info" class="filter-hint filter-hint-rain" hidden></p>
-            <p id="young-tree-hint" class="filter-hint" hidden data-i18n="filter.youngTreeHint">
-              Richtwert (Grün Stadt Zürich): ~50–70 Liter je Gabe, bei Trockenheit bis zu 3× pro Woche. Wichtig: langsam giessen, damit das Wasser tief einsickert statt oberflächlich abzulaufen. Blaue Tropfen zeigen Brunnen zum Wasserholen.
-            </p>
           </fieldset>
 
           <div class="actions">
@@ -195,6 +182,23 @@
               Zurücksetzen
             </button>
           </div>
+        </section>
+
+        <section class="panel" id="summer-section" aria-labelledby="summer-heading">
+          <h2 id="summer-heading" data-i18n="summer.heading">Im Sommer</h2>
+          <button
+            id="young-tree-toggle"
+            type="button"
+            class="treasure-btn young-tree-btn"
+            aria-pressed="false"
+            data-i18n="filter.youngTree"
+            data-i18n-title="filter.youngTreeTitle"
+            title="Frisch gepflanzte Bäume (bis zum 5. Standjahr) haben noch flache Wurzeln und freuen sich in Hitze- und Trockenphasen über Wasser – besonders, wenn sie die Blätter hängen lassen oder braune Ränder zeigen."
+          >Durstige Jungbäume</button>
+          <p id="rain-info" class="filter-hint filter-hint-rain" hidden></p>
+          <p id="young-tree-hint" class="filter-hint" hidden data-i18n="filter.youngTreeHint">
+            Richtwert (Grün Stadt Zürich): ~50–70 Liter je Gabe, bei Trockenheit bis zu 3× pro Woche. Wichtig: langsam giessen, damit das Wasser tief einsickert statt oberflächlich abzulaufen. Blaue Tropfen zeigen Brunnen zum Wasserholen.
+          </p>
         </section>
 
         <section class="panel" aria-labelledby="collections-heading">

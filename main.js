@@ -38,7 +38,7 @@
 //   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
-import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, selectionDimExpr, plantingYearSpan } from './helpers.js';
+import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, selectionDimExpr, plantingYearSpan, isWateringSeason } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
@@ -993,6 +993,21 @@ youngTreeToggle.addEventListener('click', () => {
   else if (rainInfoEl) rainInfoEl.hidden = true;
   applyFilters({ fit: true });
 });
+
+// Seasonal placement of the "Im Sommer" section: during the watering season
+// (May–September, see isWateringSeason in helpers.js) it sits directly below
+// the filters; the rest of the year it drops below the Sammlungen so the
+// evergreen content comes first. Position only — the control stays visible
+// and functional year-round, and the heading explains itself ("Im Sommer")
+// when it sits lower. Deterministic: everyone sees the same order on the
+// same day.
+function positionSummerSection() {
+  if (isWateringSeason()) return; // stays where the HTML puts it
+  const summerSection = document.querySelector('#summer-section');
+  const collectionsSection = document.querySelector('#collections')?.closest('section');
+  if (summerSection && collectionsSection) collectionsSection.after(summerSection);
+}
+positionSummerSection();
 
 // 30-day rainfall averaged over four MeteoSwiss stations around Zürich:
 // Fluntern (SMA, Zürichberg / east flank), Affoltern (REH, valley floor /

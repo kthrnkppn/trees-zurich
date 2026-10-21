@@ -97,6 +97,17 @@ export function plantingYearSpan(features, keep = () => true) {
   return min === Infinity ? null : { min, max };
 }
 
+// Watering season: May through September — the months in which thirsty young
+// trees (and the drought context around them) are relevant in Zürich,
+// including late-spring and early-autumn dry spells. Drives the seasonal
+// placement of the "Im Sommer" sidebar section: high in season, lower
+// (below the Sammlungen) the rest of the year. Pure date logic so it can be
+// unit-tested; the DOM move lives in main.js.
+export function isWateringSeason(date = new Date()) {
+  const month = date.getMonth() + 1; // 1 = January … 12 = December
+  return month >= 5 && month <= 9;
+}
+
 // de.wikipedia has its own dedicated "Blutbuche" article (unlike English,
 // which only disambiguates/mentions it in passing) — route those trees
 // specifically to it instead of the generic "Rotbuche" naive guess.

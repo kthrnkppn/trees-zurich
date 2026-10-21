@@ -191,6 +191,15 @@ function plantingYearSpan(features, keep = () => true) {
   return min === Infinity ? null : { min, max };
 }
 
+// ─── isWateringSeason() (mirrored from helpers.js — see note above) ──────────
+// Drives the seasonal placement of the "Im Sommer" section: May–September
+// the section rides high below the filters, otherwise it drops below the
+// Sammlungen. The month window is the contract — change both places together.
+function isWateringSeason(date = new Date()) {
+  const month = date.getMonth() + 1; // 1 = January … 12 = December
+  return month >= 5 && month <= 9;
+}
+
 // ─── Synthetic tree fixtures ──────────────────────────────────────────────────
 const makeTree = (overrides = {}) => ({
   baumgattunglat: 'Acer',
@@ -356,6 +365,26 @@ test('Single dated tree → min equals max', () => {
   const span = plantingYearSpan([yearTree(1974)]);
   assertEquals(span.min, 1974);
   assertEquals(span.max, 1974);
+});
+
+// isWateringSeason() — seasonal placement of the "Im Sommer" section
+test('isWateringSeason: May through September → true', () => {
+  for (const m of [5, 6, 7, 8, 9]) {
+    assertEquals(isWateringSeason(new Date(2026, m - 1, 15)), true, `month ${m}`);
+  }
+});
+
+test('isWateringSeason: October through April → false', () => {
+  for (const m of [1, 2, 3, 4, 10, 11, 12]) {
+    assertEquals(isWateringSeason(new Date(2026, m - 1, 15)), false, `month ${m}`);
+  }
+});
+
+test('isWateringSeason: month boundaries — 1 May in, 30 Apr and 1 Oct out', () => {
+  assertEquals(isWateringSeason(new Date(2026, 4, 1)), true);   // 1 May
+  assertEquals(isWateringSeason(new Date(2026, 3, 30)), false); // 30 April
+  assertEquals(isWateringSeason(new Date(2026, 8, 30)), true);  // 30 September
+  assertEquals(isWateringSeason(new Date(2026, 9, 1)), false);  // 1 October
 });
 
 // ─── Summary ─────────────────────────────────────────────────────────────────

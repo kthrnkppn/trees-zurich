@@ -309,6 +309,22 @@ Raspi's automated commits.
 
 ---
 
+## 2026-10-21 · "Im Sommer" section: seasonal sidebar position
+The young-tree/watering control lives in its own "Im Sommer" panel between
+Filter and Sammlungen in the HTML. From October through April,
+`positionSummerSection()` (main.js) moves it below the Sammlungen so
+evergreen content comes first; May–September (`isWateringSeason()` in
+helpers.js, pure + unit-tested) it stays put. Repositioning, never hiding —
+the control must remain visible and functional year-round. Deterministic by
+date: everyone sees the same order on the same day.
+
+**Do not:** hide or remove the section in winter, drive placement from live
+rain data (unpredictable moves), or un-mirror `isWateringSeason` between
+helpers.js and tests/helpers.test.js (the test file mirrors pure functions
+by design — change both together).
+
+---
+
 ## 2026-10-21 · "Unbekanntes Pflanzjahr" is a checkbox, not a chip/button
 The year-unknown control sits in the Pflanzjahr fieldset as a real
 `<input type="checkbox">` (label `.year-unknown-field`, custom square/lime
