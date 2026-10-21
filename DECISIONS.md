@@ -7,6 +7,33 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · One tree card at a time
+
+`openTreePopup()` closes the previously open tree card before opening a new
+one. Plain map clicks never stacked cards (MapLibre's default `closeOnClick`
+closes them), but the jump paths — share links, tree-ID search, stats
+coordinates — bypass the map canvas and previously stacked new cards on top of
+old ones. With tree-ID search this became easily reachable in normal use.
+
+**Do not:** "restore" multi-popup coexistence for the spotlight/dimming stack.
+`openTreePopups` now normally holds a single entry; the stack logic stays as a
+guard for every close path, not as a coexistence feature.
+
+## 2026-10 · Baum-ID search: digit heuristic + gone trees included
+
+Tree IDs (baumnummer) are searchable in "Baum suchen" so a shared `?baum=` link
+is findable in both directions. Two non-obvious choices:
+- **Digit heuristic:** ID matching only runs when the query contains a digit —
+  IDs always have one (`nn-1851`, `WD-13806`), genus/species names never do.
+  This keeps plain name searches free of ID noise and skips the lazy index.
+- **Gone trees are indexed too** (marked "verschwunden"); selecting one reuses
+  `flyToTreeByNummer()`'s graveyard path. Because graveyard data loads *after*
+  the tree data, `treeIdIndex` is reset there (`treeIdIndex = null`) and never
+  cached before `allFeatures` is populated.
+
+**Do not:** drop the digit heuristic or fold IDs into the static `searchIndex`
+(it is built at parse time, before the async tree data exists).
+
 ## 2026-10 · style.css loads AFTER the MapLibre stylesheets
 
 For weeks our `.maplibregl-popup-content` overrides (padding, tip colour,

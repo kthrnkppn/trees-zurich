@@ -512,11 +512,17 @@ function keepPopupOnScreen(popup) {
 // While a tree popup is open, all other tree dots fade to DIM_OPACITY so the
 // selected tree reads as the clear (and only colourful) focus; closing the
 // popup restores the map. Share links open their popup automatically, so a
-// shared tree gets the same spotlight for free. Several popups can coexist
-// (MapLibre leaves old ones open), so the spotlight follows the most recently
-// opened one and falls back to the previous when that closes.
+// shared tree gets the same spotlight for free. Only one tree card is open at
+// a time (openTreePopup closes the previous one), so the stack normally holds
+// a single entry; the pop/fallback logic below still guards every close path.
 const openTreePopups = [];
 const DIM_OPACITY = 0.25;
+
+// One tree card at a time — shared by openTreePopup (new card replaces old)
+// and flyToGoneTree (the card must not outlive the map flight away from it).
+function closeOpenTreePopups() {
+  while (openTreePopups.length) openTreePopups.pop().popup.remove();
+}
 
 // Re-derives the dimming paint from the open-popup stack. Popups whose tree
 // has no baumnummer (pre-ID graveyard ghosts) never enter the stack and are
@@ -542,6 +548,11 @@ function updateTreeDimming() {
 // Opens a tree's popup and keeps it on-screen as its content resizes (see
 // keepPopupOnScreen above).
 function openTreePopup(lngLat, properties) {
+  // One tree card at a time: opening a new one closes the previous. Plain map
+  // clicks already behave this way via MapLibre's closeOnClick; the jump paths
+  // (share links, tree-ID search, stats coordinates) bypass the map, so they
+  // must close the old card themselves or cards would stack up.
+  closeOpenTreePopups();
   // focusAfterOpen: false — MapLibre's default focuses the first link inside
   // the popup (the tree name), which paints the browser's default blue focus
   // ring over it, one box per wrapped line. We focus the card as a whole
@@ -630,6 +641,7 @@ map.on('load', async () => {
   }
   const revealed = pickRevealedGoneYear(goneTreesData.features || []);
   graveyardFeatures = goneTreesData.features || [];
+  treeIdIndex = null; // rebuild lazily so gone trees are searchable too
   goneRevealYear = revealed.year;
   goneTreesFeatures = revealed.features;
   setupGoneTreesButton();
@@ -1453,12 +1465,70 @@ searchIndex.push({
   search: 'blutbuche blut-buche fagus sylvatica purpurea copper beech',
 });
 
+// Baumnummern (tree IDs) are the identity behind share links (?baum=…), so a
+// shared tree must also be findable through "Baum suchen". IDs are not part of
+// the static genus/species index (the tree data loads asynchronously); they are
+// indexed lazily on the first ID-like query. Gone trees from the graveyard are
+// included and marked — selecting one flies to the last known spot, exactly
+// like opening a share link for a tree that has since disappeared.
+let treeIdIndex = null;
+function ensureTreeIdIndex() {
+  // Never cache an index built before the tree data arrived.
+  if (!allFeatures.length) return null;
+  if (treeIdIndex) return treeIdIndex;
+  treeIdIndex = new Map();
+  const add = (f, gone) => {
+    const id = f.properties?.[ID_FIELD];
+    if (!id || treeIdIndex.has(String(id).toLowerCase())) return;
+    treeIdIndex.set(String(id).toLowerCase(), {
+      id: String(id),
+      name: f.properties[DE_NAME_FIELD] || f.properties[LATIN_NAME_FIELD] || '',
+      gone,
+    });
+  };
+  for (const f of allFeatures) add(f, false);
+  for (const f of graveyardFeatures) add(f, true);
+  return treeIdIndex;
+}
+
+// Matching ignores case and separators, so "wd-13806" and "WD 13806" both find
+// "WD-13806".
+const compactId = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// An ID always contains a digit; genus and species names never do, so plain
+// name searches never pay the ID-lookup cost.
+function findTreeIdSuggestions(q) {
+  if (!/\d/.test(q)) return [];
+  const cq = compactId(q);
+  if (cq.length < 3) return [];
+  const idx = ensureTreeIdIndex();
+  if (!idx) return [];
+  const exact = [];
+  const prefix = [];
+  for (const [key, e] of idx) {
+    const ck = compactId(key);
+    if (ck === cq) exact.push(e);
+    else if (ck.startsWith(cq)) prefix.push(e);
+  }
+  return [...exact, ...prefix].slice(0, 8).map((e) => ({
+    kind: 'tree',
+    id: e.id,
+    label: e.id,
+    sub: e.gone
+      ? `${t('search.treeId')} · ${t('search.treeGone')}`
+      : `${t('search.treeId')} · ${e.name}`,
+  }));
+}
 let suggestions = [];
 let activeSuggestion = -1;
 
 function searchTrees(query) {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
+  const idMatches = findTreeIdSuggestions(q);
+  // A fully typed tree ID is unambiguous — show the tree alone instead of
+  // mixing in genus/species names that happen to contain the same letters.
+  if (idMatches.some((e) => e.label.toLowerCase() === q)) return idMatches;
   const starts = [];
   const contains = [];
   for (const e of searchIndex) {
@@ -1467,7 +1537,7 @@ function searchTrees(query) {
     if (i === 0 || e.search.includes(' ' + q)) starts.push(e);
     else contains.push(e);
   }
-  return [...starts, ...contains].slice(0, 8);
+  return [...idMatches, ...starts, ...contains].slice(0, 8);
 }
 
 function hideSuggestions() {
@@ -1520,7 +1590,8 @@ function selectSuggestion(idx) {
   if (!e) return;
   treeSearchInput.value = e.label;
   hideSuggestions();
-  if (e.kind === 'genus') jumpToGenus(e.genus);
+  if (e.kind === 'tree') flyToTreeByNummer(e.id);
+  else if (e.kind === 'genus') jumpToGenus(e.genus);
   else if (e.kind === 'blutbuche') jumpToBlutbuche();
   else jumpToSpecies(e.genus, e.art);
 }
@@ -1878,6 +1949,7 @@ function flyToTreeByNummer(nummer) {
 function flyToGoneTree(nummer) {
   const f = graveyardFeatures.find((ft) => ft.properties?.[ID_FIELD] === nummer);
   if (!f) return showGeoToast('share.notFound', undefined, 4000);
+  closeOpenTreePopups(); // the map flies away — the old card must not linger
   const [lng, lat] = f.geometry.coordinates;
   flyToStable(lng, lat);
   showGeoToast('share.gone', undefined, 12000);
