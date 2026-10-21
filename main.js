@@ -1529,15 +1529,64 @@ function searchTrees(query) {
   // A fully typed tree ID is unambiguous — show the tree alone instead of
   // mixing in genus/species names that happen to contain the same letters.
   if (idMatches.some((e) => e.label.toLowerCase() === q)) return idMatches;
-  const starts = [];
-  const contains = [];
+  // Ranking has two independent dimensions:
+  // 1. Match quality per entry — exact whole word ("linde" in "linde tilia"),
+  //    then word-final compound ("linde" in "sommerlinde"), then word-start
+  //    prefix ("linde" in "lindenblättrige…"), then loose substring.
+  // 2. Genus before species — a query that matches a genus name means "show
+  //    me that genus", so Enter must apply the genus filter (like the legend
+  //    chips) rather than jumping to whichever species merely shares letters.
+  //    This holds across match-quality tiers: "Kastanie" must filter the
+  //    Edelkastanie genus even though "Kastanienblättrige Eiche" is a better
+  //    textual match.
+  // Hyphens are ignored on both sides, so "stieleiche" finds "Stiel-Eiche"
+  // and "blutbuche" finds "blut-buche" — German tree names are full of
+  // hyphens, users type without. (The tree-ID search already ignores
+  // separators the same way.)
+  const qc = q.replace(/-/g, '');
+  const rank = (e) => {
+    const hay = e.search.replace(/-/g, '');
+    const i = hay.indexOf(qc);
+    if (i === -1) return -1;
+    if (hay === qc || hay.startsWith(qc + ' ')) return 0;
+    if (hay.split(/[\s/]+/).some((w) => w.endsWith(qc))) return 1;
+    if (i === 0 || hay.includes(' ' + qc)) return 2;
+    return 3;
+  };
+  const genusPairs = [];
+  const otherPairs = [];
   for (const e of searchIndex) {
-    const i = e.search.indexOf(q);
-    if (i === -1) continue;
-    if (i === 0 || e.search.includes(' ' + q)) starts.push(e);
-    else contains.push(e);
+    const r = rank(e);
+    if (r === -1) continue;
+    (e.kind === 'genus' ? genusPairs : otherPairs).push({ e, r });
   }
-  return [...idMatches, ...starts, ...contains].slice(0, 8);
+  const byRank = (l) => l.sort((a, b) => a.r - b.r).map((x) => x.e);
+  let results = [
+    ...idMatches,
+    ...byRank(genusPairs),
+    ...byRank(otherPairs),
+  ];
+  // Genus group: a search term that is the *tail* of genus names gathers all
+  // of them — "Kastanie" ends both "Rosskastanie" and "Edelkastanie", "Buche"
+  // ends "Hainbuche" and "Südbuche", "Tanne" ends "Schirmtanne". Whoever
+  // types such a word means "everything called that", so one entry filters
+  // all these genera at once (exact-name members included). A full genus name
+  // stays alone though: "Walnuss" must not drag in the Flügelnuss, and
+  // "Linde" stays Tilia because no other genus name ends in "-linde". So a
+  // group only forms when at least one proper compound match exists. The
+  // label ("… · 2 Gattungen") says this outright.
+  if (genusPairs.some((p) => p.r === 1)) {
+    let members = genusPairs.filter((p) => p.r === 0 || p.r === 1);
+    // Once the data is loaded, drop group members that don't exist in the
+    // city — before that, genusCounts is empty and everything stays in.
+    if (genusCounts.size) {
+      members = members.filter((p) => genusCount(p.e.genus) > 0);
+    }
+    if (members.length >= 2) {
+      results = [genusGroupEntry(q, members.map((p) => p.e)), ...results];
+    }
+  }
+  return results.slice(0, 8);
 }
 
 function hideSuggestions() {
@@ -1585,6 +1634,32 @@ function jumpToBlutbuche() {
   applyFilters({ fit: true });
 }
 
+// A search term spanning several genera (e.g. "Kastanie" → Ross- +
+// Edelkastanie) filters all of them at once. It rides the same mechanism as
+// the curated collections — a synthetic collection object holding exactly
+// those genera — so the legend lists just those genera with their counts and
+// each stays clickable to drill into one of them.
+function genusGroupEntry(q, entries) {
+  const genera = entries.map((e) => e.genus);
+  return {
+    kind: 'genusgroup',
+    genera,
+    label: `${q.trim().charAt(0).toUpperCase()}${q.trim().slice(1)} · ${genera.length} ${t('search.genusGroup')}`,
+    sub: genera.map(genusName).join(' · '),
+  };
+}
+
+function jumpToGenusGroup(entry) {
+  exitAllModes();
+  resetFilterSelection();
+  filterState.collection = {
+    id: 'search:' + entry.genera.join(','),
+    label: { de: entry.label, en: entry.label },
+    genera: entry.genera,
+  };
+  applyFilters({ fit: true });
+}
+
 function selectSuggestion(idx) {
   const e = suggestions[idx];
   if (!e) return;
@@ -1593,6 +1668,7 @@ function selectSuggestion(idx) {
   if (e.kind === 'tree') flyToTreeByNummer(e.id);
   else if (e.kind === 'genus') jumpToGenus(e.genus);
   else if (e.kind === 'blutbuche') jumpToBlutbuche();
+  else if (e.kind === 'genusgroup') jumpToGenusGroup(e);
   else jumpToSpecies(e.genus, e.art);
 }
 

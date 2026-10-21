@@ -7,6 +7,60 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · Tree search: genus intent wins on Enter
+
+Plain "Linde" + Enter used to jump to "Lindenblättrige Birke" because Enter
+picks `suggestions[0]` and the old order followed catalogue index order —
+prefix matches ("lindenblättrige…" starts with "linde") outranked the genus
+entry whenever that genus came later in `treeMeta.genera`. `searchTrees()` now
+ranks on two independent dimensions: match quality (exact whole word →
+word-final compound like "sommerlinde" → word-start prefix → loose substring;
+hyphens ignored on both sides so "stieleiche" finds "Stiel-Eiche") and **genus
+before species across all quality tiers**. A query that matches any genus name
+means "show me that genus", so Enter applies the genus filter — identical to
+clicking the legend chip. Species-intent queries still win once no genus name
+matches ("Rotbuche", "Lindenblättrige", "Stieleiche").
+
+**Do not:** "simplify" the genus-first rule back into a single quality-sorted
+list — that reintroduces the Enter-jumps-to-wrong-species bug for "Kastanie"
+(vs. "Kastanienblättrige Eiche") and friends. Also keep the hyphen-stripping
+in `rank()`: genus/species haystacks are hyphenated, queries are not.
+
+## 2026-10 · Search genus groups: compound names filter several genera
+
+User expectation (Katharina): "Kastanie" + Enter should show Ross- AND
+Edelkastanie — every tree commonly called that. Refining her follow-up
+("most people don't care that a Hainbuche isn't a Buche"), the rule became
+**tail matching**: a search term gathers every genus whose name *ends* with
+it (exact names included) into one group — "Kastanie" → Ross-/Edelkastanie,
+"Buche" → Fagus + Hainbuche + Südbuche + Hopfenbuche, "Tanne" → Abies +
+Spiesstanne + Schirmtanne + Hemlocktanne. A group only forms when at least
+one *proper compound* match exists, so a full genus name stays alone:
+"Walnuss" must not drag in the Flügelnuss, and "Linde" stays Tilia because
+no other genus name ends in "-linde" (the "Steinlinde" is Phillyrea anyway,
+whose genus entry has no German alias in GenusDeNames).
+
+Selecting the group entry (kind `genusgroup`, label like "Buche · 4
+Gattungen") calls `jumpToGenusGroup()`, which sets `filterState.collection`
+to a **synthetic collection object** (`{ id: 'search:…', genera }`) — the
+exact mechanism the curated collection chips use, so legend, counts,
+drill-down and reset all work for free.
+
+- Group members are dropped when absent from the loaded data (`genusCount >
+  0`, guarded by `genusCounts.size` since the index exists before data load).
+- The rank's token split is `/[\s/]+/`, not just whitespace: Prunus's genus
+  name is "Kirsche/Pflaume", and without slash splitting "Kirsche" would
+  miss the genus entirely and fall through to a species match.
+- No chip exists for the group; the escape path is the genus dropdown "Alle
+  Gattungen" (its change handler clears `filterState.collection`).
+
+**Do not:** reuse curated collection ids or add the group to
+`collectionChips` — the synthetic id never matches a chip, which is what
+keeps the chips' active-state logic untouched. And do not "fix" the
+generous tail matches (Ölweide inside "Weide", Heckenkirsche inside
+"Kirsche"): that generosity is the point — the group label and legend name
+every member, so nothing is hidden from the user.
+
 ## 2026-10 · One tree card at a time
 
 `openTreePopup()` closes the previously open tree card before opening a new

@@ -160,6 +160,7 @@ const strings = {
     'map.attribution':
       'Baumdaten: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">Stadt Zürich (Baumkataster)</a>',
     'search.genus': 'Gattung',
+    'search.genusGroup': 'Gattungen',
     'search.species': 'Art',
     'search.treeId': 'Baum-ID',
     'search.treeGone': 'verschwunden',
@@ -295,6 +296,7 @@ const strings = {
     'map.attribution':
       'Tree data: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" target="_blank" rel="noopener">City of Zurich (tree cadastre)</a>',
     'search.genus': 'Genus',
+    'search.genusGroup': 'genera',
     'search.species': 'Species',
     'search.treeId': 'Tree ID',
     'search.treeGone': 'gone',
