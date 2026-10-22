@@ -118,6 +118,8 @@ const strings = {
     'filter.searchPlaceholder': 'z.B. Eiche, Olive, Acer oder Baum-ID …',
     'filter.genus': 'Baumgattung',
     'filter.allGenera': 'Alle Gattungen',
+
+    'filter.speciesCount': '{n} Arten',
     'filter.species': 'Baumart',
     'filter.allSpecies': 'Alle Arten',
     'filter.year': 'Pflanzjahr',
@@ -257,6 +259,8 @@ const strings = {
     'filter.searchPlaceholder': 'e.g. oak, olive, Acer or tree ID …',
     'filter.genus': 'Genus',
     'filter.allGenera': 'All genera',
+
+    'filter.speciesCount': '{n} species',
     'filter.species': 'Species',
     'filter.allSpecies': 'All species',
     'filter.year': 'Planting year',

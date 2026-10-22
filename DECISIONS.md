@@ -7,6 +7,48 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · Every control mirrors its own slice of the filter state
+
+The old genus-group behaviour faked a state: the search field showed
+"Kastanie · 2 Gattungen" (not a real search term) while the genus dropdown
+claimed "Alle Gattungen" over an already-filtered map. Katharina's redesign
+rule: **each control honestly shows its own dimension** — search field = the
+name/query ("Kastanie" raw; "Allergiebäume" for a curated chip, even though
+nothing was typed), genus dropdown = the active scope, species dropdown = the
+scope's species, year fields = the auto-span.
+
+Implementation (`applyCollectionScope` in main.js, one path for curated chips
+AND synthetic search groups):
+- Scoped genus dropdown: "Alle Gattungen" (exit) + a `__scope__` option
+  ("n Gattungen", selected) + only the member genera — NOT all ~115. This
+  kills the "field says Allergiebäume, pick Taschentuchbaum below" mismatch.
+- Species dropdown lists all scope species in `<optgroup>`s per genus, values
+  encoded `Genus|art` (epithets repeat across genera). Picking one narrows to
+  that single genus (scope ends, chip deactivates, field clears) and selects
+  the species via `jumpToSpecies`.
+- `searchFieldShowsCollection` flag: a scope label leaves the field when the
+  scope ends (reset, drill-down, chip toggle-off); user-typed text survives
+  reset as before. Typing over a scope keeps it applied until a new selection
+  or reset (typing only opens suggestions).
+- After `fillGenusSelect()` inside the genus change handler, re-select the
+  picked genus — the rebuild resets the select's value to '0' otherwise
+  (display lies while the filter is right).
+- The species dropdown mirrors the same pattern (Katharina): resting display
+  is a count entry ("36 Arten" / "{n} species", `filter.speciesCount`,
+  selected via the same `__scope__` sentinel), "Alle Arten" stays the first
+  option and the clear-action, grouped species open below. Applies to
+  multi-genus scopes AND single-genus lists (fillSpecies). Picking the count
+  entry means "no species picked" — never filter on the sentinel value.
+
+**Do not:** show "Alle Gattungen" while a collection is active, put the scope
+label into the search field as if it were a query result ("Kastanie · 2
+Gattungen" there is dead), or leave the full genus list in the dropdown under
+a scope. This state shape is the contract a future shareable-filter URL
+(`?f=…`) will encode — keep curated-by-id vs. synthetic-genera-list distinct
+when serializing.
+
+---
+
 ## 2026-10 · Tree search: genus intent wins on Enter
 
 Plain "Linde" + Enter used to jump to "Lindenblättrige Birke" because Enter

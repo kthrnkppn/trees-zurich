@@ -872,34 +872,89 @@ for (const input of [yearMinInput, yearMaxInput]) {
 yearMinInput.value = MIN_YEAR;
 yearMaxInput.value = MAX_YEAR;
 
+// True while the search field displays a collection/scope name ("Allergiebäume")
+// rather than something the user typed — such a label must leave the field when
+// the scope ends (reset, genus drill-down), a typed query must survive it.
+let searchFieldShowsCollection = false;
+
 // Genus dropdown: curated name (de/en) with Latin in parentheses where known,
-// else Latin only.
-for (const genus of treeMeta.genera) {
-  const name = genusName(genus);
-  const option = document.createElement('option');
-  option.value = genus;
-  option.textContent = name !== genus ? `${name} (${genus})` : genus;
-  genusSelect.appendChild(option);
+// else Latin only. Rebuilt whenever a collection scope hands the dropdown back.
+function fillGenusSelect() {
+  genusSelect.innerHTML = '';
+  const all = document.createElement('option');
+  all.value = '0';
+  all.textContent = t('filter.allGenera');
+  genusSelect.appendChild(all);
+  for (const genus of treeMeta.genera) {
+    const name = genusName(genus);
+    const option = document.createElement('option');
+    option.value = genus;
+    option.textContent = name !== genus ? `${name} (${genus})` : genus;
+    genusSelect.appendChild(option);
+  }
 }
+fillGenusSelect();
+
+// The resting display of a filled species dropdown mirrors the genus scope:
+// "Alle Arten" (the clear-action) first, then a count entry ("36 Arten") that
+// is selected — the grouped species appear when the dropdown opens. Reuses the
+// '__scope__' sentinel value; the change handler treats it as "no species".
+const speciesCountOption = (n) =>
+  `<option value="__scope__">${t('filter.speciesCount', { n })}</option>`;
 
 function fillSpecies(genus) {
-  artSelect.innerHTML = allSpeciesOption();
-  for (const { art, label } of treeMeta.speciesByGenus[genus] || []) {
+  const list = treeMeta.speciesByGenus[genus] || [];
+  artSelect.innerHTML = allSpeciesOption() + (list.length ? speciesCountOption(list.length) : '');
+  for (const { art, label } of list) {
     const option = document.createElement('option');
     option.value = art; // baumartlat — selecting it shows all cultivars
     option.textContent = speciesLabel(genus, art, label);
     artSelect.appendChild(option);
   }
+  if (list.length) artSelect.value = '__scope__';
+}
+
+// Species of a multi-genus scope (collection or search group), grouped under
+// their genus so people can explicitly pick what they want to know. Values
+// encode the genus ("Genus|art") because Latin epithets repeat across genera
+// ("japonica", "sylvatica") — the single-genus fillSpecies() keeps plain art
+// values, so the change handler tells the two apart by the separator.
+function fillSpeciesForGenera(genera) {
+  const total = genera.reduce((s, g) => s + (treeMeta.speciesByGenus[g]?.length || 0), 0);
+  artSelect.innerHTML = allSpeciesOption() + (total ? speciesCountOption(total) : '');
+  for (const genus of genera) {
+    const list = treeMeta.speciesByGenus[genus] || [];
+    if (!list.length) continue;
+    const group = document.createElement('optgroup');
+    group.label = genusName(genus);
+    for (const { art, label } of list) {
+      const option = document.createElement('option');
+      option.value = `${genus}|${art}`;
+      option.textContent = speciesLabel(genus, art, label);
+      group.appendChild(option);
+    }
+    artSelect.appendChild(group);
+  }
+  if (total) artSelect.value = '__scope__';
 }
 
 genusSelect.addEventListener('change', (e) => {
   exitAllModes();
   const genus = e.target.value;
-  filterState.species = null; // species are scoped to a genus
+  const hadScope = !!filterState.collection;
   // Genus and collections are mutually exclusive.
   filterState.collection = null;
   clearCollectionUI();
-  if (genus === '0') {
+  filterState.species = null; // species are scoped to a genus
+  if (hadScope) {
+    // Leaving a collection/group scope: the dropdown hands back the full genus
+    // list and the scope name leaves the search field.
+    fillGenusSelect();
+    if (genus !== '0' && genus !== '__scope__') genusSelect.value = genus; // the rebuild reset the selection
+    if (searchFieldShowsCollection) treeSearchInput.value = '';
+    searchFieldShowsCollection = false;
+  }
+  if (genus === '0' || genus === '__scope__') {
     filterState.genus = null;
     artSelect.innerHTML = allSpeciesOption();
   } else {
@@ -911,8 +966,22 @@ genusSelect.addEventListener('change', (e) => {
 });
 
 artSelect.addEventListener('change', (e) => {
-  const name = e.target.value;
-  filterState.species = name === '0' ? null : name;
+  const value = e.target.value;
+  if (value === '__scope__') {
+    // The count entry ("36 Arten") — a display of the list size, not a filter.
+    filterState.species = null;
+    syncYearRange();
+    applyFilters({ fit: true });
+    return;
+  }
+  if (value.includes('|')) {
+    // A species picked from a multi-genus scope list — narrow to that one
+    // genus (the genus change handler clears the scope) and select the species.
+    const sep = value.indexOf('|');
+    jumpToSpecies(value.slice(0, sep), value.slice(sep + 1));
+    return;
+  }
+  filterState.species = value === '0' ? null : value;
   syncYearRange(); // narrowing to a species narrows the shown span too
   applyFilters({ fit: true });
 });
@@ -1349,6 +1418,7 @@ function exitAllModes() {
 // so this runs alongside exitAllModes() whenever entering one of them or resetting.
 function resetFilterSelection() {
   clearCollectionUI();
+  fillGenusSelect(); // a scoped dropdown hands back the full genus list
   genusSelect.value = '0';
   artSelect.innerHTML = allSpeciesOption();
   filterState.collection = null;
@@ -1360,6 +1430,8 @@ function resetFilterSelection() {
   deactivateYoungTree();
   yearMinInput.disabled = false;
   yearMaxInput.disabled = false;
+  if (searchFieldShowsCollection) treeSearchInput.value = '';
+  searchFieldShowsCollection = false;
   if (filterCountElem) filterCountElem.hidden = true; // gold-star / new / gone modes own the footer count
 }
 
@@ -1458,29 +1530,73 @@ function clearCollectionUI() {
   }
 }
 
-function toggleCollection(c, btn) {
+// While a collection/group scope is active, the genus dropdown mirrors exactly
+// that scope instead of listing every genus in the city: "Alle Gattungen" (the
+// exit), the scope entry ("n Gattungen" — the name lives in the search field),
+// then the member genera for explicit drill-down.
+function setGenusScope(genera) {
+  genusSelect.innerHTML = '';
+  const all = document.createElement('option');
+  all.value = '0';
+  all.textContent = t('filter.allGenera');
+  genusSelect.appendChild(all);
+  const scope = document.createElement('option');
+  scope.value = '__scope__';
+  scope.textContent = `${genera.length} ${t('search.genusGroup')}`;
+  genusSelect.appendChild(scope);
+  genusSelect.value = '__scope__';
+  for (const genus of genera) {
+    const name = genusName(genus);
+    const option = document.createElement('option');
+    option.value = genus;
+    option.textContent = name !== genus ? `${name} (${genus})` : genus;
+    genusSelect.appendChild(option);
+  }
+}
+
+// One unified path for every "collection-like" scope — curated theme chips
+// (Allergiebäume, …) and search-derived genus groups (Kastanie → Ross- +
+// Edelkastanie) alike. Each control honestly mirrors its slice: the search
+// field shows the name (or the raw query), the genus dropdown shows the scope
+// with its member genera, the species dropdown lists all of the scope's
+// species grouped by genus, the year fields auto-span. This single state shape
+// is also what a future shareable-filter URL will encode.
+function applyCollectionScope(c, searchFieldText) {
   exitAllModes();
+  resetFilterSelection();
+  filterState.collection = c;
+  const chip = collectionChips.get(c.id);
+  if (chip) {
+    chip.classList.add('is-active');
+    chip.setAttribute('aria-pressed', 'true');
+  }
+  setGenusScope(c.genera);
+  fillSpeciesForGenera(c.genera);
+  treeSearchInput.value = searchFieldText;
+  searchFieldShowsCollection = true;
+  syncYearRange(); // year fields re-span the scope's trees
+  applyFilters({ fit: true });
+}
+
+function toggleCollection(c, btn) {
   const wasActive = filterState.collection?.id === c.id;
-  clearCollectionUI();
   if (wasActive) {
     // Toggling off: drop the collection and any genus drilled into within it.
+    exitAllModes();
     filterState.collection = null;
     filterState.genus = null;
     filterState.species = null;
+    clearCollectionUI();
+    fillGenusSelect(); // scoped dropdown hands back the full genus list
+    genusSelect.value = '0';
+    artSelect.innerHTML = allSpeciesOption();
+    treeSearchInput.value = ''; // the collection name leaves the field
+    searchFieldShowsCollection = false;
     syncYearRange(); // back to the whole city — fields re-span everything
     applyFilters(); // no auto-zoom, back to full city
     return;
   }
-  filterState.collection = c;
-  btn.classList.add('is-active');
-  btn.setAttribute('aria-pressed', 'true');
-  // A collection replaces any manual genus/species selection.
-  filterState.genus = null;
-  filterState.species = null;
-  genusSelect.value = '0';
-  artSelect.innerHTML = allSpeciesOption();
-  syncYearRange(); // year fields re-span the collection's trees
-  applyFilters({ fit: true });
+  applyCollectionScope(c, localized(c.label));
 }
 
 for (const c of collections) {
@@ -1721,27 +1837,32 @@ function genusGroupEntry(q, entries) {
   return {
     kind: 'genusgroup',
     genera,
+    query: q.trim(), // the raw search term — it stays in the search field
     label: `${q.trim().charAt(0).toUpperCase()}${q.trim().slice(1)} · ${genera.length} ${t('search.genusGroup')}`,
     sub: genera.map(genusName).join(' · '),
   };
 }
 
 function jumpToGenusGroup(entry) {
-  exitAllModes();
-  resetFilterSelection();
-  filterState.collection = {
-    id: 'search:' + entry.genera.join(','),
-    label: { de: entry.label, en: entry.label },
-    genera: entry.genera,
-  };
-  syncYearRange(); // year fields span the found genera
-  applyFilters({ fit: true });
+  // The raw query ("Kastanie") stays in the search field; the resolved scope
+  // shows up where it belongs — genus dropdown ("2 Gattungen" + members),
+  // species dropdown and legend.
+  applyCollectionScope(
+    {
+      id: 'search:' + entry.genera.join(','),
+      label: { de: entry.label, en: entry.label },
+      genera: entry.genera,
+    },
+    entry.query
+  );
 }
 
 function selectSuggestion(idx) {
   const e = suggestions[idx];
   if (!e) return;
-  treeSearchInput.value = e.label;
+  // A genus group keeps the raw query in the field — the resolved scope is
+  // shown by the genus dropdown, not by faking a search term.
+  treeSearchInput.value = e.kind === 'genusgroup' ? e.query : e.label;
   hideSuggestions();
   if (e.kind === 'tree') flyToTreeByNummer(e.id);
   else if (e.kind === 'genus') jumpToGenus(e.genus);
