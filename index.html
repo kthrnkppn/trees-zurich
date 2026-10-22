@@ -127,7 +127,18 @@
         </noscript>
 
         <section class="panel" aria-labelledby="filter-heading">
-          <h2 id="filter-heading" data-i18n="filter.heading">Filter</h2>
+          <div class="panel-head">
+            <h2 id="filter-heading" data-i18n="filter.heading">Filter</h2>
+            <button
+              id="share-filter"
+              type="button"
+              class="share-filter-btn"
+              aria-label="Filter teilen"
+              data-i18n-aria-label="filter.share"
+              title="Filter teilen"
+              data-i18n-title="filter.share"
+            ><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/></svg></button>
+          </div>
           <p id="filter-count" class="filter-count" hidden></p>
 
           <div class="field tree-search-field">

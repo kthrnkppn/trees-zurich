@@ -147,8 +147,8 @@ body {
 }
 /* Small "?" button reopening the onboarding intro at any time. */
 .help-btn {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   margin-top: 4px;
   font-family: var(--font-ui);
   font-size: 13px;
@@ -179,7 +179,7 @@ body {
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.06em;
-  padding: 3px 9px;
+  padding: 8px 10px; /* short labels need padding for a real touch target */
   background: transparent;
   color: var(--paper-dim);
   border: 0;
@@ -240,6 +240,41 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--paper-dim);
+}
+
+/* Panel heading rows that carry an action — the Filter panel's share button. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.panel-head h2 {
+  margin: 0; /* the row provides the heading's bottom spacing */
+}
+/* Shares the current filter as a link — same icon language as the tree
+   cards' share button, but placed where the thing being shared lives. */
+.share-filter-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--paper-dim);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.share-filter-btn:hover {
+  color: var(--paper);
+  background: var(--hover-dark);
+}
+.share-filter-btn:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 1px;
 }
 
 /* Live match count, mirrored up by the filter controls so a rare-tree
@@ -754,6 +789,16 @@ body {
 .maplibregl-ctrl-geocoder {
   border-radius: 0 !important;
 }
+/* Touch targets: the library's 29px control buttons (location, zoom, compass,
+   fullscreen) sit below the 44px touch guideline and are genuinely hard to
+   hit on a phone. 40px keeps them comfortable without ballooning the UI; the
+   icons are centred background images, so they scale with the button. */
+.maplibregl-ctrl-group button,
+button.maplibregl-ctrl-geolocate,
+button.maplibregl-ctrl-fullscreen {
+  width: 40px;
+  height: 40px;
+}
 
 /* ---- Geolocation message toast (errors the map library swallows) ---- */
 .geo-toast {
@@ -816,14 +861,16 @@ body {
    as a full-bleed tinted band. A light green wash — lighter than and distinct
    from the warm world-event box at the bottom — so the card reads as: this
    tree (green band) → its species (plain paper) → that year (beige box).
-   Right padding reserves the × close button's column (24px box at the corner)
-   plus a visible gap, so the name always wraps before entering the × zone. */
+   Right padding reserves the × close button's column (36px box at the corner)
+   plus a visible gap, so the name always wraps before entering the × zone.
+   The white strip is as tall as the × itself, so the button sits entirely on
+   plain paper — its (invisible) hover background never cuts into the tint. */
 .tp-head {
   /* PREVIEW: a full-width white strip above the name (the ×'s row) — the tint
      starts below it, so the close button sits on plain paper, not the band. */
-  padding: 34px 36px 12px 14px;
+  padding: 44px 46px 12px 14px;
   background:
-    linear-gradient(var(--paper), var(--paper)) left top / 100% 26px no-repeat,
+    linear-gradient(var(--paper), var(--paper)) left top / 100% 36px no-repeat,
     var(--band);
   border-bottom: 1px solid var(--line-light);
 }
@@ -876,8 +923,11 @@ body {
    hugs the text whether the name fits on one line or wraps — it can never
    drift to the popup's edge and get mistaken for a companion of the close
    button in the corner. The negative vertical-align optically centers the
-   15px icon against the 17.5px title's cap height. */
+   15px icon against the 17.5px title's cap height. The invisible ::after
+   extends the 15px glyph to a real touch target without disturbing the
+   inline flow (WCAG 2.5.8 — a 15px tap target is un-hittable on phones). */
 .tp-share {
+  position: relative;
   border: none;
   background: none;
   padding: 0;
@@ -887,11 +937,27 @@ body {
   color: var(--ink-muted);
   cursor: pointer;
 }
+.tp-share::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
 .tp-share:hover {
   color: var(--forest);
 }
+.tp-share:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
 .tp-share svg {
   display: block;
+}
+/* Coarse pointers (fingers, not mice): the hit area grows to the 44px
+   guideline. Desktop mice keep the tighter −9px extension. */
+@media (pointer: coarse) {
+  .tp-share::after {
+    inset: -14px;
+  }
 }
 .tp-wiki {
   display: inline-block;
@@ -929,9 +995,20 @@ body {
   text-decoration: underline;
 }
 .maplibregl-popup-close-button {
-  font-size: 18px;
-  width: 24px;
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--ink-muted);
+}
+.maplibregl-popup-close-button:hover {
+  color: var(--ink);
+}
+.maplibregl-popup-close-button:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: -2px; /* inside, so the ring never leaves the card */
 }
 .tp-event {
   margin-top: 12px;
@@ -942,7 +1019,7 @@ body {
 /* The fountain popup has no header band, so it carries the card's padding
    itself (the tree popup's card is padding: 0 — see .maplibregl-popup-content). */
 .fountain-popup {
-  padding: 14px 30px 16px 14px;
+  padding: 14px 46px 16px 14px; /* right side reserves the × column */
 }
 .tp-event-label {
   font-family: var(--font-ui);

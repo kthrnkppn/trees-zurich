@@ -156,7 +156,7 @@ export const esc = (s) =>
 // Share icon as an inline SVG (thin strokes, currentColor) so it takes on the
 // popup's muted text colour and matches the page's minimal look — an emoji
 // glyph renders in the OS's own style and clashes with the rest of the UI.
-const SHARE_ICON =
+export const SHARE_ICON =
   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M12 3v12" /><path d="M8 7l4-4 4 4" />' +
   '<path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" /></svg>';
@@ -325,12 +325,103 @@ export const selectionDimExpr = (idField, selectedId, bright, dim) => [
 ];
 
 // ─── Share links ────────────────────────────────────────────────────────────
-// Tree sharing only for this release (filter sharing is deliberately deferred,
-// see DECISIONS.md): a shared URL is trees.watch/?baum=<baumnummer>.
+// Two link types: `?baum=<baumnummer>` for a single tree, `?f=<compact JSON>`
+// for the filter state (encode/decode below). Links never carry language or
+// any other state.
 
 // One pass over a location.search string → the shared tree id, or null.
-// Unknown params (including a stale `f=` from an old build) are ignored.
+// Unknown params are ignored; a `f=` param belongs to the filter link below.
 export function parseSharedLink(search) {
   const baum = new URLSearchParams(search).get('baum');
   return baum ? String(baum) : null;
+}
+
+// ─── Shareable filters ──────────────────────────────────────────────────────
+// `?f=` carries the sidebar's filter state as compact JSON — the same state
+// shape the controls mirror (see DECISIONS.md). Curated collections travel
+// by id (the receiving site resolves them against its own collections.js, so
+// later edits propagate); search-derived genus groups travel as their raw
+// query + genus list, since they exist in no dataset. Language never travels.
+
+// Filter-state snapshot → the value for the `f` URL parameter, or '' when
+// nothing is set. Only active dimensions are written, and the year window is
+// omitted when the unknown-year checkbox or the young-tree toggle owns it —
+// a tree can't be both "no recorded year" and "within a range".
+export function encodeShareFilter(state) {
+  const out = {};
+  const c = state.collection;
+  if (c) {
+    out.c = c.search
+      ? { q: c.query || '', g: c.genera }
+      : c.id;
+  }
+  if (state.genus) out.g = state.genus;
+  // Species are scoped to a genus — without one they are meaningless.
+  if (state.genus && state.species) out.s = state.species;
+  if (state.yearUnknown) out.u = 1;
+  if (state.youngTree) out.w = 1;
+  if (!state.yearUnknown && !state.youngTree) {
+    if (state.yearMin != null) out.ym = state.yearMin;
+    if (state.yearMax != null) out.yx = state.yearMax;
+  }
+  if (state.blutbuche) out.b = 1;
+  return Object.keys(out).length ? encodeURIComponent(JSON.stringify(out)) : '';
+}
+
+// `f` parameter value → a sanitized filter snapshot, or null when absent,
+// malformed, or carrying nothing usable. Stale links (from old builds or
+// since-changed data) degrade to the plain map: unknown keys are ignored,
+// invalid values are dropped individually, everything is length- and
+// range-checked. The two year-window toggles stay mutually exclusive
+// (unknown-year wins, matching the UI's own order), and Blutbuche is
+// standalone by design — jumpToBlutbuche() resets everything else.
+export function decodeShareFilter(value) {
+  if (!value) return null;
+  let raw;
+  try {
+    raw = JSON.parse(value);
+  } catch (e) {
+    return null;
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (raw.b) return { blutbuche: true };
+  const out = {};
+  const name = (v) => (typeof v === 'string' && v && v.length <= 64 ? v : null);
+  const c = raw.c;
+  if (typeof c === 'string') {
+    if (name(c)) out.collection = { id: c };
+  } else if (c && typeof c === 'object' && !Array.isArray(c)) {
+    const genera = Array.isArray(c.g)
+      ? c.g.map(name).filter(Boolean).slice(0, 64)
+      : [];
+    if (genera.length) {
+      out.collection = {
+        search: true,
+        query: typeof c.q === 'string' ? c.q.slice(0, 80) : '',
+        genera,
+      };
+    }
+  }
+  const genus = name(raw.g);
+  if (genus) out.genus = genus;
+  const species = name(raw.s);
+  if (genus && species) out.species = species;
+  if (raw.u) out.yearUnknown = true;
+  else if (raw.w) out.youngTree = true;
+  else {
+    const year = (v) =>
+      (Number.isInteger(v) && v >= 1665 && v <= 2100 ? v : null);
+    const ym = year(raw.ym);
+    if (ym != null) out.yearMin = ym;
+    const yx = year(raw.yx);
+    if (yx != null) out.yearMax = yx;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// One pass over a location.search string → the decoded filter snapshot, or
+// null (no `f=` param, or one that fails validation above).
+export function parseFilterLink(search) {
+  const f = new URLSearchParams(search).get('f');
+  return f ? decodeShareFilter(f) : null;
 }

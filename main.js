@@ -29,7 +29,7 @@
 // L1384 Legend: renderDefaultLegend() / renderCollectionLegend() / refreshLegend()
 // L1511 Stats modal: openStats() / closeStats()
 // L1539 Intro/onboarding modal
-// L1585 flyToTree() / applyYearRange() / handleStatsAction() + share links (shareUrl, flyToTreeByNummer, releaseSharedLink)
+// L1585 flyToTree() / applyYearRange() / handleStatsAction() + share links (shareUrl, flyToTreeByNummer, releaseSharedLink, applySharedFilter)
 // L1635 Mobile sidebar toggle
 //
 // Key invariants (see also DECISIONS.md):
@@ -38,7 +38,7 @@
 //   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
-import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, selectionDimExpr, plantingYearSpan, isWateringSeason } from './helpers.js';
+import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, parseFilterLink, encodeShareFilter, selectionDimExpr, plantingYearSpan, isWateringSeason } from './helpers.js';
 import { collections } from './collections.js';
 import { curiosities } from './curiosities.js';
 import { computeStats, renderStatsHTML } from './stats.js';
@@ -774,14 +774,24 @@ map.on('load', async () => {
 
   applyFilters(); // initial count (whole city, no zoom)
 
-  // A shared link beats the default view: jump to the shared tree. The URL
-  // keeps the share until the visitor takes over (see releaseSharedLink). The
-  // latch is set AFTER the consume call — it runs its own
-  // applyFilters/resetFilterSelection synchronously, and those must not count
-  // as user takeover.
+  // A shared link beats the default view: a tree link jumps to its tree, a
+  // filter link rebuilds the filter (never both — the tree link wins). Either
+  // way the URL keeps the share until the visitor takes over (see
+  // releaseSharedLink). The latch is set AFTER the consume calls — they run
+  // their own applyFilters/reset synchronously, and those must not count as
+  // user takeover.
   const baum = parseSharedLink(location.search);
-  if (baum) flyToTreeByNummer(baum);
-  sharedLinkActive = Boolean(baum);
+  let sharedFilterApplied = false;
+  if (baum) {
+    flyToTreeByNummer(baum);
+  } else {
+    const shared = parseFilterLink(location.search);
+    if (shared) {
+      applySharedFilter(shared);
+      sharedFilterApplied = true;
+    }
+  }
+  sharedLinkActive = Boolean(baum) || sharedFilterApplied;
 });
 
 /* ------------------------------------------------------------------ *
@@ -1202,8 +1212,6 @@ function syncYearRange() {
   // otherwise the hint would be noise on every unfiltered view.
   if (yearAutoHintEl) yearAutoHintEl.hidden = !(span.min > MIN_YEAR || span.max < MAX_YEAR);
 }
-
-// Share the current filter was deferred to a later release (see DECISIONS.md).
 
 /* ------------------------------------------------------------------ *
  * Rarities — gold-star map modes (gene bank & Einzelgänger)
@@ -1846,12 +1854,14 @@ function genusGroupEntry(q, entries) {
 function jumpToGenusGroup(entry) {
   // The raw query ("Kastanie") stays in the search field; the resolved scope
   // shows up where it belongs — genus dropdown ("2 Gattungen" + members),
-  // species dropdown and legend.
+  // species dropdown and legend. The query rides on the collection object so
+  // a share link can rebuild the field text without touching the DOM.
   applyCollectionScope(
     {
       id: 'search:' + entry.genera.join(','),
       label: { de: entry.label, en: entry.label },
       genera: entry.genera,
+      query: entry.query,
     },
     entry.query
   );
@@ -2202,6 +2212,99 @@ function copyViaExecCommand(text) {
 
 // Query string (without the leading "?") → an absolute, shareable URL.
 const shareableUrl = (params) => `${location.origin}${location.pathname}?${params}`;
+
+// ─── Shared filter links (?f=…) ─────────────────────────────────────────────
+// The share button in the Filter panel hands the current filter state to the
+// same shareUrl() flow as the tree cards. The receiving side rebuilds the
+// filter by driving the very same control paths a visitor's own taps use —
+// the genus/species change handlers, the year-unknown checkbox, the
+// young-tree toggle, the "Filtern" button — so every control honestly
+// mirrors its slice of the state (see DECISIONS.md) instead of being set
+// silently behind the UI's back.
+
+// Plain snapshot of the active filter for encodeShareFilter(). Curated
+// collections travel by id; search-derived genus groups carry their raw
+// query + genus list (they exist in no dataset — the group is rebuilt from
+// them on arrival).
+function buildFilterShareState() {
+  const c = filterState.collection;
+  return {
+    collection: c
+      ? c.id.startsWith('search:')
+        ? { search: true, query: c.query || '', genera: c.genera }
+        : { id: c.id }
+      : null,
+    genus: filterState.genus,
+    species: filterState.species,
+    yearMin: filterState.yearMin,
+    yearMax: filterState.yearMax,
+    yearUnknown: filterState.yearUnknown,
+    youngTree: filterState.youngTree,
+    blutbuche: filterState.blutbuche,
+  };
+}
+
+const shareFilterBtn = document.querySelector('#share-filter');
+shareFilterBtn.addEventListener('click', () => {
+  const f = encodeShareFilter(buildFilterShareState());
+  // With no filter active the link is simply the plain map — still an honest
+  // share, and the button never needs a dead/disabled state.
+  shareUrl(f ? shareableUrl(`f=${f}`) : `${location.origin}${location.pathname}`);
+});
+
+// Rebuild a shared filter. Every step goes through the real control handlers
+// so the visible UI and the actual filter state stay in lockstep; degraded
+// links (a genus or collection that has since left the data) simply drop
+// that step rather than half-applying something the controls can't show.
+function applySharedFilter(s) {
+  if (s.blutbuche) return jumpToBlutbuche(); // a standalone view by design
+  if (s.collection) {
+    if (s.collection.search) {
+      // A search group survives only with genera still present in the data.
+      const genera = s.collection.genera.filter((g) => genusCount(g) > 0);
+      if (!genera.length) return;
+      const q = s.collection.query;
+      const label = q
+        ? `${q.charAt(0).toUpperCase()}${q.slice(1)} · ${genera.length} ${t('search.genusGroup')}`
+        : `${genera.length} ${t('search.genusGroup')}`;
+      applyCollectionScope(
+        { id: 'search:' + genera.join(','), label: { de: label, en: label }, genera, query: q },
+        q
+      );
+    } else {
+      const curated = collections.find((c) => c.id === s.collection.id);
+      if (!curated) return; // the collection left collections.js since the link
+      applyCollectionScope(curated, localized(curated.label));
+    }
+    // A genus drilled into the scope (via the legend) rides along inside it.
+    if (s.genus && filterState.collection?.genera.includes(s.genus)) {
+      filterState.genus = s.genus;
+      genusSelect.value = s.genus; // the scoped dropdown lists its member genera
+      applyFilters({ fit: true });
+    }
+  } else if (s.genus && treeMeta.genera.includes(s.genus)) {
+    jumpToGenus(s.genus); // change handler fills the species list and zooms
+    if (
+      s.species &&
+      treeMeta.speciesByGenus[s.genus]?.some((sp) => sp.art === s.species)
+    ) {
+      artSelect.value = s.species;
+      artSelect.dispatchEvent(new Event('change'));
+    }
+  }
+  // The year window belongs to exactly one owner (see DECISIONS.md): the
+  // unknown-year checkbox, the young-tree toggle, or a manual applied range.
+  if (s.yearUnknown) {
+    yearUnknownToggle.checked = true;
+    yearUnknownToggle.dispatchEvent(new Event('change'));
+  } else if (s.youngTree) {
+    youngTreeToggle.click(); // toggles on from its resting state
+  } else if (s.yearMin != null || s.yearMax != null) {
+    yearMinInput.value = s.yearMin ?? MIN_YEAR;
+    yearMaxInput.value = s.yearMax ?? MAX_YEAR;
+    document.querySelector('#apply_filters').click();
+  }
+}
 
 // A share link to a tree ID: make sure the tree is actually visible (a filter
 // would hide it otherwise), then reuse the plain coordinate flight + popup.

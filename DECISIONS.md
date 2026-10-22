@@ -7,6 +7,81 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · Touch-target sizes: ≥40px on the map, invisible hit-area extensions inline
+
+Katharina's accessibility pass found the small controls under the 44px touch
+guideline (WCAG 2.5.5 / Apple HIG): map control buttons were the library's
+29px, the popup's × was 24px, the card share icon ~15px, the filter share and
+help buttons 24px, the DE|EN buttons ~21px tall.
+
+Fixes, all in style.css, visual design preserved:
+- Map control buttons (geolocate, zoom, compass, fullscreen) → 40×40. Their
+  icons are centred background images that scale with the button — verified
+  before resizing. Attribution stays library-sized (excluded from the rule).
+- Popup close × → 36×36, flex-centred, hover colour + inside focus ring. The
+  header band's white strip grew with it (26 → 36px) so the × still sits
+  entirely on plain paper; `.tp-head` top/right padding and the fountain
+  popup's right padding grew to reserve the bigger column.
+- Card share icon: the 15px glyph keeps its exact inline position; an
+  invisible `::after` (inset −9px → ~33px, −14px under `pointer: coarse`
+  → ~43px) carries the real hit target. Pseudo-elements are part of the
+  element for hit testing — this grows the target without disturbing the
+  title's line flow.
+- Filter share + help buttons → 32×32; DE|EN buttons via padding → ~31px tall.
+
+**Do not:** shrink these back for visual tidiness, remove the `::after` hit
+extension (the glyph alone is un-hittable), or resize map-control icons via
+fixed sprite offsets — they are centred (`50% 50%`), which is what makes the
+button growth safe.
+
+---
+
+## 2026-10 · Filter sharing re-added: `?f=` + share button in the Filter panel
+
+Filter sharing is back (it was built, then cut before the tree-sharing release —
+see "Share links: parsed once on load" below). Katharina's placement call: the
+share icon lives **in the Filter panel's heading row** (`#share-filter`, next to
+the "Filter" h2) — it shares exactly what that panel configures, while the tree
+cards' share buttons keep meaning "share this tree". Same icon, different
+object, placed where the object lives. With no filter active the button shares
+the plain URL; it never greys out.
+
+Encoding (helpers.js, pure + unit-tested): `f` = compact JSON, only active
+dimensions. Curated collections travel **by id** (`{"c":"allergie"}` — the
+receiver resolves against its own collections.js, so later edits propagate);
+search-derived genus groups travel as raw query + genus list
+(`{"c":{"q":"Kastanie","g":[...]}}` — they exist in no dataset). Keys: `g` genus,
+`s` species (only with a genus), `ym`/`yx` year range, `u` unknown-year,
+`w` young-tree, `b` Blutbuche. Language never travels.
+
+Decoding rules that matter:
+- Malformed/hostile payloads degrade to the plain map: unknown keys ignored,
+  every value length- and range-checked (names ≤64 chars, years 1665–2100),
+  and a payload with nothing left after sanitizing → null.
+- The two year-window toggles stay mutually exclusive in links (`u` wins,
+  matching the UI's own order); a year range is never encoded while a toggle
+  owns the window.
+- Blutbuche is standalone by design — `jumpToBlutbuche()` resets everything,
+  so a `b` link drops all other keys.
+- A stale/unknown curated id (collection renamed or removed since the link was
+  made) degrades to the plain map, never to a half-built scope.
+
+`applySharedFilter()` (main.js) rebuilds the filter by **driving the real
+control paths** — genus/species change events, the year-unknown checkbox, the
+young-tree toggle, the "Filtern" button — never by silently setting
+`filterState`. That is what keeps every control honestly mirroring its slice
+(entry above) on the receiving end too. A genus drilled into a collection
+(legend tap) rides along inside the scope. `?baum=` wins if a link somehow
+carries both. As with tree links, the URL keeps the share until the visitor
+takes over (`sharedLinkActive`, set after the consume calls).
+
+**Do not:** set `filterState` directly in the shared-filter path (that's how
+the display-lies state bugs crept in before), encode collection *genera lists*
+for curated chips (id only), or drop a shared-filter step silently into a
+"best effort" mixture the controls can't display.
+
+---
+
 ## 2026-10 · Every control mirrors its own slice of the filter state
 
 The old genus-group behaviour faked a state: the search field showed
