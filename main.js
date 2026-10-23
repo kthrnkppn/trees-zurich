@@ -209,12 +209,13 @@ const BLUTBUCHE_DE_NAMES = [
 ];
 
 // Classic orchard-fruit genera — used to split the single-specimen trees into
-// the "living gene bank" (old fruit varieties) versus the exotic "Einzelgänger".
+// the "living gene bank" (one-of-a-kind fruit varieties, mostly historic
+// cultivars) versus the exotic "Einzelgänger".
 const GENE_BANK_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
 
 // Latin names (baumnamelat) that occur exactly once in the whole city, split by
 // kind. Filled once the data is loaded; drive the two gold-star map modes.
-let genbankNames = new Set(); // unique old fruit varieties
+let genbankNames = new Set(); // unique fruit varieties (mostly historic cultivars)
 let loanerNames = new Set(); // unique non-fruit exotics
 
 function computeSpeciesCounts() {
@@ -1075,16 +1076,17 @@ youngTreeToggle.addEventListener('click', () => {
 
 // Seasonal placement of the "Im Sommer" section: during the watering season
 // (May–September, see isWateringSeason in helpers.js) it sits directly below
-// the filters; the rest of the year it drops below the Sammlungen so the
-// evergreen content comes first. Position only — the control stays visible
-// and functional year-round, and the heading explains itself ("Im Sommer")
-// when it sits lower. Deterministic: everyone sees the same order on the
-// same day.
+// the filters; the rest of the year it drops below "Raritäten & Kuriositäten"
+// so the evergreen content — Sammlungen AND the rarities (the gene bank
+// matters in winter too) — comes first. Position only — the control stays
+// visible and functional year-round, and the heading explains itself ("Im
+// Sommer") when it sits lower. Deterministic: everyone sees the same order on
+// the same day.
 function positionSummerSection() {
   if (isWateringSeason()) return; // stays where the HTML puts it
   const summerSection = document.querySelector('#summer-section');
-  const collectionsSection = document.querySelector('#collections')?.closest('section');
-  if (summerSection && collectionsSection) collectionsSection.after(summerSection);
+  const raritiesSection = document.querySelector('#rarities-section');
+  if (summerSection && raritiesSection) raritiesSection.after(summerSection);
 }
 positionSummerSection();
 

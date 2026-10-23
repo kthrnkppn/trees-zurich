@@ -8,7 +8,7 @@ import { lang, t, genusName, numberFormat, localized } from './i18n.js';
 import { GENUS_FIELD, SPECIES_FIELD, YEAR_FIELD, LATIN_NAME_FIELD, DE_NAME_FIELD } from './fields.js';
 import { esc } from './helpers.js';
 
-// Fruit genera — for the "living gene bank of old fruit varieties" story.
+// Fruit genera — for the "living gene bank of one-of-a-kind fruit varieties" story.
 const FRUIT_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
 
 // A clean short label: prefer the curated genus name in the active language,
@@ -216,7 +216,7 @@ function computeCuriosities(features, genusTotals) {
     .sort((a, b) => a.localeCompare(b, 'de'));
 
   // Arten-Einzelstücke (voller lateinischer Name kommt nur 1× vor) und davon
-  // alte Obstsorten – Zürichs lebende Genbank.
+  // einmalige Obstsorten – Zürichs lebende Genbank.
   const speciesCounts = new Map();
   for (const f of features) {
     const n = f.properties[LATIN_NAME_FIELD];

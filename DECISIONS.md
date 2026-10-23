@@ -447,11 +447,14 @@ the whole point is to show pins without judging them.
 ## 2026-10-21 · "Im Sommer" section: seasonal sidebar position
 The young-tree/watering control lives in its own "Im Sommer" panel between
 Filter and Sammlungen in the HTML. From October through April,
-`positionSummerSection()` (main.js) moves it below the Sammlungen so
-evergreen content comes first; May–September (`isWateringSeason()` in
-helpers.js, pure + unit-tested) it stays put. Repositioning, never hiding —
-the control must remain visible and functional year-round. Deterministic by
-date: everyone sees the same order on the same day.
+`positionSummerSection()` (main.js) moves it below the "Raritäten &
+Kuriositäten" panel (originally only below the Sammlungen — Katharina moved
+it further down in 2026-10: the gene bank matters in winter too, so the
+rarities must not be pushed away by a summer control); May–September
+(`isWateringSeason()` in helpers.js, pure + unit-tested) it stays put.
+Repositioning, never hiding — the control must remain visible and functional
+year-round. Deterministic by date: everyone sees the same order on the same
+day.
 
 **Do not:** hide or remove the section in winter, drive placement from live
 rain data (unpredictable moves), or un-mirror `isWateringSeason` between

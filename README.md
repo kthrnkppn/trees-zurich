@@ -29,7 +29,7 @@ Interaktive Karte aller ~81'000 Stadtbäume Zürichs. Filter nach Gattung, Art u
 - **Klickbare Legende**: Gattung antippen filtert die Karte, nochmal antippen hebt die Auswahl wieder auf
 - **Teilen**: 🔗 im Baum-Popup kopiert einen Direktlink zum Baum (öffnet ihn direkt mit Karte und Popup)
 - **Sammlungen** (Obstbäume, Nadelbäume, Herbstfärbung, Frühlingsblüher)
-- **Raritäten**: Lebende Genbank (alte Obstsorten) & Einzelgänger (goldene Sterne)
+- **Raritäten**: Lebende Genbank (einmalige Obstsorten) & Einzelgänger (goldene Sterne)
 - **Kuriositäten**: anklickbare Liste exotischer Bäume, springt direkt hin
 - **Zahlen & Trends**-Modal – live aus den Daten berechnet, alle Werte anklickbar (springen direkt zur Gattung/zum Jahr/zum Baum)
 - **Neue Bäume** seit dem letzten Update hervorheben
