@@ -1232,12 +1232,10 @@ const treasureModes = {
 };
 let activeTreasure = null; // 'genbank' | 'loner' | null
 
-// The explanation unfolds below the buttons while its star mode is active —
-// discoverable text instead of a hover-only tooltip (invisible on mobile).
+// The explanation unfolds directly beneath its own button while that star
+// mode is active — discoverable text instead of a hover-only tooltip
+// (invisible on mobile), and always next to the button it belongs to.
 function syncRarityInfo() {
-  const box = document.querySelector('#rarity-info');
-  if (!box) return;
-  box.hidden = !activeTreasure;
   const genbankText = document.querySelector('#rarity-info-genbank');
   const lonerText = document.querySelector('#rarity-info-loner');
   if (genbankText) genbankText.hidden = activeTreasure !== 'genbank';

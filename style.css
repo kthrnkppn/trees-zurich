@@ -500,13 +500,10 @@ body {
   border-color: var(--lime);
   color: var(--lime);
 }
-/* Explanation that unfolds beneath the rarity buttons while their star mode
-   is active — visible text instead of a hover-only tooltip. */
-.rarity-info {
-  overflow: hidden;
-}
-.rarity-info p {
-  margin: 10px 1px 0;
+/* Explanation that unfolds directly beneath its rarity button while that
+   star mode is active — visible text instead of a hover-only tooltip. */
+p.rarity-info {
+  margin: 10px 1px 2px;
   padding: 10px 12px;
   font-size: 12.5px;
   line-height: 1.55;
