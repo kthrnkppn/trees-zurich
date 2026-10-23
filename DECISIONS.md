@@ -7,6 +7,24 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · Rarity explanations unfold on activation, not tooltips
+
+The "Lebende Genbank" / "Einzelgänger" buttons explain themselves in a text
+block that unfolds beneath them while their star mode is active
+(`#rarity-info`, swapped per mode, folds on deactivate — `syncRarityInfo()`
+in main.js). Katharina rejected hover tooltips after she couldn't find the
+explanation on the page: tooltips are invisible on touch devices and
+undiscoverable. Wording is data-honest by design: "einmalige Obstsorten"
+(not "alte" — the data proves uniqueness, not the age of the cultivar; most
+are historic landraces, a few are modern breeds), and the loner text spells
+out "Zürich, not the world".
+
+**Do not:** move these explanations back into `title` attributes, or make
+the wording claim more than the filter rule supports (uniqueness within the
+city's tree catalogue).
+
+---
+
 ## 2026-10 · Touch-target sizes: ≥40px on the map, invisible hit-area extensions inline
 
 Katharina's accessibility pass found the small controls under the 44px touch

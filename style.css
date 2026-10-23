@@ -500,6 +500,19 @@ body {
   border-color: var(--lime);
   color: var(--lime);
 }
+/* Explanation that unfolds beneath the rarity buttons while their star mode
+   is active — visible text instead of a hover-only tooltip. */
+.rarity-info {
+  overflow: hidden;
+}
+.rarity-info p {
+  margin: 10px 1px 0;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--paper-dim);
+  border-left: 2px solid var(--gold);
+}
 /* Teaser: announced but not yet available (revealed each December). */
 .gone-trees-btn.is-teaser {
   border-style: dashed;

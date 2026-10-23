@@ -1232,6 +1232,18 @@ const treasureModes = {
 };
 let activeTreasure = null; // 'genbank' | 'loner' | null
 
+// The explanation unfolds below the buttons while its star mode is active —
+// discoverable text instead of a hover-only tooltip (invisible on mobile).
+function syncRarityInfo() {
+  const box = document.querySelector('#rarity-info');
+  if (!box) return;
+  box.hidden = !activeTreasure;
+  const genbankText = document.querySelector('#rarity-info-genbank');
+  const lonerText = document.querySelector('#rarity-info-loner');
+  if (genbankText) genbankText.hidden = activeTreasure !== 'genbank';
+  if (lonerText) lonerText.hidden = activeTreasure !== 'loner';
+}
+
 // Restore the normal map without touching the filter state (used when the user
 // switches to a regular filter while a gold-star mode is open).
 function exitTreasureMode() {
@@ -1240,6 +1252,7 @@ function exitTreasureMode() {
   btn.classList.remove('is-active');
   btn.setAttribute('aria-pressed', 'false');
   activeTreasure = null;
+  syncRarityInfo(); // the explanation folds away with the mode
   if (map.getLayer(treasureLayerId)) map.setLayoutProperty(treasureLayerId, 'visibility', 'none');
   if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
 }
@@ -1262,6 +1275,7 @@ function toggleTreasure(modeKey) {
   activeTreasure = modeKey;
   mode.btn.classList.add('is-active');
   mode.btn.setAttribute('aria-pressed', 'true');
+  syncRarityInfo(); // the matching explanation unfolds beneath the buttons
   map.setFilter(treasureLayerId, ['in', ['get', LATIN_NAME_FIELD], ['literal', [...names]]]);
   map.setLayoutProperty(layerId, 'visibility', 'none');
   map.setLayoutProperty(treasureLayerId, 'visibility', 'visible');

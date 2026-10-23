@@ -220,12 +220,20 @@
         <section class="panel" id="rarities-section" aria-labelledby="rarities-heading">
           <h2 id="rarities-heading" data-i18n="rarities.heading">Raritäten &amp; Kuriositäten</h2>
 
-          <button id="genbank-toggle" class="treasure-btn" aria-pressed="false" data-i18n="rarities.genbank" data-i18n-title="rarities.genbankTitle" title="Obstsorten, die stadtwelt genau einmal vorkommen — überwiegend historische Landsorten wie die Büschelibirne, vereinzelt auch moderne Züchtungen. Die Stadt Zürich pflanzt seltene Sorten gezielt an, damit sie nicht verschwinden.">
+          <button id="genbank-toggle" class="treasure-btn" aria-pressed="false" data-i18n="rarities.genbank">
             Lebende Genbank – einmalige Obstsorten
           </button>
-          <button id="loner-toggle" class="treasure-btn" aria-pressed="false" data-i18n="rarities.loner" data-i18n-title="rarities.lonerTitle" title="Arten, die in der ganzen Stadt genau einmal vorkommen — also wirklich nur ein einziger Baum pro Art, vom Ginkgo bis zum Zanthoxylum. Gemeint ist Zürich, nicht die Welt: Manche dieser Bäume sind andernorts häufig, in Zürich gibt es sie aber nur dieses eine Mal.">
+          <button id="loner-toggle" class="treasure-btn" aria-pressed="false" data-i18n="rarities.loner">
             Einzelgänger – je nur 1× in Zürich
           </button>
+          <div id="rarity-info" class="rarity-info" hidden>
+            <p id="rarity-info-genbank" data-i18n="rarities.genbankInfo" hidden>
+              Obstsorten, die stadtwelt genau einmal vorkommen — überwiegend historische Landsorten wie die Büschelibirne, vereinzelt auch moderne Züchtungen. Die Stadt Zürich pflanzt seltene Sorten gezielt an, damit sie nicht verschwinden.
+            </p>
+            <p id="rarity-info-loner" data-i18n="rarities.lonerInfo" hidden>
+              Arten, die in der ganzen Stadt genau einmal vorkommen — also wirklich nur ein einziger Baum pro Art, vom Ginkgo bis zum Zanthoxylum. Gemeint ist Zürich, nicht die Welt: Manche dieser Bäume sind andernorts häufig, in Zürich gibt es sie aber nur dieses eine Mal.
+            </p>
+          </div>
 
           <details class="curiosities">
             <summary data-i18n="curiosities.summary">Kuriositäten – exotische Bäume</summary>
