@@ -141,6 +141,8 @@ const strings = {
     'rarities.genbankTitle':
       'Obstsorten, die stadtwelt genau einmal vorkommen — überwiegend historische Landsorten wie die Büschelibirne, vereinzelt auch moderne Züchtungen. Die Stadt Zürich pflanzt seltene Sorten gezielt an, damit sie nicht verschwinden.',
     'rarities.loner': 'Einzelgänger – je nur 1× in Zürich',
+    'rarities.lonerTitle':
+      'Arten, die in der ganzen Stadt genau einmal vorkommen — also wirklich nur ein einziger Baum pro Art, vom Ginkgo bis zum Zanthoxylum. Gemeint ist Zürich, nicht die Welt: Manche dieser Bäume sind andernorts häufig, in Zürich gibt es sie aber nur dieses eine Mal.',
     'curiosities.summary': 'Kuriositäten – exotische Bäume',
     'curiosities.hint': 'Tippe einen Baum an – die Karte bringt dich direkt hin.',
     'legend.heading': 'Baumgattungen',
@@ -285,6 +287,8 @@ const strings = {
     'rarities.genbankTitle':
       'Fruit varieties that occur exactly once in the whole city — mostly historic heritage cultivars such as the Büschelibirne pear, with a few modern breeds among them. The city plants rare varieties deliberately so they do not disappear.',
     'rarities.loner': 'Loners – just 1× in Zurich each',
+    'rarities.lonerTitle':
+      'Species that occur exactly once in the whole city — literally a single tree per species, from ginkgo to Zanthoxylum. That means Zurich, not the world: some of these trees are common elsewhere, but this is the city\'s only one.',
     'curiosities.summary': 'Curiosities – exotic trees',
     'curiosities.hint': 'Tap a tree – the map takes you straight there.',
     'legend.heading': 'Tree genera',
