@@ -2,11 +2,10 @@
 // L9    Imports & i18n bootstrap (applyStaticI18n, lang buttons)
 // L23   Layer & source ID constants
 // L36   GENUS_COLORS — colour palette, drives map paint + legend
-// L63   makeStarImage() — gold star canvas icon for treasure/rarity layers
-// L93   makeDropImage() — blue water-drop canvas icon for fountain layer
+// L60   makeDropImage() — blue water-drop canvas icon for fountain layer
 // L129  Module-level state: allFeatures, genusCounts, newTrees, goneTrees, fountainsCount
 // L157  filterState — single source of truth for all active filters
-// L178  computeSpeciesCounts() — fills genbankNames / loanerNames on load
+// L190  computeSpeciesCounts() — fills genbankNames / loanerNames on load
 // L202  matchesCollection / hasActiveFilter / matchesFilter / buildMapFilter
 // L244  fitToMatches() / applyFilters() — the central filter engine
 // L271  Nominatim geocoder setup
@@ -19,7 +18,7 @@
 // L661  genus + species dropdowns / fillSpecies()
 // L741  deactivateYoungTree() — clears young-tree state + hides rain section
 // L780  Rain feature: fetchRain(), station30DaySum(), updateRainInfo()
-// L893  exitTreasureMode() / toggleTreasure() — gold-star rarity modes
+// L893  Rarity scopes: activateRarityScope() / toggleRarityScope() — Genbank & Einzelgänger as filters
 // L942  setFountainsVisible() — fountain overlay visibility (no own button!)
 // L953  setupNewTreesButton() / exitNewTreesMode() / toggleNewTreesMode()
 // L1009 pickRevealedGoneYear() / setupGoneTreesButton() / exitGoneMode() / toggleGoneMode()
@@ -35,7 +34,7 @@
 // Key invariants (see also DECISIONS.md):
 //   - Fountains are ONLY toggled by the youngTree handler / deactivateYoungTree()
 //   - Every new exclusive mode must call exit…() for all *other* modes
-//   - Grep: exitTreasureMode|exitNewTreesMode|exitGoneMode
+//   - Grep: exitRarityScope|exitNewTreesMode|exitGoneMode
 // ────────────────────────────────────────────────────────────────────────────
 import { treeMeta } from './treeMeta.js';
 import { getPopupContent, detectBrowserName, isIOSDevice, geolocateErrorKey, esc, station30DaySum, parseSharedLink, parseFilterLink, encodeShareFilter, selectionDimExpr, plantingYearSpan, isWateringSeason } from './helpers.js';
@@ -60,7 +59,6 @@ const speciesLabel = (genus, art, deLabel) => (lang === 'en' ? `${genus} ${art}`
 const allSpeciesOption = () => `<option value="0">${t('filter.allSpecies')}</option>`;
 
 const layerId = 'tree-points-layer';
-const treasureLayerId = 'treasure-stars-layer';
 const newTreesLayerId = 'new-trees-layer';
 const newTreesSourceId = 'new-trees';
 const goneTreesLayerId = 'gone-trees-layer';
@@ -96,41 +94,8 @@ function buildGenusColorExpression() {
   return ['match', ['get', GENUS_FIELD], ...pairs, OTHER_COLOR];
 }
 
-// Draw a gold five-pointed star on a canvas for the treasure-map markers.
-// Returns ImageData (+ pixelRatio) so MapLibre can use it as an icon, without
-// relying on a star glyph being present in the map font.
-function makeStarImage(size = 34) {
-  const pixelRatio = 2;
-  const s = size * pixelRatio;
-  const canvas = document.createElement('canvas');
-  canvas.width = s;
-  canvas.height = s;
-  const ctx = canvas.getContext('2d');
-  const cx = s / 2;
-  const cy = s / 2;
-  const spikes = 5;
-  const outer = s * 0.44;
-  const inner = s * 0.19;
-  ctx.beginPath();
-  for (let i = 0; i < spikes * 2; i++) {
-    const r = i % 2 === 0 ? outer : inner;
-    const a = -Math.PI / 2 + (i * Math.PI) / spikes;
-    const x = cx + Math.cos(a) * r;
-    const y = cy + Math.sin(a) * r;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fillStyle = '#f4b400'; // gold
-  ctx.strokeStyle = '#6b4a00'; // dark outline for contrast on the light map
-  ctx.lineWidth = s * 0.07;
-  ctx.lineJoin = 'round';
-  ctx.fill();
-  ctx.stroke();
-  return { image: ctx.getImageData(0, 0, s, s), pixelRatio };
-}
-
-// A dark-blue teardrop "pin" for fountains — drawn on canvas (like the treasure
-// star) so it doesn't depend on a font glyph. The point at the bottom marks the
+// A dark-blue teardrop "pin" for fountains — drawn on canvas so it doesn't
+// depend on a font glyph. The point at the bottom marks the
 // exact spot; the round bulb + colour make it read as water, clearly not a
 // (round) tree dot even where markers pile up on each other.
 function makeDropImage(size = 30) {
@@ -214,9 +179,10 @@ const BLUTBUCHE_DE_NAMES = [
 const GENE_BANK_GENERA = new Set(['Malus', 'Prunus', 'Pyrus', 'Cydonia', 'Juglans', 'Mespilus']);
 
 // Latin names (baumnamelat) that occur exactly once in the whole city, split by
-// kind. Filled once the data is loaded; drive the two gold-star map modes.
+// kind. Filled once the data is loaded; drive the two rarity filter scopes.
 let genbankNames = new Set(); // unique fruit varieties (mostly historic cultivars)
 let loanerNames = new Set(); // unique non-fruit exotics
+let varietyGenusOf = new Map(); // latin name → genus (filled by the same pass)
 
 function computeSpeciesCounts() {
   const counts = new Map();
@@ -234,11 +200,19 @@ function computeSpeciesCounts() {
     if (GENE_BANK_GENERA.has(genusOf.get(name))) genbank.add(name);
     else loner.add(name);
   }
+  varietyGenusOf = genusOf; // queried for the unique names only
   return { genbank, loner };
 }
 
-// True if a feature belongs to the active collection (a curated genus set).
+// True if a feature belongs to the active collection. Curated collections and
+// search groups restrict by genus; rarity scopes (Lebende Genbank /
+// Einzelgänger) carry a `names` set of unique latin names — the actual
+// restriction — plus an optional picked `variety` narrowing to a single one.
 function matchesCollection(p, c) {
+  if (c.names) {
+    if (c.variety) return p[LATIN_NAME_FIELD] === c.variety;
+    return c.names.has(p[LATIN_NAME_FIELD]);
+  }
   return c.genera.includes(p[GENUS_FIELD]);
 }
 
@@ -273,7 +247,19 @@ function matchesFilter(f) {
 function buildMapFilter() {
   const e = ['all'];
   const c = filterState.collection;
-  if (c) e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
+  if (c) {
+    // Rarity scopes restrict by unique latin name (the genera ride along
+    // implicitly); everything else restricts by genus.
+    if (c.names) {
+      e.push(
+        c.variety
+          ? ['==', ['get', LATIN_NAME_FIELD], c.variety]
+          : ['in', ['get', LATIN_NAME_FIELD], ['literal', [...c.names]]]
+      );
+    } else {
+      e.push(['in', ['get', GENUS_FIELD], ['literal', c.genera]]);
+    }
+  }
   if (filterState.genus) e.push(['==', ['get', GENUS_FIELD], filterState.genus]);
   if (filterState.species) e.push(['==', ['get', SPECIES_FIELD], filterState.species]);
   if (filterState.blutbuche) e.push(['in', ['get', DE_NAME_FIELD], ['literal', BLUTBUCHE_DE_NAMES]]);
@@ -530,19 +516,13 @@ function closeOpenTreePopups() {
 // simply exempt from spotlighting.
 function updateTreeDimming() {
   const top = openTreePopups[openTreePopups.length - 1];
-  for (const id of [layerId, treasureLayerId, newTreesLayerId, goneTreesLayerId]) {
+  for (const id of [layerId, newTreesLayerId, goneTreesLayerId]) {
     if (!map.getLayer(id)) continue;
-    if (id === treasureLayerId) {
-      // The treasure layer draws stars (symbols), not circles.
-      map.setPaintProperty(id, 'icon-opacity',
-        top ? selectionDimExpr(ID_FIELD, top.id, 1, DIM_OPACITY) : 1);
-    } else {
-      const bright = id === goneTreesLayerId ? 0.85 : 1; // the layer's base opacity
-      const expr = top ? selectionDimExpr(ID_FIELD, top.id, bright, DIM_OPACITY) : bright;
-      map.setPaintProperty(id, 'circle-opacity', expr);
-      // The white halo's base opacity is 1 on every circle layer.
-      map.setPaintProperty(id, 'circle-stroke-opacity', top ? selectionDimExpr(ID_FIELD, top.id, 1, DIM_OPACITY) : 1);
-    }
+    const bright = id === goneTreesLayerId ? 0.85 : 1; // the layer's base opacity
+    const expr = top ? selectionDimExpr(ID_FIELD, top.id, bright, DIM_OPACITY) : bright;
+    map.setPaintProperty(id, 'circle-opacity', expr);
+    // The white halo's base opacity is 1 on every circle layer.
+    map.setPaintProperty(id, 'circle-stroke-opacity', top ? selectionDimExpr(ID_FIELD, top.id, 1, DIM_OPACITY) : 1);
   }
 }
 
@@ -663,28 +643,6 @@ map.on('load', async () => {
     },
   });
 
-  // Gold star marker for the treasure map (drawn on a canvas so we don't depend
-  // on a font glyph being available).
-  if (!map.hasImage('treasure-star')) {
-    const star = makeStarImage();
-    map.addImage('treasure-star', star.image, { pixelRatio: star.pixelRatio });
-  }
-
-  // Treasure layer: rare trees as gold stars. The filter is set per mode
-  // (gene bank / Einzelgänger) on activation; starts matching nothing.
-  map.addLayer({
-    id: treasureLayerId,
-    type: 'symbol',
-    source: sourceId,
-    filter: ['in', ['get', LATIN_NAME_FIELD], ['literal', []]],
-    layout: {
-      'icon-image': 'treasure-star',
-      'icon-allow-overlap': true,
-      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.4, 13, 0.55, 16, 0.75, 20, 1],
-      visibility: 'none',
-    },
-  });
-
   // New-trees layer: its own small source (not filtered from the main one),
   // since "new since last update" isn't a property of a tree — it's a diff
   // result computed once by the update script. Hidden until toggled on.
@@ -758,7 +716,7 @@ map.on('load', async () => {
   const showPopup = (e) => {
     openTreePopup(e.lngLat, e.features[0].properties);
   };
-  for (const id of [layerId, treasureLayerId, newTreesLayerId, goneTreesLayerId]) {
+  for (const id of [layerId, newTreesLayerId, goneTreesLayerId]) {
     map.on('mouseenter', id, () => {
       map.getCanvas().style.cursor = 'pointer';
     });
@@ -913,6 +871,11 @@ fillGenusSelect();
 const speciesCountOption = (n) =>
   `<option value="__scope__">${t('filter.speciesCount', { n })}</option>`;
 
+// Same pattern for a rarity scope's variety dropdown — the count entry says
+// "Sorten" because the list holds unique varieties, not species.
+const varietyCountOption = (n) =>
+  `<option value="__scope__">${t('filter.varietyCount', { n })}</option>`;
+
 function fillSpecies(genus) {
   const list = treeMeta.speciesByGenus[genus] || [];
   artSelect.innerHTML = allSpeciesOption() + (list.length ? speciesCountOption(list.length) : '');
@@ -949,9 +912,58 @@ function fillSpeciesForGenera(genera) {
   if (total) artSelect.value = '__scope__';
 }
 
+// The unique varieties of a rarity scope (Lebende Genbank / Einzelgänger),
+// grouped under their genus and sorted alphabetically — the scope's own
+// species dropdown. Option values carry a "#" sentinel: inside a rarity scope
+// the change handler reads them as variety picks (a full latin name, not a
+// baumartlat epithet).
+function fillVarietiesForGenera(genera, names) {
+  const wanted = new Set(genera);
+  const byGenus = new Map();
+  for (const name of names) {
+    const genus = varietyGenusOf.get(name);
+    if (!wanted.has(genus)) continue;
+    if (!byGenus.has(genus)) byGenus.set(genus, []);
+    byGenus.get(genus).push(name);
+  }
+  const total = [...byGenus.values()].reduce((s, list) => s + list.length, 0);
+  artSelect.innerHTML = allSpeciesOption() + (total ? varietyCountOption(total) : '');
+  for (const genus of [...byGenus.keys()].sort((a, b) => genusName(a).localeCompare(genusName(b), lang))) {
+    const group = document.createElement('optgroup');
+    group.label = genusName(genus);
+    for (const name of byGenus.get(genus).sort((a, b) => a.localeCompare(b, lang))) {
+      const option = document.createElement('option');
+      option.value = `#${name}`;
+      option.textContent = name;
+      group.appendChild(option);
+    }
+    artSelect.appendChild(group);
+  }
+  if (total) artSelect.value = '__scope__';
+}
+
 genusSelect.addEventListener('change', (e) => {
   exitAllModes();
   const genus = e.target.value;
+  // Inside a rarity scope (Lebende Genbank / Einzelgänger) the picked genus
+  // narrows WITHIN the scope — the unique-variety restriction is the point of
+  // the view, so it must survive a drill-down (unlike curated collections,
+  // where a genus pick ends the scope). "Alle Gattungen" stays the exit.
+  const rarity = filterState.collection?.names ? filterState.collection : null;
+  if (rarity) {
+    if (genus === '0') {
+      deactivateRarity(); // full exit — back to the unfiltered city
+      applyFilters(); // no auto-zoom, back to full city
+    } else {
+      rarity.variety = null; // re-narrowing the genus invalidates a picked variety
+      filterState.genus = genus === '__scope__' ? null : genus;
+      filterState.species = null;
+      fillVarietiesForGenera(genus === '__scope__' ? rarity.genera : [genus], rarity.names);
+      syncYearRange(); // year fields re-span the narrowed selection
+      applyFilters({ fit: true });
+    }
+    return;
+  }
   const hadScope = !!filterState.collection;
   // Genus and collections are mutually exclusive.
   filterState.collection = null;
@@ -978,6 +990,24 @@ genusSelect.addEventListener('change', (e) => {
 
 artSelect.addEventListener('change', (e) => {
   const value = e.target.value;
+  // Inside a rarity scope the species dropdown lists the unique varieties
+  // themselves ("Sorten", values "#<latin name>") — not the species table.
+  const rarity = filterState.collection?.names ? filterState.collection : null;
+  if (rarity) {
+    if (value.startsWith('#')) {
+      pickVariety(value.slice(1));
+    } else {
+      // "Alle Arten" or the count entry ("292 Sorten") — a display of the
+      // list size / the clear-action, not a filter: drop the picked variety.
+      rarity.variety = null;
+      // The list re-mirrors the genus slice: narrowed to that genus's
+      // varieties, or the whole scope when no genus is picked.
+      fillVarietiesForGenera(filterState.genus ? [filterState.genus] : rarity.genera, rarity.names);
+      syncYearRange();
+      applyFilters({ fit: true });
+    }
+    return;
+  }
   if (value === '__scope__') {
     // The count entry ("36 Arten") — a display of the list size, not a filter.
     filterState.species = null;
@@ -996,6 +1026,21 @@ artSelect.addEventListener('change', (e) => {
   syncYearRange(); // narrowing to a species narrows the shown span too
   applyFilters({ fit: true });
 });
+
+// Pick one unique variety inside a rarity scope: exactly one tree matches, so
+// the filter narrows to it and the map flies there. The variety implies its
+// genus, so the genus filter + dropdown mirror it too — every control keeps
+// showing its own slice of the state.
+function pickVariety(name) {
+  const rarity = filterState.collection;
+  if (!rarity?.names || !rarity.names.has(name)) return;
+  rarity.variety = name;
+  filterState.genus = varietyGenusOf.get(name) || null;
+  filterState.species = null;
+  if (filterState.genus) genusSelect.value = filterState.genus; // the scoped dropdown lists member genera
+  syncYearRange();
+  applyFilters({ fit: true });
+}
 
 document.querySelector('#apply_filters').addEventListener('click', () => {
   exitAllModes();
@@ -1216,75 +1261,98 @@ function syncYearRange() {
 }
 
 /* ------------------------------------------------------------------ *
- * Rarities — gold-star map modes (gene bank & Einzelgänger)
+ * Rarities — "Lebende Genbank" & "Einzelgänger" as filter scopes
+ *
+ * The two buttons behave like the collection chips (Allergiebäume …):
+ * activating one applies a synthetic collection whose `names` set holds the
+ * unique latin names — the actual restriction — so the genus dropdown shows
+ * the scope's member genera ("n Gattungen" + members) and the species
+ * dropdown lists the unique varieties themselves, sorted, grouped by genus.
+ * The map shows the normal filtered dots, the legend lists the scope's
+ * genera with their variety counts.
  * ------------------------------------------------------------------ */
-const treasureModes = {
-  genbank: {
-    btn: document.querySelector('#genbank-toggle'),
-    names: () => genbankNames,
-    label: (n) => t('count.genbank', { n: numberFormat.format(n) }),
-  },
-  loner: {
-    btn: document.querySelector('#loner-toggle'),
-    names: () => loanerNames,
-    label: (n) => t('count.loner', { n: numberFormat.format(n) }),
-  },
+const rarityButtons = {
+  genbank: document.querySelector('#genbank-toggle'),
+  loner: document.querySelector('#loner-toggle'),
 };
-let activeTreasure = null; // 'genbank' | 'loner' | null
+let activeRarity = null; // 'genbank' | 'loner' | null
 
-// The explanation unfolds directly beneath its own button while that star
-// mode is active — discoverable text instead of a hover-only tooltip
+// The explanation unfolds directly beneath its own button while that rarity
+// scope is active — discoverable text instead of a hover-only tooltip
 // (invisible on mobile), and always next to the button it belongs to.
 function syncRarityInfo() {
   const genbankText = document.querySelector('#rarity-info-genbank');
   const lonerText = document.querySelector('#rarity-info-loner');
-  if (genbankText) genbankText.hidden = activeTreasure !== 'genbank';
-  if (lonerText) lonerText.hidden = activeTreasure !== 'loner';
+  if (genbankText) genbankText.hidden = activeRarity !== 'genbank';
+  if (lonerText) lonerText.hidden = activeRarity !== 'loner';
 }
 
-// Restore the normal map without touching the filter state (used when the user
-// switches to a regular filter while a gold-star mode is open).
-function exitTreasureMode() {
-  if (!activeTreasure) return;
-  const { btn } = treasureModes[activeTreasure];
+// The synthetic collection behind a rarity scope. Built fresh on activation —
+// the unique-name sets only exist once the tree data is loaded. `names` is
+// the shared Set (never mutated); a picked variety narrows it via `variety`.
+function rarityCollection(kind) {
+  const names = kind === 'genbank' ? genbankNames : loanerNames;
+  const genera = [...new Set([...names].map((n) => varietyGenusOf.get(n)))]
+    .sort((a, b) => genusName(a).localeCompare(genusName(b), lang));
+  return { id: kind, genera, names, variety: null };
+}
+
+// Deactivate the rarity UI only (button + explanation). The filter state is
+// the caller's business — clearCollectionUI() uses this so the buttons stay
+// in sync whenever the active collection changes through any path.
+function exitRarityScope() {
+  if (!activeRarity) return;
+  const btn = rarityButtons[activeRarity];
   btn.classList.remove('is-active');
   btn.setAttribute('aria-pressed', 'false');
-  activeTreasure = null;
-  syncRarityInfo(); // the explanation folds away with the mode
-  if (map.getLayer(treasureLayerId)) map.setLayoutProperty(treasureLayerId, 'visibility', 'none');
-  if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
+  activeRarity = null;
+  syncRarityInfo(); // the explanation folds away with the scope
 }
 
-function toggleTreasure(modeKey) {
-  if (activeTreasure === modeKey) {
-    exitTreasureMode();
-    applyFilters();
+// Full teardown: scope off, dropdowns back to the full city lists, the scope
+// name out of the search field. applyFilters() is the caller's job.
+function deactivateRarity() {
+  exitRarityScope();
+  filterState.collection = null;
+  filterState.genus = null;
+  filterState.species = null;
+  fillGenusSelect(); // scoped dropdown hands back the full genus list
+  genusSelect.value = '0';
+  artSelect.innerHTML = allSpeciesOption();
+  if (searchFieldShowsCollection) treeSearchInput.value = '';
+  searchFieldShowsCollection = false;
+  syncYearRange(); // back to the whole city — fields re-span everything
+}
+
+function activateRarityScope(kind) {
+  exitAllModes();
+  resetFilterSelection(); // a rarity scope is its own view — clear other filters
+  const c = rarityCollection(kind);
+  filterState.collection = c;
+  activeRarity = kind;
+  rarityButtons[kind].classList.add('is-active');
+  rarityButtons[kind].setAttribute('aria-pressed', 'true');
+  setGenusScope(c.genera);
+  fillVarietiesForGenera(c.genera, c.names);
+  treeSearchInput.value = t(kind === 'genbank' ? 'rarities.genbankLabel' : 'rarities.lonerLabel');
+  searchFieldShowsCollection = true;
+  syncRarityInfo(); // the matching explanation unfolds beneath the button
+  syncYearRange(); // year fields re-span the scope's trees
+  applyFilters({ fit: true });
+}
+
+function toggleRarityScope(kind) {
+  if (activeRarity === kind) {
+    deactivateRarity();
+    applyFilters(); // no auto-zoom, back to full city
     return;
   }
   if (!allFeatures.length) return; // data not loaded yet
-  exitAllModes(); // turn off any other mode if it was active
-
-  // A gold-star mode is its own view — clear any active filters/collections.
-  resetFilterSelection();
-  refreshLegend();
-
-  const mode = treasureModes[modeKey];
-  const names = mode.names();
-  activeTreasure = modeKey;
-  mode.btn.classList.add('is-active');
-  mode.btn.setAttribute('aria-pressed', 'true');
-  syncRarityInfo(); // the matching explanation unfolds beneath the buttons
-  map.setFilter(treasureLayerId, ['in', ['get', LATIN_NAME_FIELD], ['literal', [...names]]]);
-  map.setLayoutProperty(layerId, 'visibility', 'none');
-  map.setLayoutProperty(treasureLayerId, 'visibility', 'visible');
-
-  const matches = allFeatures.filter((f) => names.has(f.properties[LATIN_NAME_FIELD]));
-  if (treeCountElem) treeCountElem.textContent = mode.label(matches.length);
-  fitToMatches(matches);
+  activateRarityScope(kind);
 }
 
-treasureModes.genbank.btn.addEventListener('click', () => toggleTreasure('genbank'));
-treasureModes.loner.btn.addEventListener('click', () => toggleTreasure('loner'));
+rarityButtons.genbank.addEventListener('click', () => toggleRarityScope('genbank'));
+rarityButtons.loner.addEventListener('click', () => toggleRarityScope('loner'));
 
 /* ------------------------------------------------------------------ *
  * Public fountains — a watering aid with no control of its own: shown/hidden
@@ -1422,22 +1490,23 @@ function exitGoneMode() {
   if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', 'visible');
 }
 
-// The three exclusive map "views" (gold-star rarities, new trees, gone trees)
-// are mutually exclusive with each other and with a regular filter — entering
-// any one of them, or applying a regular filter, first backs out of whichever
-// of these might currently be active. Each exit function already guards
-// against exiting a mode that isn't active, so calling all three unconditionally
-// is always safe.
+// The two exclusive map "views" (new trees, gone trees) are mutually exclusive
+// with each other and with a regular filter — entering any one of them, or
+// applying a regular filter, first backs out of whichever might currently be
+// active. (The rarities are no longer a mode of their own: they are filter
+// scopes, handled through the collection machinery.) Each exit function
+// already guards against exiting a mode that isn't active, so calling them
+// unconditionally is always safe.
 function exitAllModes() {
-  exitTreasureMode();
   exitNewTreesMode();
   exitGoneMode();
 }
 
 // Clears any active genus/species/collection/year-unknown filter and resets
-// the matching UI controls (dropdown, collection chips, year-unknown toggle).
-// None of the three exclusive modes above mix with a manual filter selection,
-// so this runs alongside exitAllModes() whenever entering one of them or resetting.
+// the matching UI controls (dropdown, collection chips, rarity buttons,
+// year-unknown toggle). None of the exclusive modes above mix with a manual
+// filter selection, so this runs alongside exitAllModes() whenever entering
+// one of them or resetting.
 function resetFilterSelection() {
   clearCollectionUI();
   fillGenusSelect(); // a scoped dropdown hands back the full genus list
@@ -1496,9 +1565,10 @@ goneTreesBtn.addEventListener('click', toggleGoneMode);
  * ------------------------------------------------------------------ */
 const curiosityListEl = document.querySelector('#curiosities-list');
 
-// Select a genus the same way the dropdown does (clears treasure mode /
-// collections, zooms to the matches) — reuses the dropdown change handler.
+// Select a genus the same way the dropdown does (clears collections /
+// rarity scopes, zooms to the matches) — reuses the dropdown change handler.
 function jumpToGenus(genus) {
+  if (activeRarity) deactivateRarity(); // external jumps start fresh, not inside a rarity scope
   genusSelect.value = genus;
   genusSelect.dispatchEvent(new Event('change'));
 }
@@ -1550,6 +1620,7 @@ function clearCollectionUI() {
     btn.classList.remove('is-active');
     btn.setAttribute('aria-pressed', 'false');
   }
+  exitRarityScope(); // the rarity buttons are collection-scoped controls too
 }
 
 // While a collection/group scope is active, the genus dropdown mirrors exactly
@@ -1832,6 +1903,7 @@ function renderSuggestions() {
 }
 
 function jumpToSpecies(genus, art) {
+  if (activeRarity) deactivateRarity(); // external jumps start fresh, not inside a rarity scope
   genusSelect.value = genus;
   genusSelect.dispatchEvent(new Event('change')); // fills species options + sets genus
   artSelect.value = art;
@@ -1955,6 +2027,16 @@ function selectGenusInCollection(genus) {
   const select = filterState.genus !== genus;
   filterState.genus = select ? genus : null;
   filterState.species = null;
+  // Rarity scopes: narrowing via the legend also drops a picked variety, and
+  // the variety dropdown re-lists just the narrowed genus (or the whole scope
+  // again when the genus is cleared). The genus dropdown mirrors the pick.
+  if (filterState.collection?.names) {
+    const c = filterState.collection;
+    c.variety = null;
+    fillVarietiesForGenera(select ? [genus] : c.genera, c.names);
+    genusSelect.value = select ? genus : '__scope__';
+  }
+  syncYearRange(); // year fields re-span the narrowed selection
   applyFilters({ fit: select }); // zoom in when picking; stay put when clearing
 }
 
@@ -2005,14 +2087,24 @@ function renderDefaultLegend() {
 
 // Collection legend: the genera of the active collection that actually occur in
 // the data, most common first, each with its count and clickable to isolate.
+// Rarity scopes count their unique varieties per genus — the genus's full tree
+// count would wildly overstate what the filter actually shows.
 function renderCollectionLegend(collection) {
   legendEl.innerHTML = '';
   legendButtons.clear();
-  const present = collection.genera
-    .filter((g) => genusCount(g) > 0)
-    .sort((a, b) => genusCount(b) - genusCount(a));
+  let counts = null;
+  if (collection.names) {
+    counts = new Map();
+    for (const name of collection.names) {
+      const genus = varietyGenusOf.get(name);
+      counts.set(genus, (counts.get(genus) || 0) + 1);
+    }
+  }
+  const countOf = counts ? (g) => counts.get(g) || 0 : genusCount;
+  const present = collection.genera.filter((g) => countOf(g) > 0)
+    .sort((a, b) => countOf(b) - countOf(a));
   for (const genus of present) {
-    legendEl.appendChild(makeGenusRow(genus, genusCount(genus), true));
+    legendEl.appendChild(makeGenusRow(genus, countOf(genus), true));
   }
 }
 
@@ -2239,14 +2331,18 @@ const shareableUrl = (params) => `${location.origin}${location.pathname}?${param
 // Plain snapshot of the active filter for encodeShareFilter(). Curated
 // collections travel by id; search-derived genus groups carry their raw
 // query + genus list (they exist in no dataset — the group is rebuilt from
-// them on arrival).
+// them on arrival). Rarity scopes travel by id too ('genbank'/'loner' — the
+// receiver rebuilds the unique-name sets from its own data), plus an optional
+// narrowed variety as its latin name.
 function buildFilterShareState() {
   const c = filterState.collection;
   return {
     collection: c
       ? c.id.startsWith('search:')
         ? { search: true, query: c.query || '', genera: c.genera }
-        : { id: c.id }
+        : c.variety
+          ? { id: c.id, v: c.variety }
+          : { id: c.id }
       : null,
     genus: filterState.genus,
     species: filterState.species,
@@ -2273,6 +2369,7 @@ shareFilterBtn.addEventListener('click', () => {
 function applySharedFilter(s) {
   if (s.blutbuche) return jumpToBlutbuche(); // a standalone view by design
   if (s.collection) {
+    let varietyApplied = false;
     if (s.collection.search) {
       // A search group survives only with genera still present in the data.
       const genera = s.collection.genera.filter((g) => genusCount(g) > 0);
@@ -2285,16 +2382,34 @@ function applySharedFilter(s) {
         { id: 'search:' + genera.join(','), label: { de: label, en: label }, genera, query: q },
         q
       );
+    } else if (s.collection.id === 'genbank' || s.collection.id === 'loner') {
+      // A rarity scope resolves against the receiving site's own data (the
+      // unique-name sets are recomputed on every load), like a curated id.
+      if (!allFeatures.length) return;
+      activateRarityScope(s.collection.id);
+      if (s.collection.variety && filterState.collection?.names.has(s.collection.variety)) {
+        artSelect.value = `#${s.collection.variety}`;
+        artSelect.dispatchEvent(new Event('change')); // the real pick path
+        varietyApplied = true;
+      }
     } else {
       const curated = collections.find((c) => c.id === s.collection.id);
       if (!curated) return; // the collection left collections.js since the link
       applyCollectionScope(curated, localized(curated.label));
     }
     // A genus drilled into the scope (via the legend) rides along inside it.
-    if (s.genus && filterState.collection?.genera.includes(s.genus)) {
-      filterState.genus = s.genus;
-      genusSelect.value = s.genus; // the scoped dropdown lists its member genera
-      applyFilters({ fit: true });
+    // A picked variety already implies its genus, so it wins.
+    if (s.genus && !varietyApplied && filterState.collection?.genera.includes(s.genus)) {
+      if (filterState.collection?.names) {
+        // Rarity scopes narrow through their own change handler — it keeps
+        // the scope alive and rebuilds the variety list for that genus.
+        genusSelect.value = s.genus;
+        genusSelect.dispatchEvent(new Event('change'));
+      } else {
+        filterState.genus = s.genus;
+        genusSelect.value = s.genus; // the scoped dropdown lists its member genera
+        applyFilters({ fit: true });
+      }
     }
   } else if (s.genus && treeMeta.genera.includes(s.genus)) {
     jumpToGenus(s.genus); // change handler fills the species list and zooms

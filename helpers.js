@@ -340,8 +340,10 @@ export function parseSharedLink(search) {
 // `?f=` carries the sidebar's filter state as compact JSON — the same state
 // shape the controls mirror (see DECISIONS.md). Curated collections travel
 // by id (the receiving site resolves them against its own collections.js, so
-// later edits propagate); search-derived genus groups travel as their raw
-// query + genus list, since they exist in no dataset. Language never travels.
+// later edits propagate); rarity scopes travel by id too ('genbank'/'loner',
+// resolved against the receiving site's own data) with an optional narrowed
+// variety; search-derived genus groups travel as their raw query + genus
+// list, since they exist in no dataset. Language never travels.
 
 // Filter-state snapshot → the value for the `f` URL parameter, or '' when
 // nothing is set. Only active dimensions are written, and the year window is
@@ -353,7 +355,9 @@ export function encodeShareFilter(state) {
   if (c) {
     out.c = c.search
       ? { q: c.query || '', g: c.genera }
-      : c.id;
+      : c.variety
+        ? { id: c.id, v: c.variety }
+        : c.id;
   }
   if (state.genus) out.g = state.genus;
   // Species are scoped to a genus — without one they are meaningless.
@@ -391,15 +395,22 @@ export function decodeShareFilter(value) {
   if (typeof c === 'string') {
     if (name(c)) out.collection = { id: c };
   } else if (c && typeof c === 'object' && !Array.isArray(c)) {
-    const genera = Array.isArray(c.g)
-      ? c.g.map(name).filter(Boolean).slice(0, 64)
-      : [];
-    if (genera.length) {
-      out.collection = {
-        search: true,
-        query: typeof c.q === 'string' ? c.q.slice(0, 80) : '',
-        genera,
-      };
+    if (typeof c.id === 'string' && name(c.id)) {
+      // A collection id plus an optional narrowed variety (rarity scopes
+      // carry their picked "Sorte" as its latin name).
+      out.collection = { id: c.id };
+      if (name(c.v)) out.collection.variety = c.v;
+    } else {
+      const genera = Array.isArray(c.g)
+        ? c.g.map(name).filter(Boolean).slice(0, 64)
+        : [];
+      if (genera.length) {
+        out.collection = {
+          search: true,
+          query: typeof c.q === 'string' ? c.q.slice(0, 80) : '',
+          genera,
+        };
+      }
     }
   }
   const genus = name(raw.g);

@@ -128,6 +128,27 @@ test('collection + drilled-down genus roundtrip', () => {
   });
 });
 
+test('rarity scope travels by id; a picked variety rides along as its latin name', () => {
+  // No variety picked: the scope is a plain id, like a curated collection.
+  assertEquals(parseFilterLink(`?f=${encodeURIComponent('{"c":"genbank"}')}`), {
+    collection: { id: 'genbank' },
+  });
+  // Variety picked: id + latin name roundtrip.
+  const enc = encodeShareFilter({
+    collection: { id: 'genbank', variety: "Malus domestica 'Boskoop'" },
+  });
+  assertEquals(parseFilterLink(`?f=${enc}`), {
+    collection: { id: 'genbank', variety: "Malus domestica 'Boskoop'" },
+  });
+  // An overlong "variety" is dropped, the scope itself survives.
+  assertEquals(
+    decodeShareFilter(JSON.stringify({ c: { id: 'loner', v: 'x'.repeat(65) } })),
+    { collection: { id: 'loner' } }
+  );
+  // An object without a usable id is not mistaken for a search group.
+  assertEquals(decodeShareFilter(JSON.stringify({ c: { v: 'Malus domestica' } })), null);
+});
+
 test('malformed / hostile payloads degrade to null or a sanitized subset', () => {
   assertEquals(decodeShareFilter('not-json'), null);
   assertEquals(decodeShareFilter('[]'), null);

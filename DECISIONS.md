@@ -7,6 +7,55 @@ Add a new entry whenever a meaningful, non-obvious decision is made.
 
 ---
 
+## 2026-10 · Rarities are filter scopes, not a star mode
+
+"Lebende Genbank" and "Einzelgänger" no longer run a gold-star map mode; the
+buttons now behave exactly like the collection chips (Katharina's request:
+"wie bei den Allergiebäumen"). Activating one applies a **synthetic
+collection with a `names` set** — the unique latin names are the actual
+restriction, `genera` only drives the scoped controls:
+
+- Genus dropdown: "n Gattungen" scope entry + the member genera (Genbank:
+  5 — Malus/Prunus/Pyrus/Juglans/Cydonia; Einzelgänger: 64), sorted by
+  displayed name.
+- Species dropdown: the unique varieties themselves ("Sorten"), grouped per
+  genus, alphabetically sorted, count entry "{n} Sorten"
+  (`filter.varietyCount`). Values carry a `#<latin name>` sentinel — inside a
+  names-scope the artSelect handler reads them as variety picks, never as
+  baumartlat epithets.
+- Picking a variety (`pickVariety`) narrows to that ONE tree and flies there;
+  it also sets `filterState.genus` (the variety implies its genus) so every
+  control mirrors its slice. `variety` lives on the collection object, not in
+  filterState — matchesCollection()/buildMapFilter() read it from there.
+- **A genus pick inside a rarity scope narrows WITHIN the scope** (unlike
+  curated collections, where it ends the scope) — the uniqueness restriction
+  is the point of the view and must survive drill-down. "Alle Gattungen"
+  ('0') stays the full exit. External jumps (jumpToGenus/jumpToSpecies from
+  curiosities, legend-in-default-mode, search, stats) deliberately
+  `deactivateRarity()` first: they start fresh, never filter inside the scope.
+- The map shows the normal filtered dots; the star layer (`treasureLayerId`,
+  `makeStarImage`, `count.genbank`/`count.loner`) is removed. The
+  rarity-info explanation blocks still unfold beneath the buttons on
+  activation (entry below still applies).
+- The legend counts unique varieties per genus (not `genusCount`, which
+  would show ~6000 for Malus while the filter shows 133).
+- Share links: rarity scopes travel as `{"c":"genbank"}` (resolved against
+  the receiver's own data, like curated ids) plus an optional narrowed
+  variety `{"c":{"id":"genbank","v":"Pyrus communis 'Büschelibirne'"}}`
+  (≤64 chars, validated against the receiver's own name set). The genus
+  ride-along is skipped when a variety is applied — the variety already
+  implies its genus, and re-driving the genus handler would clear the pick.
+- `clearCollectionUI()` also calls `exitRarityScope()`, so every path that
+  replaces the active collection (chips, reset, new-trees/gone modes) keeps
+  the rarity buttons honest.
+
+**Do not:** reintroduce the star layer for these views, let a genus pick
+inside a rarity scope escape the uniqueness restriction, or encode the full
+`names` list in a share link (id only — the receiver rebuilds the sets from
+its own data, so data updates propagate).
+
+---
+
 ## 2026-10 · Rarity explanations unfold on activation, not tooltips
 
 The "Lebende Genbank" / "Einzelgänger" buttons explain themselves in a text

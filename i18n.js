@@ -120,6 +120,7 @@ const strings = {
     'filter.allGenera': 'Alle Gattungen',
 
     'filter.speciesCount': '{n} Arten',
+    'filter.varietyCount': '{n} Sorten',
     'filter.species': 'Baumart',
     'filter.allSpecies': 'Alle Arten',
     'filter.year': 'Pflanzjahr',
@@ -138,9 +139,11 @@ const strings = {
     'collections.heading': 'Sammlungen',
     'rarities.heading': 'Raritäten & Kuriositäten',
     'rarities.genbank': 'Lebende Genbank – einmalige Obstsorten',
+    'rarities.genbankLabel': 'Lebende Genbank',
     'rarities.genbankInfo':
       'Obstsorten, die stadtwelt genau einmal vorkommen — überwiegend historische Landsorten wie die Büschelibirne, vereinzelt auch moderne Züchtungen. Die Stadt Zürich pflanzt seltene Sorten gezielt an, damit sie nicht verschwinden.',
     'rarities.loner': 'Einzelgänger – je nur 1× in Zürich',
+    'rarities.lonerLabel': 'Einzelgänger',
     'rarities.lonerInfo':
       'Arten, die in der ganzen Stadt genau einmal vorkommen — also wirklich nur ein einziger Baum pro Art, vom Ginkgo bis zum Zanthoxylum. Gemeint ist Zürich, nicht die Welt: Manche dieser Bäume sind andernorts häufig, in Zürich gibt es sie aber nur dieses eine Mal.',
     'curiosities.summary': 'Kuriositäten – exotische Bäume',
@@ -177,8 +180,6 @@ const strings = {
     'filter.matchCount': '{n} Treffer auf der Karte',
     'count.filtered': '{n} von {total} Bäumen',
     'count.total': '{total} Bäume',
-    'count.genbank': '{n} einmalige Obstsorten – lebende Genbank',
-    'count.loner': '{n} Einzelgänger – je nur 1× in Zürich',
     'fountains.fallbackName': 'Brunnen',
     'new.one': '1 neuer Baum seit dem letzten Update',
     'new.many': '{n} neue Bäume seit dem letzten Update',
@@ -266,6 +267,7 @@ const strings = {
     'filter.allGenera': 'All genera',
 
     'filter.speciesCount': '{n} species',
+    'filter.varietyCount': '{n} varieties',
     'filter.species': 'Species',
     'filter.allSpecies': 'All species',
     'filter.year': 'Planting year',
@@ -284,9 +286,11 @@ const strings = {
     'collections.heading': 'Collections',
     'rarities.heading': 'Rarities & curiosities',
     'rarities.genbank': 'Living gene bank – one-of-a-kind fruit varieties',
+    'rarities.genbankLabel': 'Living gene bank',
     'rarities.genbankInfo':
       'Fruit varieties that occur exactly once in the whole city — mostly historic heritage cultivars such as the Büschelibirne pear, with a few modern breeds among them. The city plants rare varieties deliberately so they do not disappear.',
     'rarities.loner': 'Loners – just 1× in Zurich each',
+    'rarities.lonerLabel': 'Loners',
     'rarities.lonerInfo':
       'Species that occur exactly once in the whole city — literally a single tree per species, from ginkgo to Zanthoxylum. That means Zurich, not the world: some of these trees are common elsewhere, but this is the city\'s only one.',
     'curiosities.summary': 'Curiosities – exotic trees',
@@ -322,8 +326,6 @@ const strings = {
     'filter.matchCount': '{n} shown on the map',
     'count.filtered': '{n} of {total} trees',
     'count.total': '{total} trees',
-    'count.genbank': '{n} one-of-a-kind fruit varieties – living gene bank',
-    'count.loner': '{n} loners – just 1× in Zurich each',
     'fountains.fallbackName': 'Fountain',
     'new.one': '1 new tree since the last update',
     'new.many': '{n} new trees since the last update',
